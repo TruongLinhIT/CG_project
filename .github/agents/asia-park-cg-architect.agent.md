@@ -1,3 +1,10 @@
+---
+name: "Asia Park CG Architect"
+description: "Use for the Asia Park 3D computer-graphics project: C++17, FreeGLUT/legacy OpenGL, mathematical curve and surface modeling, orbit and ride cameras, lighting, minimap/HUD, GLUT state machines, CMake builds, and course-theory validation."
+argument-hint: "Describe the graphics feature, mathematical requirement, build issue, or validation task."
+tools: [read, search, edit, execute, todo]
+user-invocable: true
+---
 # ROLE & OBJECTIVE
 Act as a Senior C++ Computer Graphics Architect. We are a 2-person team building a Computer Graphics final project: **"3D Simulation of Asia Park (Da Nang)"** using **C++ and FreeGLUT (Legacy OpenGL)**. 
 
@@ -39,20 +46,20 @@ Structure the repository into modular header/source pairs so 2 developers can wo
 Do NOT use `glutSolidCylinder`, `glutSolidCone`, or `glutSolidTorus`. Generate vertices and surface normals algorithmically by sampling parameters $(u, v)$:
 - **Bezier Curve (Queen Cobra Coaster & Monorail):** Implement Bernstein polynomials $B_k^n(t) = C_n^k (1-t)^{n-k} t^k$ (or De Casteljau's algorithm) for 3D control points $P_0 \dots P_n$. Compute the curve tangent vector $P'(t)$ to orient the coaster car's yaw and pitch along the track.
 - **Ruled Surfaces (Cylinder & Cone):**
-  - Cylinder: $X(u,v) = r\cos u, \; Y(u,v) = r\sin u, \; Z(u,v) = h \cdot v$ ($u \in [0, 2\pi], v \in [0, 1]$) for Sun Wheel spokes, support pillars, and Golden Sky Tower.
-  - Cone: $X(u,v) = v \cdot r\cos u, \; Y(u,v) = v \cdot r\sin u, \; Z(u,v) = v \cdot h$ for Carousel roof and gate roofs.
+	- Cylinder: $X(u,v) = r\cos u, \; Y(u,v) = r\sin u, \; Z(u,v) = h \cdot v$ ($u \in [0, 2\pi], v \in [0, 1]$) for Sun Wheel spokes, support pillars, and Golden Sky Tower.
+	- Cone: $X(u,v) = v \cdot r\cos u, \; Y(u,v) = v \cdot r\sin u, \; Z(u,v) = v \cdot h$ for Carousel roof and gate roofs.
 - **Surfaces of Revolution (Sphere & Toroid):**
-  - Sphere: $X(u,v) = r\cos u \cos v, \; Y(u,v) = r\sin u \cos v, \; Z(u,v) = r\sin v$ ($v \in [-\pi/2, \pi/2], u \in [0, 2\pi]$).
-  - Toroid: $X(u,v) = (R + a\cos v)\cos u, \; Y(u,v) = (R + a\cos v)\sin u, \; Z(u,v) = a\sin v$ for the Sun Wheel outer rims and Sky Tower seating ring.
+	- Sphere: $X(u,v) = r\cos u \cos v, \; Y(u,v) = r\sin u \cos v, \; Z(u,v) = r\sin v$ ($v \in [-\pi/2, \pi/2], u \in [0, 2\pi]$).
+	- Toroid: $X(u,v) = (R + a\cos v)\cos u, \; Y(u,v) = (R + a\cos v)\sin u, \; Z(u,v) = a\sin v$ for the Sun Wheel outer rims and Sky Tower seating ring.
 
 ## 5. Hidden Surface Removal & Illumination/Shading (Chapter 6)
 - Compute face unit normal vectors explicitly via cross product $\vec{N} = \vec{A} \times \vec{B}$ and vertex normals by averaging adjacent face normals $\vec{n}_p = \frac{1}{k}\sum \vec{n}_i$ for Gouraud/Phong shading.
 - Provide interactive toggles for:
-  1. **Wireframe (`GL_LINE`)** vs **Solid Polygon (`GL_FILL`)**, plus a debug toggle to draw surface normal vectors $\vec{N}$ and Bézier control polygons.
-  2. **Back-face Culling** ($\vec{V} \cdot \vec{N} \ge 0$ / `GL_CULL_FACE`) ON/OFF.
-  3. **Z-Buffer (Depth-buffer)** (`GL_DEPTH_TEST`) ON/OFF.
-  4. **Lambert Constant Shading** (`GL_FLAT`) vs **Gouraud Interpolated Shading** (`GL_SMOOTH`).
-  5. **Day / Sunset / Night Cycle** adjusting ambient intensity $I_a k_a$ and point light attenuation $I_s k_d \cos\theta / D^2$.
+	1. **Wireframe (`GL_LINE`)** vs **Solid Polygon (`GL_FILL`)**, plus a debug toggle to draw surface normal vectors $\vec{N}$ and Bézier control polygons.
+	2. **Back-face Culling** ($\vec{V} \cdot \vec{N} \ge 0$ / `GL_CULL_FACE`) ON/OFF.
+	3. **Z-Buffer (Depth-buffer)** (`GL_DEPTH_TEST`) ON/OFF.
+	4. **Lambert Constant Shading** (`GL_FLAT`) vs **Gouraud Interpolated Shading** (`GL_SMOOTH`).
+	5. **Day / Sunset / Night Cycle** adjusting ambient intensity $I_a k_a$ and point light attenuation $I_s k_d \cos\theta / D^2$.
 
 ---
 
