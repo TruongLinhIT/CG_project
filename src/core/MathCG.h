@@ -59,6 +59,14 @@ struct Vec3 {
     }
 };
 
+inline Vec3 operator*(float s, const Vec3& v) {
+    return Vec3(v.x * s, v.y * s, v.z * s);
+}
+
+inline Vec3 lerp(const Vec3& a, const Vec3& b, float t) {
+    return a + (b - a) * t;
+}
+
 /**
  * @brief Dot product: A . B = Ax*Bx + Ay*By + Az*Bz
  */
@@ -251,6 +259,22 @@ struct Mat4 {
         return Vec3(xp, yp, zp);
     }
 
+    Vec3 transformVector(const Vec3& v) const {
+        return Vec3(
+            at(0, 0) * v.x + at(0, 1) * v.y + at(0, 2) * v.z,
+            at(1, 0) * v.x + at(1, 1) * v.y + at(1, 2) * v.z,
+            at(2, 0) * v.x + at(2, 1) * v.y + at(2, 2) * v.z
+        );
+    }
+
+    static Mat4 fromBasis(const Vec3& right, const Vec3& up, const Vec3& forward, const Vec3& pos = Vec3()) {
+        Mat4 mat;
+        mat.at(0, 0) = right.x;   mat.at(0, 1) = up.x;   mat.at(0, 2) = forward.x; mat.at(0, 3) = pos.x;
+        mat.at(1, 0) = right.y;   mat.at(1, 1) = up.y;   mat.at(1, 2) = forward.y; mat.at(1, 3) = pos.y;
+        mat.at(2, 0) = right.z;   mat.at(2, 1) = up.z;   mat.at(2, 2) = forward.z; mat.at(2, 3) = pos.z;
+        return mat;
+    }
+
     static Mat4 translate(float dx, float dy, float dz) {
         Mat4 mat;
         mat.at(0, 3) = dx;
@@ -327,11 +351,11 @@ inline int binomialCoeff(int n, int k) {
     if (k < 0 || k > n) return 0;
     if (k == 0 || k == n) return 1;
     if (k > n - k) k = n - k;
-    int res = 1;
+    long long res = 1;
     for (int i = 1; i <= k; ++i) {
         res = res * (n - k + i) / i;
     }
-    return res;
+    return static_cast<int>(res);
 }
 
 /**
@@ -357,17 +381,56 @@ inline Vec3 evaluateBezierPoint(const std::vector<Vec3>& controlPoints, float t)
 }
 
 /**
- * @brief Evaluate Bezier tangent vector P'(t) = n * sum_{k=0..n-1} (P_{k+1} - P_k) * B_k^{n-1}(t)
+ * @brief Chapter 5: Evaluate degree-n Bezier point via De Casteljau's recursive linear interpolation
+ */
+inline Vec3 evaluateBezierDeCasteljau(const std::vector<Vec3>& controlPoints, float t) {
+    if (controlPoints.empty()) return Vec3();
+    t = std::clamp(t, 0.0f, 1.0f);
+    std::vector<Vec3> temp = controlPoints;
+    const int n = static_cast<int>(temp.size()) - 1;
+    for (int r = 1; r <= n; ++r) {
+        for (int i = 0; i <= n - r; ++i) {
+            temp[i] = lerp(temp[i], temp[i + 1], t);
+        }
+    }
+    return temp[0];
+}
+
+/**
+ * @brief Evaluate unnormalized Bezier first derivative vector P'(t) = n * sum_{k=0..n-1} (P_{k+1} - P_k) * B_k^{n-1}(t)
+ */
+inline Vec3 evaluateBezierDerivativeRaw(const std::vector<Vec3>& controlPoints, float t) {
+    int n = static_cast<int>(controlPoints.size()) - 1;
+    if (n < 1) return Vec3(0.0f, 0.0f, 1.0f);
+    Vec3 deriv(0.0f, 0.0f, 0.0f);
+    for (int k = 0; k <= n - 1; ++k) {
+        Vec3 diff = controlPoints[k + 1] - controlPoints[k];
+        deriv += diff * bernsteinBasis(n - 1, k, t);
+    }
+    return deriv * static_cast<float>(n);
+}
+
+/**
+ * @brief Evaluate normalized Bezier unit tangent vector T(t) = P'(t) / ||P'(t)||
  */
 inline Vec3 evaluateBezierTangent(const std::vector<Vec3>& controlPoints, float t) {
     int n = static_cast<int>(controlPoints.size()) - 1;
     if (n < 1) return Vec3(0.0f, 0.0f, 1.0f);
-    Vec3 tangent(0.0f, 0.0f, 0.0f);
-    for (int k = 0; k <= n - 1; ++k) {
-        Vec3 diff = controlPoints[k + 1] - controlPoints[k];
-        tangent += diff * bernsteinBasis(n - 1, k, t);
+    return evaluateBezierDerivativeRaw(controlPoints, t).normalized();
+}
+
+/**
+ * @brief Evaluate Bezier second derivative vector P''(t) = n*(n-1) * sum_{k=0..n-2} (P_{k+2} - 2P_{k+1} + P_k) * B_k^{n-2}(t)
+ */
+inline Vec3 evaluateBezierSecondDerivative(const std::vector<Vec3>& controlPoints, float t) {
+    int n = static_cast<int>(controlPoints.size()) - 1;
+    if (n < 2) return Vec3(0.0f, 0.0f, 0.0f);
+    Vec3 secondDeriv(0.0f, 0.0f, 0.0f);
+    for (int k = 0; k <= n - 2; ++k) {
+        Vec3 diff2 = controlPoints[k + 2] - controlPoints[k + 1] * 2.0f + controlPoints[k];
+        secondDeriv += diff2 * bernsteinBasis(n - 2, k, t);
     }
-    return (tangent * static_cast<float>(n)).normalized();
+    return secondDeriv * static_cast<float>(n * (n - 1));
 }
 
 } // namespace MathCG

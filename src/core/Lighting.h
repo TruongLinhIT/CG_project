@@ -70,6 +70,7 @@ public:
         }
 
         if (!lightingEnabled) {
+            glDisable(GL_LIGHT2);
             glDisable(GL_LIGHTING);
             return;
         }
@@ -78,6 +79,8 @@ public:
         glEnable(GL_COLOR_MATERIAL);
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
         glEnable(GL_NORMALIZE);
+        glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
+        resetMaterial();
 
         // --------------------------------------------------------------------
         // Global Ambient Intensity I_a and Light0 (Sun / Moon)
@@ -142,19 +145,74 @@ public:
         glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, 0.00018f);
     }
 
+    /**
+     * @brief Configure Light 2 as a warm directional headlight on the Queen Cobra lead car
+     *        during Sunset and Night modes (with quadratic attenuation).
+     */
+    void applyCoasterHeadlight(const MathCG::Vec3& pos, const MathCG::Vec3& forward) const {
+        if (!lightingEnabled || timeOfDay == TimeOfDay::DAY) {
+            glDisable(GL_LIGHT2);
+            return;
+        }
+
+        float scale = (timeOfDay == TimeOfDay::NIGHT) ? 1.0f : 0.45f;
+        GLfloat pos4[4]  = { pos.x, pos.y, pos.z, 1.0f };
+        GLfloat dir3[3]  = { forward.x, forward.y, forward.z };
+        GLfloat diff[4]  = { 1.0f * scale, 0.90f * scale, 0.65f * scale, 1.0f };
+        GLfloat spec[4]  = { 1.0f * scale, 0.92f * scale, 0.72f * scale, 1.0f };
+        GLfloat amb[4]   = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+        glEnable(GL_LIGHT2);
+        glLightfv(GL_LIGHT2, GL_POSITION,       pos4);
+        glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, dir3);
+        glLightf (GL_LIGHT2, GL_SPOT_CUTOFF,    35.0f);
+        glLightf (GL_LIGHT2, GL_SPOT_EXPONENT,  14.0f);
+        glLightfv(GL_LIGHT2, GL_AMBIENT,        amb);
+        glLightfv(GL_LIGHT2, GL_DIFFUSE,        diff);
+        glLightfv(GL_LIGHT2, GL_SPECULAR,       spec);
+        glLightf (GL_LIGHT2, GL_CONSTANT_ATTENUATION,  0.6f);
+        glLightf (GL_LIGHT2, GL_LINEAR_ATTENUATION,    0.015f);
+        glLightf (GL_LIGHT2, GL_QUADRATIC_ATTENUATION, 0.0012f);
+    }
+
+    /**
+     * @brief Set surface specular reflection k_s, Phong shininess exponent n,
+     *        and optional self-emission for metallic rails or night LED fixtures.
+     */
+    static void setMaterial(
+        float specStrength,
+        float shininess,
+        float emitR = 0.0f,
+        float emitG = 0.0f,
+        float emitB = 0.0f
+    ) {
+        GLfloat spec[4] = { specStrength, specStrength, specStrength, 1.0f };
+        GLfloat emit[4] = { emitR, emitG, emitB, 1.0f };
+        glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR,  spec);
+        glMaterialf (GL_FRONT_AND_BACK, GL_SHININESS, shininess);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION,  emit);
+    }
+
+    /**
+     * @brief Restore default matte-satin material specular & zero emission.
+     */
+    static void resetMaterial() {
+        setMaterial(0.32f, 28.0f, 0.0f, 0.0f, 0.0f);
+    }
+
     const char* getTimeOfDayName() const {
         switch (timeOfDay) {
-            case TimeOfDay::DAY:    return "Daylight (High Ambient I_a)";
-            case TimeOfDay::SUNSET: return "Da Nang Sunset (Warm Golden)";
-            case TimeOfDay::NIGHT:  return "Night LED Show (HSV Cycle + 1/D^2 Light)";
-            default:                return "Unknown";
+            case TimeOfDay::DAY:    return "Ban ngay (Anh sang moi truong I_a cao)";
+            case TimeOfDay::SUNSET: return "Hoang hon Da Nang (Nang vang am)";
+            case TimeOfDay::NIGHT:  return "Ban dem LED (HSV + Suy giam 1/D^2)";
+            default:                return "Khong xac dinh";
         }
     }
 
     const char* getShadingModelName() const {
         return (shadingModel == ShadingModel::GOURAUD_SMOOTH)
-            ? "Gouraud Smooth (GL_SMOOTH)"
-            : "Lambert Constant (GL_FLAT)";
+            ? "To bong Gouraud (GL_SMOOTH)"
+            : "To bong hang Lambert (GL_FLAT)";
     }
 };
 

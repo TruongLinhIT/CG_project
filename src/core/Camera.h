@@ -26,7 +26,8 @@
 enum class CameraMode {
     FREE_ORBIT = 0,
     SUN_WHEEL_CABIN = 1,
-    COASTER_FIRST_PERSON = 2
+    COASTER_FIRST_PERSON = 2,
+    MONORAIL_FIRST_PERSON = 3
 };
 
 enum class ProjectionMode {
@@ -111,7 +112,11 @@ public:
         const MathCG::Vec3& cabinWorldPos,
         float wheelLookYawDeg,
         const MathCG::Vec3& coasterPos,
-        const MathCG::Vec3& coasterTangent
+        const MathCG::Vec3& coasterTangent,
+        const MathCG::Vec3& coasterUp       = MathCG::Vec3(0.0f, 1.0f, 0.0f),
+        const MathCG::Vec3& monorailPos     = MathCG::Vec3(0.0f, 12.0f, 108.0f),
+        const MathCG::Vec3& monorailTangent = MathCG::Vec3(1.0f, 0.0f, 0.0f),
+        const MathCG::Vec3& monorailUp      = MathCG::Vec3(0.0f, 1.0f, 0.0f)
     ) const {
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
@@ -139,13 +144,26 @@ public:
                 0.0,             1.0,             0.0
             );
         } else if (cameraMode == CameraMode::COASTER_FIRST_PERSON) {
-            MathCG::Vec3 eye = coasterPos + MathCG::Vec3(0.0f, 1.8f, 0.0f);
             MathCG::Vec3 fwd = coasterTangent.normalized();
-            MathCG::Vec3 center = eye + fwd * 10.0f;
+            MathCG::Vec3 up  = coasterUp.normalized();
+            // Place eye in the front seat of the lead Cobra car, banking smoothly with the track
+            MathCG::Vec3 eye    = coasterPos + up * 1.95f + fwd * 0.65f;
+            MathCG::Vec3 center = eye + fwd * 14.0f - up * 0.45f;
             gluLookAt(
                 eye.x,    eye.y,    eye.z,
                 center.x, center.y, center.z,
-                0.0,      1.0,      0.0
+                up.x,     up.y,     up.z
+            );
+        } else if (cameraMode == CameraMode::MONORAIL_FIRST_PERSON) {
+            MathCG::Vec3 fwd = monorailTangent.normalized();
+            MathCG::Vec3 up  = monorailUp.normalized();
+            // Place eye at the panoramic front windshield of the Monorail lead cab
+            MathCG::Vec3 eye    = monorailPos + up * 1.90f + fwd * 2.15f;
+            MathCG::Vec3 center = eye + fwd * 18.0f - up * 0.35f;
+            gluLookAt(
+                eye.x,    eye.y,    eye.z,
+                center.x, center.y, center.z,
+                up.x,     up.y,     up.z
             );
         } else {
             // Default Free Spherical Orbit Camera
@@ -179,20 +197,21 @@ public:
 
     const char* getCameraModeName() const {
         switch (cameraMode) {
-            case CameraMode::FREE_ORBIT:           return "Free Spherical Orbit (theta, Phi, R, D)";
-            case CameraMode::SUN_WHEEL_CABIN:      return "1st-Person: Sun Wheel Cabin";
-            case CameraMode::COASTER_FIRST_PERSON: return "1st-Person: Queen Cobra Coaster";
-            default:                               return "Unknown";
+            case CameraMode::FREE_ORBIT:            return "Camera Quy dao cau (theta, Phi, R, D)";
+            case CameraMode::SUN_WHEEL_CABIN:       return "Goc nhin thu 1: Cabin Sun Wheel";
+            case CameraMode::COASTER_FIRST_PERSON:  return "Goc nhin thu 1: Tau luon Queen Cobra";
+            case CameraMode::MONORAIL_FIRST_PERSON: return "Goc nhin thu 1: Tau dien Monorail";
+            default:                                return "Khong xac dinh";
         }
     }
 
     const char* getProjectionModeName() const {
         switch (projectionMode) {
-            case ProjectionMode::PERSPECTIVE: return "Perspective (gluPerspective)";
-            case ProjectionMode::ORTHO_TOP:   return "Parallel Ortho: TOP View (XZ)";
-            case ProjectionMode::ORTHO_FRONT: return "Parallel Ortho: FRONT View (XY)";
-            case ProjectionMode::ORTHO_SIDE:  return "Parallel Ortho: SIDE View (ZY)";
-            default:                          return "Unknown";
+            case ProjectionMode::PERSPECTIVE: return "Phoi canh (gluPerspective)";
+            case ProjectionMode::ORTHO_TOP:   return "Truc giao: Chieu bang TOP (XZ)";
+            case ProjectionMode::ORTHO_FRONT: return "Truc giao: Chieu dung FRONT (XY)";
+            case ProjectionMode::ORTHO_SIDE:  return "Truc giao: Chieu canh SIDE (ZY)";
+            default:                          return "Khong xac dinh";
         }
     }
 };

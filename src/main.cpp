@@ -21,6 +21,8 @@
 #include "core/MathCG.h"
 #include "core/Camera.h"
 #include "core/Lighting.h"
+#include "curves/BezierTrack.h"
+#include "curves/RollerCoaster.h"
 
 // ============================================================================
 // GLOBAL SIMULATION & GRAPHICS PIPELINE STATE MACHINE
@@ -53,17 +55,6 @@ struct SimulationState {
     float        sunWheelRadius = 30.0f;
     int          numCabins      = 12;
 
-    // Preview Bezier Control Points P0..P6 for Queen Cobra Coaster (Step 1 camera & curve test)
-    std::vector<MathCG::Vec3> previewBezierPts = {
-        MathCG::Vec3(-75.0f,  4.0f,  45.0f),
-        MathCG::Vec3(-55.0f, 38.0f,  10.0f),
-        MathCG::Vec3(-15.0f,  6.0f, -20.0f),
-        MathCG::Vec3( 25.0f, 44.0f,   5.0f),
-        MathCG::Vec3( 65.0f,  8.0f,  40.0f),
-        MathCG::Vec3( 30.0f, 22.0f,  75.0f),
-        MathCG::Vec3(-75.0f,  4.0f,  45.0f)
-    };
-
     // Mouse interaction state
     int  lastMouseX     = 0;
     int  lastMouseY     = 0;
@@ -71,9 +62,10 @@ struct SimulationState {
     bool midMouseDown   = false;
 };
 
-static SimulationState gState;
-static Camera          gCamera;
-static LightingSystem  gLighting;
+static SimulationState      gState;
+static Camera               gCamera;
+static LightingSystem       gLighting;
+static AsiaParkCurvesSystem gCurves;
 
 // ============================================================================
 // GLUT RIGHT-CLICK MENU IDENTIFIERS
@@ -83,6 +75,7 @@ enum MenuOption {
     MENU_CAM_ORBIT = 10,
     MENU_CAM_SUNWHEEL,
     MENU_CAM_COASTER,
+    MENU_CAM_MONORAIL,
     MENU_CAM_RESET,
 
     MENU_PROJ_PERSPECTIVE = 20,
@@ -341,62 +334,6 @@ static void drawHierarchicalSunWheelPreview() {
 }
 
 /**
- * @brief Step 1 Preview of Bernstein Bezier Track & Oriented Coaster Car
- */
-static void drawBezierTrackPreview() {
-    const auto& ctrl = gState.previewBezierPts;
-
-    // Draw Bezier curve sampled via Bernstein polynomials B_k^n(t)
-    glDisable(GL_LIGHTING);
-    glLineWidth(3.0f);
-    glColor3f(1.0f, 0.30f, 0.15f);
-    glBegin(GL_LINE_STRIP);
-    const int samples = 100;
-    for (int i = 0; i <= samples; ++i) {
-        float t = static_cast<float>(i) / samples;
-        MathCG::Vec3 p = MathCG::evaluateBezierPoint(ctrl, t);
-        glVertex3f(p.x, p.y, p.z);
-    }
-    glEnd();
-
-    // Debug toggle: Draw Bezier Control Polygon P0..Pn
-    if (gState.showNormalsAndCtrl) {
-        glLineWidth(1.5f);
-        glColor3f(1.0f, 1.0f, 0.0f);
-        glBegin(GL_LINE_STRIP);
-        for (const auto& pt : ctrl) {
-            glVertex3f(pt.x, pt.y, pt.z);
-        }
-        glEnd();
-
-        glPointSize(7.0f);
-        glColor3f(0.0f, 1.0f, 0.2f);
-        glBegin(GL_POINTS);
-        for (const auto& pt : ctrl) {
-            glVertex3f(pt.x, pt.y, pt.z);
-        }
-        glEnd();
-    }
-    glLineWidth(1.0f);
-    if (gLighting.lightingEnabled) glEnable(GL_LIGHTING);
-
-    // Draw Coaster Car oriented along tangent P'(t) (yaw & pitch)
-    MathCG::Vec3 carPos = MathCG::evaluateBezierPoint(ctrl, gState.coasterParamT);
-    MathCG::Vec3 tang   = MathCG::evaluateBezierTangent(ctrl, gState.coasterParamT);
-
-    float yawDeg   = std::atan2(tang.x, tang.z) * MathCG::RAD2DEG;
-    float pitchDeg = -std::asin(std::clamp(tang.y, -1.0f, 1.0f)) * MathCG::RAD2DEG;
-
-    glPushMatrix();
-    glTranslatef(carPos.x, carPos.y, carPos.z);
-    glRotatef(yawDeg,   0.0f, 1.0f, 0.0f);
-    glRotatef(pitchDeg, 1.0f, 0.0f, 0.0f);
-    glColor3f(1.0f, 0.82f, 0.10f);
-    drawParametricCylinder(1.2f, 3.5f, 12, 1, gState.showNormalsAndCtrl);
-    glPopMatrix();
-}
-
-/**
  * @brief Draw Park Ground Grid & Semi-Transparent Reflection Lake at y = 0
  */
 static void drawParkGroundAndLake() {
@@ -458,58 +395,72 @@ static void drawOnScreenHUD() {
     glDisable(GL_LIGHTING);
     glDisable(GL_DEPTH_TEST);
 
-    // Semi-transparent HUD backdrop panel in top-left corner
+    // Khung nen ban trong suot cho bang dieu khien goc tren ben trai
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glColor4f(0.03f, 0.05f, 0.10f, 0.76f);
+    glColor4f(0.03f, 0.05f, 0.10f, 0.78f);
     glBegin(GL_QUADS);
     glVertex2f(12.0f, gState.windowHeight - 12.0f);
-    glVertex2f(12.0f, gState.windowHeight - 235.0f);
-    glVertex2f(485.0f, gState.windowHeight - 235.0f);
-    glVertex2f(485.0f, gState.windowHeight - 12.0f);
+    glVertex2f(12.0f, gState.windowHeight - 252.0f);
+    glVertex2f(648.0f, gState.windowHeight - 252.0f);
+    glVertex2f(648.0f, gState.windowHeight - 12.0f);
+    glEnd();
+    glColor4f(0.35f, 0.65f, 0.95f, 0.55f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(12.0f, gState.windowHeight - 12.0f);
+    glVertex2f(12.0f, gState.windowHeight - 252.0f);
+    glVertex2f(648.0f, gState.windowHeight - 252.0f);
+    glVertex2f(648.0f, gState.windowHeight - 12.0f);
     glEnd();
     glDisable(GL_BLEND);
 
-    float y = gState.windowHeight - 32.0f;
+    float y = gState.windowHeight - 34.0f;
     const float dy = 19.0f;
 
     glColor3f(1.0f, 0.85f, 0.25f);
-    drawBitmapText(24.0f, y, GLUT_BITMAP_HELVETICA_18, "ASIA PARK DA NANG - 3D CG SIMULATION");
-    y -= (dy + 4.0f);
+    drawBitmapText(24.0f, y, GLUT_BITMAP_HELVETICA_18, "CONG VIEN CHAU A (DA NANG) - MO PHONG DO HOA 3D");
+    y -= (dy + 5.0f);
 
     char buf[256];
     glColor3f(0.90f, 0.95f, 1.0f);
 
-    std::snprintf(buf, sizeof(buf), "[C / 1,2,3] Camera Mode : %s", gCamera.getCameraModeName());
+    std::snprintf(buf, sizeof(buf), "[C / 1-4] Camera    : %s", gCamera.getCameraModeName());
     drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
 
-    std::snprintf(buf, sizeof(buf), "[P]         Projection  : %s", gCamera.getProjectionModeName());
+    std::snprintf(buf, sizeof(buf), "[P]       Phep chieu: %s", gCamera.getProjectionModeName());
     drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
 
-    std::snprintf(buf, sizeof(buf), "[Orbit]     theta=%.1f deg | Phi=%.1f deg | R=%.1f | D=%.1f",
+    std::snprintf(buf, sizeof(buf), "[Quy dao] theta=%.1f do | Phi=%.1f do | R=%.1f | D=%.1f",
                   gCamera.thetaDeg, gCamera.phiDeg, gCamera.distanceR, gCamera.viewPlaneD);
     drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
 
-    std::snprintf(buf, sizeof(buf), "[S]         Shading     : %s", gLighting.getShadingModelName());
+    std::snprintf(buf, sizeof(buf), "[Bezier]  Queen Cobra t=%.3f | Van toc=%.1f m/s",
+                  gCurves.queenCobraTrain.paramT, gCurves.queenCobraTrain.lastSpeedMps);
     drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
 
-    std::snprintf(buf, sizeof(buf), "[W]         Polygon Mode: %s | [N] Normals/Ctrl: %s",
-                  gState.wireframeMode ? "WIREFRAME (GL_LINE)" : "SOLID (GL_FILL)",
-                  gState.showNormalsAndCtrl ? "ON" : "OFF");
+    std::snprintf(buf, sizeof(buf), "[S]       To bong   : %s", gLighting.getShadingModelName());
     drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
 
-    std::snprintf(buf, sizeof(buf), "[B]         Back-Face   : %s | [Z] Z-Buffer: %s",
-                  gState.backFaceCulling ? "ON (GL_CULL_FACE)" : "OFF",
-                  gState.zBufferEnabled  ? "ON (GL_DEPTH_TEST)" : "OFF");
+    std::snprintf(buf, sizeof(buf), "[W]       Kieu ve   : %s | [N] Phap tuyen/Ctrl: %s",
+                  gState.wireframeMode ? "KHUNG DAY (LINE)" : "TO DAC (FILL)",
+                  gState.showNormalsAndCtrl ? "BAT" : "TAT");
     drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
 
-    std::snprintf(buf, sizeof(buf), "[L]         Time of Day : %s", gLighting.getTimeOfDayName());
+    std::snprintf(buf, sizeof(buf), "[B]       Khu mat sau: %s | [Z] Z-Buffer: %s",
+                  gState.backFaceCulling ? "BAT (CULL)" : "TAT",
+                  gState.zBufferEnabled  ? "BAT (DEPTH)" : "TAT");
     drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
 
-    std::snprintf(buf, sizeof(buf), "[R] Lake Reflection: %s | [SPACE] Anim: %s | Right-Click: Menu",
-                  gState.lakeReflection ? "ON (y=0 Matrix)" : "OFF",
-                  gState.isPaused ? "PAUSED" : "RUNNING");
-    drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf);
+    std::snprintf(buf, sizeof(buf), "[L]       Thoi gian : %s", gLighting.getTimeOfDayName());
+    drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
+
+    std::snprintf(buf, sizeof(buf), "[R] Phan xa ho: %s | [SPACE] %s | Chuot phai: Menu",
+                  gState.lakeReflection ? "BAT (y=0)" : "TAT",
+                  gState.isPaused ? "TAM DUNG" : "DANG CHAY");
+    drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
+
+    drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15,
+                   "[H] An bang | [+/-] Zoom | [[ / ]] Doi D | [ESC] Thoat");
 
     if (gState.zBufferEnabled) glEnable(GL_DEPTH_TEST);
     if (gLighting.lightingEnabled) glEnable(GL_LIGHTING);
@@ -550,14 +501,22 @@ static void displayCallback() {
     glViewport(0, 0, gState.windowWidth, gState.windowHeight);
     gCamera.applyProjection(gState.windowWidth, gState.windowHeight);
 
-    MathCG::Vec3 cabinPos       = getTrackedCabinWorldPos();
-    MathCG::Vec3 coasterPos     = MathCG::evaluateBezierPoint(gState.previewBezierPts, gState.coasterParamT);
-    MathCG::Vec3 coasterTangent = MathCG::evaluateBezierTangent(gState.previewBezierPts, gState.coasterParamT);
+    MathCG::Vec3 cabinPos    = getTrackedCabinWorldPos();
+    TrackFrame queenFrame    = gCurves.getQueenCobraCameraFrame();
+    TrackFrame monorailFrame = gCurves.getMonorailCameraFrame();
 
-    gCamera.applyView(cabinPos, gCamera.thetaDeg, coasterPos, coasterTangent);
+    gCamera.applyView(
+        cabinPos, gCamera.thetaDeg,
+        queenFrame.position, queenFrame.tangent, queenFrame.up,
+        monorailFrame.position, monorailFrame.tangent, monorailFrame.up
+    );
 
     // 3. Apply Chapter 6 Illumination & Shading
     gLighting.applyLights(gState.sunWheelCenter);
+    gLighting.applyCoasterHeadlight(
+        queenFrame.position + queenFrame.up * 0.8f + queenFrame.tangent * 1.5f,
+        queenFrame.tangent
+    );
 
     // 4. Chapter 4 Planar Reflection Pass across central lake plane y = 0
     if (gState.lakeReflection) {
@@ -573,10 +532,11 @@ static void displayCallback() {
         glPopMatrix();
     }
 
-    // 5. Render Main 3D Scene (Step 1 Preview; Step 2 Ride Modules plug in here)
+    // 5. Render Main 3D Scene
     drawParkGroundAndLake();
     drawHierarchicalSunWheelPreview();
-    drawBezierTrackPreview();
+    gCurves.draw(gState.showNormalsAndCtrl, gLighting.lightingEnabled, gLighting.timeOfDay);
+    // NOTE (Member 2): Plug in SunWheel, SkyTower, Carousel, NgoMonGate, and Minimap2D here
 
     // 6. Render 2D Overlays (Always in GL_FILL)
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -601,11 +561,12 @@ static void timerCallback(int value) {
         gState.sunWheelAngleDeg = std::fmod(gState.sunWheelAngleDeg + 12.0f * dt, 360.0f);
         gLighting.ledHueDeg     = std::fmod(gLighting.ledHueDeg     + 45.0f * dt, 360.0f);
 
-        // Advance Carousel, Sky Tower & Bezier Coaster parameter t in [0, 1]
+        // Advance Carousel, Sky Tower & Bezier Coaster / Monorail along closed C^1 tracks
         gState.carouselAngleDeg = std::fmod(gState.carouselAngleDeg + 35.0f * dt, 360.0f);
         gState.carouselPhase    = std::fmod(gState.carouselPhase    + 3.0f  * dt, MathCG::TWO_PI);
         gState.skyTowerTime    += dt;
-        gState.coasterParamT    = std::fmod(gState.coasterParamT    + 0.085f * dt, 1.0f);
+        gCurves.update(dt);
+        gState.coasterParamT    = gCurves.queenCobraTrain.paramT;
     }
 
     glutPostRedisplay();
@@ -625,6 +586,10 @@ static void applyMenuSelection(int option) {
         case MENU_CAM_COASTER:
             gCamera.projectionMode = ProjectionMode::PERSPECTIVE;
             gCamera.cameraMode     = CameraMode::COASTER_FIRST_PERSON;
+            break;
+        case MENU_CAM_MONORAIL:
+            gCamera.projectionMode = ProjectionMode::PERSPECTIVE;
+            gCamera.cameraMode     = CameraMode::MONORAIL_FIRST_PERSON;
             break;
         case MENU_CAM_RESET:
             gCamera = Camera();
@@ -715,8 +680,11 @@ static void keyboardCallback(unsigned char key, int x, int y) {
         case '3':
             applyMenuSelection(MENU_CAM_COASTER);
             break;
+        case '4':
+            applyMenuSelection(MENU_CAM_MONORAIL);
+            break;
         case 'c': case 'C': {
-            int nextCam = (static_cast<int>(gCamera.cameraMode) + 1) % 3;
+            int nextCam = (static_cast<int>(gCamera.cameraMode) + 1) % 4;
             gCamera.cameraMode = static_cast<CameraMode>(nextCam);
             if (gCamera.cameraMode != CameraMode::FREE_ORBIT) {
                 gCamera.projectionMode = ProjectionMode::PERSPECTIVE;
@@ -844,45 +812,46 @@ static void mouseMotionCallback(int x, int y) {
 
 static void createGLUTMenus() {
     int camSubMenu = glutCreateMenu(applyMenuSelection);
-    glutAddMenuEntry("Free Spherical Orbit Camera [1]",       MENU_CAM_ORBIT);
-    glutAddMenuEntry("1st-Person: Sun Wheel Cabin [2]",       MENU_CAM_SUNWHEEL);
-    glutAddMenuEntry("1st-Person: Queen Cobra Coaster [3]",   MENU_CAM_COASTER);
-    glutAddMenuEntry("Reset Camera Parameters",               MENU_CAM_RESET);
+    glutAddMenuEntry("Camera Quy dao cau tu do [1]",          MENU_CAM_ORBIT);
+    glutAddMenuEntry("Goc nhin thu 1: Cabin Sun Wheel [2]",     MENU_CAM_SUNWHEEL);
+    glutAddMenuEntry("Goc nhin thu 1: Tau luon Queen Cobra [3]",MENU_CAM_COASTER);
+    glutAddMenuEntry("Goc nhin thu 1: Tau dien Monorail [4]",   MENU_CAM_MONORAIL);
+    glutAddMenuEntry("Dat lai thong so Camera",                 MENU_CAM_RESET);
 
     int projSubMenu = glutCreateMenu(applyMenuSelection);
-    glutAddMenuEntry("Perspective (gluPerspective) [P]",      MENU_PROJ_PERSPECTIVE);
-    glutAddMenuEntry("Parallel Ortho: TOP View (XZ)",         MENU_PROJ_ORTHO_TOP);
-    glutAddMenuEntry("Parallel Ortho: FRONT View (XY)",       MENU_PROJ_ORTHO_FRONT);
-    glutAddMenuEntry("Parallel Ortho: SIDE View (ZY)",        MENU_PROJ_ORTHO_SIDE);
+    glutAddMenuEntry("Phoi canh (gluPerspective) [P]",          MENU_PROJ_PERSPECTIVE);
+    glutAddMenuEntry("Truc giao: Chieu bang TOP (XZ)",          MENU_PROJ_ORTHO_TOP);
+    glutAddMenuEntry("Truc giao: Chieu dung FRONT (XY)",        MENU_PROJ_ORTHO_FRONT);
+    glutAddMenuEntry("Truc giao: Chieu canh SIDE (ZY)",         MENU_PROJ_ORTHO_SIDE);
 
     int shadeSubMenu = glutCreateMenu(applyMenuSelection);
-    glutAddMenuEntry("Gouraud Interpolated (GL_SMOOTH) [S]",  MENU_SHADE_GOURAUD);
-    glutAddMenuEntry("Lambert Constant (GL_FLAT) [S]",        MENU_SHADE_LAMBERT);
-    glutAddMenuEntry("Toggle Wireframe / Solid [W]",          MENU_TOGGLE_WIREFRAME);
-    glutAddMenuEntry("Toggle Back-Face Culling [B]",          MENU_TOGGLE_CULLING);
-    glutAddMenuEntry("Toggle Z-Buffer Depth Test [Z]",        MENU_TOGGLE_ZBUFFER);
-    glutAddMenuEntry("Toggle Surface Normals & Bezier Ctrl [N]", MENU_TOGGLE_NORMALS);
-    glutAddMenuEntry("Toggle Planar Lake Reflection [R]",     MENU_TOGGLE_REFLECTION);
+    glutAddMenuEntry("To bong noi suy Gouraud (GL_SMOOTH) [S]", MENU_SHADE_GOURAUD);
+    glutAddMenuEntry("To bong hang Lambert (GL_FLAT) [S]",      MENU_SHADE_LAMBERT);
+    glutAddMenuEntry("Bat/Tat Khung day / To dac [W]",          MENU_TOGGLE_WIREFRAME);
+    glutAddMenuEntry("Bat/Tat Khu mat sau (Back-Face) [B]",     MENU_TOGGLE_CULLING);
+    glutAddMenuEntry("Bat/Tat Z-Buffer (Depth Test) [Z]",       MENU_TOGGLE_ZBUFFER);
+    glutAddMenuEntry("Bat/Tat Phap tuyen & Da giac Bezier [N]", MENU_TOGGLE_NORMALS);
+    glutAddMenuEntry("Bat/Tat Phan xa mat ho (y=0) [R]",        MENU_TOGGLE_REFLECTION);
 
     int timeSubMenu = glutCreateMenu(applyMenuSelection);
-    glutAddMenuEntry("Daylight (High Ambient I_a) [L]",       MENU_TIME_DAY);
-    glutAddMenuEntry("Da Nang Sunset (Warm Golden) [L]",      MENU_TIME_SUNSET);
-    glutAddMenuEntry("Night LED Show (HSV + 1/D^2) [L]",      MENU_TIME_NIGHT);
+    glutAddMenuEntry("Ban ngay (Moi truong I_a cao) [L]",       MENU_TIME_DAY);
+    glutAddMenuEntry("Hoang hon Da Nang (Nang vang) [L]",       MENU_TIME_SUNSET);
+    glutAddMenuEntry("Ban dem LED (HSV + Suy giam 1/D^2) [L]",  MENU_TIME_NIGHT);
 
     int animSubMenu = glutCreateMenu(applyMenuSelection);
-    glutAddMenuEntry("Pause / Resume Animation [SPACE]",      MENU_ANIM_TOGGLE);
-    glutAddMenuEntry("Speed Up Animation",                    MENU_ANIM_FASTER);
-    glutAddMenuEntry("Slow Down Animation",                   MENU_ANIM_SLOWER);
-    glutAddMenuEntry("Toggle 2D Minimap [M]",                 MENU_TOGGLE_MINIMAP);
-    glutAddMenuEntry("Toggle On-Screen HUD [H]",              MENU_TOGGLE_HUD);
+    glutAddMenuEntry("Tam dung / Tiep tuc Hoat anh [SPACE]",    MENU_ANIM_TOGGLE);
+    glutAddMenuEntry("Tang toc hoat anh",                       MENU_ANIM_FASTER);
+    glutAddMenuEntry("Giam toc hoat anh",                       MENU_ANIM_SLOWER);
+    glutAddMenuEntry("Bat/Tat Ban do nho 2D [M]",               MENU_TOGGLE_MINIMAP);
+    glutAddMenuEntry("Bat/Tat Bang dieu khien HUD [H]",         MENU_TOGGLE_HUD);
 
     glutCreateMenu(applyMenuSelection);
-    glutAddSubMenu("Camera System (Chapter 4)",               camSubMenu);
-    glutAddSubMenu("Projection Mode (Chapter 4)",             projSubMenu);
-    glutAddSubMenu("Shading & Hidden Surface (Chapter 6)",    shadeSubMenu);
-    glutAddSubMenu("Time of Day & Illumination (Chapter 6)",  timeSubMenu);
-    glutAddSubMenu("Animation & 2D UI (Chapter 3)",           animSubMenu);
-    glutAddMenuEntry("Exit Simulation [ESC]",                 MENU_EXIT);
+    glutAddSubMenu("He thong Camera (Chuong 4)",                camSubMenu);
+    glutAddSubMenu("Che do Phep chieu (Chuong 4)",              projSubMenu);
+    glutAddSubMenu("To bong & Mat khuat (Chuong 6)",            shadeSubMenu);
+    glutAddSubMenu("Thoi gian & Chieu sang (Chuong 6)",         timeSubMenu);
+    glutAddSubMenu("Hoat anh & Giao dien (Chuong 3)",           animSubMenu);
+    glutAddMenuEntry("Thoat mo phong [ESC]",                    MENU_EXIT);
 
     glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
@@ -896,7 +865,7 @@ int main(int argc, char** argv) {
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
     glutInitWindowSize(gState.windowWidth, gState.windowHeight);
     glutInitWindowPosition(80, 60);
-    glutCreateWindow("Asia Park (Da Nang) - 3D Computer Graphics Simulation");
+    glutCreateWindow("Cong vien Chau A (Da Nang) - Mo phong Do hoa May tinh 3D");
 
     // Register callbacks
     glutDisplayFunc(displayCallback);
@@ -906,6 +875,9 @@ int main(int argc, char** argv) {
     glutMouseFunc(mouseButtonCallback);
     glutMotionFunc(mouseMotionCallback);
     glutTimerFunc(16, timerCallback, 0);
+
+    // Initialize Member 1 Curves & Rides (Queen Cobra + Monorail)
+    gCurves.init();
 
     // Create right-click hierarchical menu
     createGLUTMenus();
