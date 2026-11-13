@@ -53,14 +53,14 @@ public:
     float orthoSize;
 
     Camera()
-        : thetaDeg(45.0f),
-          phiDeg(25.0f),
-          distanceR(145.0f),
+        : thetaDeg(35.0f),
+          phiDeg(18.0f),
+          distanceR(195.0f),
           viewPlaneD(50.0f),
-          target(0.0f, 18.0f, 0.0f),
+          target(0.0f, 36.0f, -12.0f),
           cameraMode(CameraMode::FREE_ORBIT),
           projectionMode(ProjectionMode::PERSPECTIVE),
-          orthoSize(95.0f) {}
+          orthoSize(115.0f) {}
 
     /**
      * @brief Compute eye position O'(x, y, z) from spherical coordinates (R, theta, Phi)
@@ -123,13 +123,13 @@ public:
 
         // Technical orthographic axis-aligned views (Chapter 4 Parallel Projections)
         if (projectionMode == ProjectionMode::ORTHO_TOP) {
-            gluLookAt(0.0, 220.0, 0.0,   0.0, 0.0, 0.0,   0.0, 0.0, -1.0);
+            gluLookAt(0.0, 260.0, 0.0,   0.0, 0.0, 0.0,   0.0, 0.0, -1.0);
             return;
         } else if (projectionMode == ProjectionMode::ORTHO_FRONT) {
-            gluLookAt(0.0, 30.0, 220.0,  0.0, 30.0, 0.0,  0.0, 1.0, 0.0);
+            gluLookAt(0.0, 50.0, 260.0,  0.0, 50.0, 0.0,  0.0, 1.0, 0.0);
             return;
         } else if (projectionMode == ProjectionMode::ORTHO_SIDE) {
-            gluLookAt(220.0, 30.0, 0.0,  0.0, 30.0, 0.0,  0.0, 1.0, 0.0);
+            gluLookAt(260.0, 50.0, 0.0,  0.0, 50.0, 0.0,  0.0, 1.0, 0.0);
             return;
         }
 
