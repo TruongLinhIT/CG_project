@@ -24,6 +24,14 @@
 #include "core/Lighting.h"
 #include "curves/BezierTrack.h"
 #include "curves/RollerCoaster.h"
+#include "geometry/ParametricShapes.h"
+#include "geometry/MeshModel.h"
+#include "rides/SunWheel.h"
+#include "rides/SkyTower.h"
+#include "rides/Carousel.h"
+#include "rides/NgoMonGate.h"
+#include "ui/Minimap2D.h"
+#include "ui/HUD.h"
 
 // ============================================================================
 // GLOBAL SIMULATION & GRAPHICS PIPELINE STATE MACHINE
@@ -70,6 +78,11 @@ static SimulationState      gState;
 static Camera               gCamera;
 static LightingSystem       gLighting;
 static AsiaParkCurvesSystem gCurves;
+static AsiaParkRides::SunWheel   gSunWheel;
+static AsiaParkRides::SkyTower   gSkyTower;
+static AsiaParkRides::Carousel   gCarousel;
+static AsiaParkRides::NgoMonGate  gNgoMonGate;
+static AsiaParkUI::Minimap2D     gMinimap;
 
 // ============================================================================
 // GLUT RIGHT-CLICK MENU IDENTIFIERS
@@ -117,20 +130,13 @@ enum MenuOption {
  *        P_cabin = T(I) * R_z(alpha) * (R_wheel, 0, 0)
  */
 static MathCG::Vec3 getTrackedCabinWorldPos() {
-    float alphaRad = gState.sunWheelAngleDeg * MathCG::DEG2RAD;
-    float localX   = gState.sunWheelRadius * std::cos(alphaRad);
-    float localY   = gState.sunWheelRadius * std::sin(alphaRad);
-    return MathCG::Vec3(
-        gState.sunWheelCenter.x + localX,
-        gState.sunWheelCenter.y + localY - 1.75f,
-        gState.sunWheelCenter.z + 0.65f
-    );
+    return gSunWheel.getCabinWorldPosition(0);
 }
 
 /**
  * @brief Draw a bitmap text string at 2D pixel position (x, y) using glutBitmapCharacter (Chapter 3)
  */
-static void drawBitmapText(float x, float y, void* font, const char* text) {
+[[maybe_unused]] static void drawBitmapText(float x, float y, void* font, const char* text) {
     glRasterPos2f(x, y);
     for (const char* c = text; *c != '\0'; ++c) {
         glutBitmapCharacter(font, *c);
@@ -138,488 +144,72 @@ static void drawBitmapText(float x, float y, void* font, const char* text) {
 }
 
 /**
- * @brief Step 1 Parametric Ruled Cylinder helper:
- *        X(u,v) = r*cos(u), Y(u,v) = r*sin(u), Z(u,v) = h*v  (u in [0, 2pi], v in [0, 1])
+ * @brief Forwarding to Member 2's ParametricShapes library (Chapter 5 & 6)
  */
-static void drawParametricCylinder(float r, float h, int slices, int stacks, bool drawNormals) {
-    for (int j = 0; j < stacks; ++j) {
-        float v0 = static_cast<float>(j)     / stacks;
-        float v1 = static_cast<float>(j + 1) / stacks;
-        float z0 = h * v0;
-        float z1 = h * v1;
-
-        glBegin(GL_QUAD_STRIP);
-        for (int i = 0; i <= slices; ++i) {
-            float u   = (static_cast<float>(i) / slices) * MathCG::TWO_PI;
-            float cu  = std::cos(u);
-            float su  = std::sin(u);
-            glNormal3f(cu, su, 0.0f);
-            glVertex3f(r * cu, r * su, z1);
-            glVertex3f(r * cu, r * su, z0);
-        }
-        glEnd();
-    }
-
-    if (drawNormals) {
-        glDisable(GL_LIGHTING);
-        glColor3f(1.0f, 1.0f, 0.0f);
-        glBegin(GL_LINES);
-        for (int i = 0; i < slices; i += 2) {
-            float u  = (static_cast<float>(i) / slices) * MathCG::TWO_PI;
-            float cu = std::cos(u), su = std::sin(u);
-            float px = r * cu, py = r * su, pz = 0.5f * h;
-            glVertex3f(px, py, pz);
-            glVertex3f(px + cu * 1.5f, py + su * 1.5f, pz);
-        }
-        glEnd();
-        if (gLighting.lightingEnabled) glEnable(GL_LIGHTING);
-    }
+[[maybe_unused]] static void drawParametricCylinder(float r, float h, int slices, int stacks, bool drawNormals) {
+    ParametricShapes::drawCylinder(r, h, slices, stacks, false, drawNormals);
 }
 
-/**
- * @brief Step 1 Parametric Toroid (Surface of Revolution) helper:
- *        X(u,v) = (R + a*cos(v))*cos(u)
- *        Y(u,v) = (R + a*cos(v))*sin(u)
- *        Z(u,v) = a*sin(v)
- */
-static void drawParametricToroid(float R, float a, int uSteps, int vSteps, bool drawNormals) {
-    for (int i = 0; i < uSteps; ++i) {
-        float u0 = (static_cast<float>(i)     / uSteps) * MathCG::TWO_PI;
-        float u1 = (static_cast<float>(i + 1) / uSteps) * MathCG::TWO_PI;
-        float cu0 = std::cos(u0), su0 = std::sin(u0);
-        float cu1 = std::cos(u1), su1 = std::sin(u1);
-
-        glBegin(GL_QUAD_STRIP);
-        for (int j = 0; j <= vSteps; ++j) {
-            float v  = (static_cast<float>(j) / vSteps) * MathCG::TWO_PI;
-            float cv = std::cos(v), sv = std::sin(v);
-
-            // Surface normal N(u, v) = (cos(v)*cos(u), cos(v)*sin(u), sin(v))
-            // Emit u0 before u1 so GL_QUAD_STRIP winds CCW outward
-            glNormal3f(cv * cu0, cv * su0, sv);
-            glVertex3f((R + a * cv) * cu0, (R + a * cv) * su0, a * sv);
-
-            glNormal3f(cv * cu1, cv * su1, sv);
-            glVertex3f((R + a * cv) * cu1, (R + a * cv) * su1, a * sv);
-        }
-        glEnd();
-    }
-
-    if (drawNormals) {
-        glDisable(GL_LIGHTING);
-        glColor3f(0.0f, 1.0f, 1.0f);
-        glBegin(GL_LINES);
-        for (int i = 0; i < uSteps; i += 3) {
-            float u  = (static_cast<float>(i) / uSteps) * MathCG::TWO_PI;
-            float cu = std::cos(u), su = std::sin(u);
-            for (int j = 0; j < vSteps; j += 3) {
-                float v  = (static_cast<float>(j) / vSteps) * MathCG::TWO_PI;
-                float cv = std::cos(v), sv = std::sin(v);
-                float px = (R + a * cv) * cu;
-                float py = (R + a * cv) * su;
-                float pz = a * sv;
-                glVertex3f(px, py, pz);
-                glVertex3f(px + cv * cu * 2.0f, py + cv * su * 2.0f, pz + sv * 2.0f);
-            }
-        }
-        glEnd();
-        if (gLighting.lightingEnabled) glEnable(GL_LIGHTING);
-    }
+[[maybe_unused]] static void drawParametricToroid(float R, float a, int uSteps, int vSteps, bool drawNormals) {
+    ParametricShapes::drawToroid(R, a, uSteps, vSteps, drawNormals);
 }
 
-/**
- * @brief Draw a tapered parametric cylinder connecting exact 3D points A and B
- */
-static void drawCylinderBetween(
+[[maybe_unused]] static void drawCylinderBetween(
     const MathCG::Vec3& a,
     const MathCG::Vec3& b,
     float rA,
     float rB,
     int slices
 ) {
-    MathCG::Vec3 diff = b - a;
-    float len = diff.length();
-    if (len < 1e-4f) return;
-
-    MathCG::Vec3 fwd    = diff / len;
-    MathCG::Vec3 helper = (std::fabs(fwd.y) < 0.90f)
-        ? MathCG::Vec3(0.0f, 1.0f, 0.0f)
-        : MathCG::Vec3(1.0f, 0.0f, 0.0f);
-    MathCG::Vec3 right = MathCG::cross(helper, fwd).normalized();
-    MathCG::Vec3 up    = MathCG::cross(fwd, right).normalized();
-    float slope = (rA - rB) / len;
-
-    glBegin(GL_QUAD_STRIP);
-    for (int i = 0; i <= slices; ++i) {
-        float theta = (static_cast<float>(i % slices) / static_cast<float>(slices)) * MathCG::TWO_PI;
-        float ct = std::cos(theta);
-        float st = std::sin(theta);
-
-        MathCG::Vec3 radialDir = right * ct + up * st;
-        MathCG::Vec3 n = (radialDir + fwd * slope).normalized();
-        glNormal3f(n.x, n.y, n.z);
-
-        // Emit B first, A second -> outward CCW normal along +radialDir
-        MathCG::Vec3 pB = b + radialDir * rB;
-        MathCG::Vec3 pA = a + radialDir * rA;
-        glVertex3f(pB.x, pB.y, pB.z);
-        glVertex3f(pA.x, pA.y, pA.z);
-    }
-    glEnd();
+    ParametricShapes::drawCylinderBetween(a, b, rA, rB, slices, false);
 }
 
 /**
- * @brief Draw a concentric multi-color HSV LED ring (32 sectors matching spokes)
- */
-static void drawSegmentedLedToroid(
-    float R,
-    float a,
-    int numSectors,
-    int subSteps,
-    int vSteps,
-    float hueOffsetDeg,
-    bool isGlowMode
-) {
-    for (int sec = 0; sec < numSectors; ++sec) {
-        float hue = std::fmod(gLighting.ledHueDeg + hueOffsetDeg + sec * (360.0f / numSectors), 360.0f);
-        float lr, lg, lb;
-        MathCG::HSVtoRGB(hue, 0.92f, 1.0f, lr, lg, lb);
-
-        if (isGlowMode) {
-            LightingSystem::setMaterial(0.75f, 48.0f, lr * 0.85f, lg * 0.85f, lb * 0.85f);
-        }
-        glColor3f(lr, lg, lb);
-
-        float uStart = (static_cast<float>(sec)     / numSectors) * MathCG::TWO_PI;
-        float uEnd   = (static_cast<float>(sec + 1) / numSectors) * MathCG::TWO_PI;
-
-        for (int s = 0; s < subSteps; ++s) {
-            float u0 = uStart + (uEnd - uStart) * (static_cast<float>(s)     / subSteps);
-            float u1 = uStart + (uEnd - uStart) * (static_cast<float>(s + 1) / subSteps);
-            float cu0 = std::cos(u0), su0 = std::sin(u0);
-            float cu1 = std::cos(u1), su1 = std::sin(u1);
-
-            glBegin(GL_QUAD_STRIP);
-            for (int j = 0; j <= vSteps; ++j) {
-                float v  = (static_cast<float>(j) / vSteps) * MathCG::TWO_PI;
-                float cv = std::cos(v), sv = std::sin(v);
-                glNormal3f(cv * cu0, cv * su0, sv);
-                glVertex3f((R + a * cv) * cu0, (R + a * cv) * su0, a * sv);
-                glNormal3f(cv * cu1, cv * su1, sv);
-                glVertex3f((R + a * cv) * cu1, (R + a * cv) * su1, a * sv);
-            }
-            glEnd();
-        }
-    }
-    LightingSystem::resetMaterial();
-}
-
-/**
- * @brief Draw a single illuminated 3D block-stroke character for the "SUN WHEEL" sign
- */
-static void drawNeonStrokeBar(float x0, float y0, float x1, float y1, float z, float thick, float depth) {
-    float dx = x1 - x0;
-    float dy = y1 - y0;
-    float len = std::sqrt(dx * dx + dy * dy);
-    if (len < 1e-4f) return;
-    float angleDeg = std::atan2(dy, dx) * MathCG::RAD2DEG;
-
-    glPushMatrix();
-    glTranslatef((x0 + x1) * 0.5f, (y0 + y1) * 0.5f, z);
-    glRotatef(angleDeg, 0.0f, 0.0f, 1.0f);
-    CoasterMesh::drawBox(0.0f, 0.0f, 0.0f, len + thick * 0.75f, thick, depth);
-    glPopMatrix();
-}
-
-static void drawNeonChar3D(char ch, float x, float y, float z, float w, float h, float thick, float depth) {
-    auto seg = [&](float ax, float ay, float bx, float by) {
-        drawNeonStrokeBar(x + ax * w, y + ay * h, x + bx * w, y + by * h, z, thick, depth);
-    };
-    switch (ch) {
-        case 'S':
-            seg(0.0f, 1.0f, 1.0f, 1.0f);
-            seg(0.0f, 0.5f, 0.0f, 1.0f);
-            seg(0.0f, 0.5f, 1.0f, 0.5f);
-            seg(1.0f, 0.0f, 1.0f, 0.5f);
-            seg(0.0f, 0.0f, 1.0f, 0.0f);
-            break;
-        case 'U':
-            seg(0.0f, 0.0f, 0.0f, 1.0f);
-            seg(0.0f, 0.0f, 1.0f, 0.0f);
-            seg(1.0f, 0.0f, 1.0f, 1.0f);
-            break;
-        case 'N':
-            seg(0.0f, 0.0f, 0.0f, 1.0f);
-            seg(0.0f, 1.0f, 1.0f, 0.0f);
-            seg(1.0f, 0.0f, 1.0f, 1.0f);
-            break;
-        case 'W':
-            seg(0.0f, 1.0f, 0.22f, 0.0f);
-            seg(0.22f, 0.0f, 0.50f, 0.62f);
-            seg(0.50f, 0.62f, 0.78f, 0.0f);
-            seg(0.78f, 0.0f, 1.0f, 1.0f);
-            break;
-        case 'H':
-            seg(0.0f, 0.0f, 0.0f, 1.0f);
-            seg(0.0f, 0.5f, 1.0f, 0.5f);
-            seg(1.0f, 0.0f, 1.0f, 1.0f);
-            break;
-        case 'E':
-            seg(0.0f, 0.0f, 0.0f, 1.0f);
-            seg(0.0f, 1.0f, 1.0f, 1.0f);
-            seg(0.0f, 0.5f, 0.85f, 0.5f);
-            seg(0.0f, 0.0f, 1.0f, 0.0f);
-            break;
-        case 'L':
-            seg(0.0f, 0.0f, 0.0f, 1.0f);
-            seg(0.0f, 0.0f, 1.0f, 0.0f);
-            break;
-        default:
-            break;
-    }
-}
-
-/**
- * @brief Realistic 115m Da Nang Sun Wheel:
- *        - Diameter 100m (R = 50m), Hub Height H_center = 65m (Total Height = 115m)
- *        - Space-truss A-frame support legs + reinforced concrete foundation piers + "SUN WHEEL" sign
- *        - 32 radial LED spokes + 5 concentric rainbow HSV LED rings + twin outer rims
- *        - 64 upright cabins (delta = 5.625 deg) with hierarchical counter-rotation -(theta_k + alpha)
+ * @brief Chapter 4 & 5: Sun Wheel rendering delegated to Member 2's AsiaParkRides::SunWheel
  */
 static void drawHierarchicalSunWheelPreview() {
-    const MathCG::Vec3& I = gState.sunWheelCenter;
-    const float R         = gState.sunWheelRadius; // 50m
-    const float alpha     = gState.sunWheelAngleDeg;
-    const bool isGlowMode = (gLighting.timeOfDay != TimeOfDay::DAY);
+    bool isNightOrSunset = (gLighting.timeOfDay != TimeOfDay::DAY);
+    gSunWheel.draw(gLighting.ledHueDeg, isNightOrSunset, gState.showNormalsAndCtrl);
+}
+
+/**
+ * @brief Chapter 4 & 6: Lakeside Asian Viewing Pavilion built via Member 2's PolygonMesh
+ */
+static void drawLakesidePavilionMesh() {
+    static Geometry::PolygonMesh pavilionMesh;
+    static bool initialized = false;
+    if (!initialized) {
+        initialized = true;
+        // 1. Foundation Podium
+        auto podium = Geometry::PolygonMesh::createBox(0.0f, 0.4f, 0.0f, 10.0f, 0.8f, 10.0f, MathCG::ColorRGB(0.55f, 0.52f, 0.48f));
+        pavilionMesh.append(podium);
+
+        // 2. Pillars at 4 corners
+        float cornerOffsets[4][2] = { {-3.8f, -3.8f}, {3.8f, -3.8f}, {3.8f, 3.8f}, {-3.8f, 3.8f} };
+        for (int i = 0; i < 4; ++i) {
+            auto pillar = Geometry::PolygonMesh::createPrismY(cornerOffsets[i][0], 0.8f, cornerOffsets[i][1], 0.28f, 4.2f, 12, MathCG::ColorRGB(0.72f, 0.22f, 0.16f));
+            pavilionMesh.append(pillar);
+        }
+
+        // 3. Eaves beam
+        auto beam = Geometry::PolygonMesh::createBox(0.0f, 5.1f, 0.0f, 8.4f, 0.4f, 8.4f, MathCG::ColorRGB(0.85f, 0.65f, 0.22f));
+        pavilionMesh.append(beam);
+
+        // 4. Asian Curved Roof
+        auto roof = Geometry::PolygonMesh::createCurvedAsianRoof(0.0f, 5.3f, 0.0f, 9.6f, 9.6f, 2.6f, 2.4f, MathCG::ColorRGB(0.88f, 0.35f, 0.12f));
+        pavilionMesh.append(roof);
+
+        // 5. Roof pinnacle
+        auto pinnacle = Geometry::PolygonMesh::createPyramid(0.0f, 7.9f, 0.0f, 0.9f, 0.9f, 1.2f, MathCG::ColorRGB(0.95f, 0.82f, 0.25f));
+        pavilionMesh.append(pinnacle);
+
+        pavilionMesh.computeNormals();
+    }
 
     glPushMatrix();
-
-    // ========================================================================
-    // 1. Space-Truss A-Frame Support Tower & Concrete Pedestals (Khung chu A)
-    // ========================================================================
-    const float baseSpreadX = 27.0f;
-    const float baseSpreadZ = 12.5f;
-    const float topSpreadZ  = 6.2f;
-    const float baseY       = 3.2f;
-
-    auto legPointAtY = [&](int sideZ, int sideX, float y) {
-        float frac = (I.y - y) / (I.y - baseY);
-        return MathCG::Vec3(
-            I.x + sideX * baseSpreadX * frac,
-            y,
-            I.z + sideZ * (topSpreadZ + (baseSpreadZ - topSpreadZ) * frac)
-        );
-    };
-
-    // Reinforced concrete piers anchored into lakebed
-    LightingSystem::setMaterial(0.20f, 16.0f);
-    glColor3f(0.48f, 0.50f, 0.54f);
-    for (int sz = -1; sz <= 1; sz += 2) {
-        for (int sx = -1; sx <= 1; sx += 2) {
-            MathCG::Vec3 basePt = legPointAtY(sz, sx, baseY);
-            CoasterMesh::drawBox(basePt.x, 1.35f, basePt.z, 5.4f, 3.8f, 5.4f);
-            CoasterMesh::drawBox(basePt.x, 3.30f, basePt.z, 3.8f, 0.5f, 3.8f);
-        }
-    }
-
-    // Steel space-truss main A-frame legs + cross girders + X-bracing (front & back planes)
-    LightingSystem::setMaterial(0.65f, 48.0f);
-    glColor3f(0.84f, 0.86f, 0.90f);
-    for (int sz = -1; sz <= 1; sz += 2) {
-        MathCG::Vec3 hubEnd(I.x, I.y, I.z + sz * topSpreadZ);
-        MathCG::Vec3 leftBase  = legPointAtY(sz, -1, baseY);
-        MathCG::Vec3 rightBase = legPointAtY(sz,  1, baseY);
-
-        // Main twin inclined A-frame legs
-        drawCylinderBetween(leftBase,  hubEnd, 1.05f, 0.78f, 10);
-        drawCylinderBetween(rightBase, hubEnd, 1.05f, 0.78f, 10);
-
-        // Horizontal cross-girders & X-bracing bays strictly in front/behind the rotating wheel
-        const float tierY[] = { 12.0f, 25.0f, 38.0f, 51.0f };
-        for (int t = 0; t < 4; ++t) {
-            MathCG::Vec3 pL = legPointAtY(sz, -1, tierY[t]);
-            MathCG::Vec3 pR = legPointAtY(sz,  1, tierY[t]);
-            drawCylinderBetween(pL, pR, 0.42f, 0.42f, 8);
-
-            if (t < 3) {
-                MathCG::Vec3 pLNext = legPointAtY(sz, -1, tierY[t + 1]);
-                MathCG::Vec3 pRNext = legPointAtY(sz,  1, tierY[t + 1]);
-                drawCylinderBetween(pL, pRNext, 0.28f, 0.28f, 6);
-                drawCylinderBetween(pR, pLNext, 0.28f, 0.28f, 6);
-            }
-        }
-    }
-
-    // Main Central Steel Axle bridging front & back A-frame bearings + bearing housings
-    drawCylinderBetween(
-        MathCG::Vec3(I.x, I.y, I.z - topSpreadZ - 1.2f),
-        MathCG::Vec3(I.x, I.y, I.z + topSpreadZ + 1.2f),
-        1.45f, 1.45f, 14
-    );
-
-    // Glowing "SUN WHEEL" sign mounted on the front A-frame horizontal cross-beam at y = 39.2m
-    {
-        const char* title = "SUN WHEEL";
-        const float charW = 1.75f;
-        const float charH = 2.90f;
-        const float stepX = 2.32f;
-        const float startX = I.x - 10.155f;
-        const float signY  = 39.2f;
-        const float signZ  = legPointAtY(1, -1, signY).z + 1.25f;
-
-        // Backing sign bar
-        glColor3f(0.14f, 0.16f, 0.22f);
-        CoasterMesh::drawBox(I.x, signY + charH * 0.5f, signZ - 0.32f, 22.8f, 0.55f, 0.35f);
-
-        if (isGlowMode) {
-            LightingSystem::setMaterial(0.9f, 64.0f, 0.88f, 0.96f, 1.0f);
-        }
-        glColor3f(0.95f, 0.98f, 1.0f);
-        for (int idx = 0; title[idx] != '\0'; ++idx) {
-            if (title[idx] != ' ') {
-                drawNeonChar3D(title[idx], startX + idx * stepX, signY, signZ, charW, charH, 0.34f, 0.38f);
-            }
-        }
-        LightingSystem::resetMaterial();
-    }
-
-    // ========================================================================
-    // 2. Rotating Wheel Assembly: M = T(I) * R_z(alpha) * T(-I)
-    // ========================================================================
-    MathCG::Mat4 wheelRot = MathCG::Mat4::rotateZAroundPoint(I, alpha);
-    glMultMatrixf(wheelRot.m);
-    glTranslatef(I.x, I.y, I.z);
-
-    // Central illuminated wheel hub disks (front & back)
-    if (isGlowMode) {
-        float hr, hg, hb;
-        MathCG::HSVtoRGB(gLighting.ledHueDeg, 0.85f, 1.0f, hr, hg, hb);
-        LightingSystem::setMaterial(0.8f, 48.0f, hr * 0.7f, hg * 0.7f, hb * 0.7f);
-        glColor3f(hr, hg, hb);
-    } else {
-        glColor3f(0.88f, 0.90f, 0.94f);
-    }
-    for (int side = -1; side <= 1; side += 2) {
-        glPushMatrix();
-        glTranslatef(0.0f, 0.0f, side * 2.5f);
-        drawParametricToroid(4.8f, 0.55f, 24, 8, false);
-        glPopMatrix();
-    }
-    LightingSystem::resetMaterial();
-
-    // Twin outer structural toroidal rims (Radius = 49.4m, front & back z = +/- 2.1m)
-    float ledR = 1.0f, ledG = 0.5f, ledB = 0.1f;
-    MathCG::HSVtoRGB(gLighting.ledHueDeg, 0.90f, 1.0f, ledR, ledG, ledB);
-    if (isGlowMode) {
-        LightingSystem::setMaterial(0.85f, 64.0f, ledR * 0.55f, ledG * 0.55f, ledB * 0.55f);
-    } else {
-        LightingSystem::setMaterial(0.75f, 56.0f);
-    }
-    glColor3f(ledR, ledG, ledB);
-    for (int side = -1; side <= 1; side += 2) {
-        glPushMatrix();
-        glTranslatef(0.0f, 0.0f, side * 2.1f);
-        drawParametricToroid(R - 0.55f, 0.52f, 64, 8, gState.showNormalsAndCtrl);
-        glPopMatrix();
-    }
-    LightingSystem::resetMaterial();
-
-    // 4 Concentric Rainbow LED Structural Rings (matching the Da Nang Sun Wheel photo!)
-    const float innerRingRadii[] = { 13.5f, 23.0f, 32.5f, 41.5f };
-    for (int rIdx = 0; rIdx < 4; ++rIdx) {
-        for (int side = -1; side <= 1; side += 2) {
-            glPushMatrix();
-            glTranslatef(0.0f, 0.0f, side * 2.0f);
-            drawSegmentedLedToroid(
-                innerRingRadii[rIdx],
-                0.22f,
-                gState.numSpokes,
-                1,
-                6,
-                static_cast<float>(rIdx) * 58.0f,
-                isGlowMode
-            );
-            glPopMatrix();
-        }
-    }
-
-    // 32 Radial Spokes (divided into 4 radial LED color segments each) + Rim Cross-Struts
-    const float spokeBands[] = { 4.8f, 13.5f, 23.0f, 32.5f, 41.5f, R - 0.55f };
-    for (int k = 0; k < gState.numSpokes; ++k) {
-        float spokeAngleDeg = (360.0f / gState.numSpokes) * k;
-        float rad = spokeAngleDeg * MathCG::DEG2RAD;
-        float ca = std::cos(rad);
-        float sa = std::sin(rad);
-
-        for (int band = 0; band < 5; ++band) {
-            float r0 = spokeBands[band];
-            float r1 = spokeBands[band + 1];
-            float hue = std::fmod(
-                gLighting.ledHueDeg + k * (360.0f / gState.numSpokes) + band * 42.0f,
-                360.0f
-            );
-            float sr, sg, sb;
-            MathCG::HSVtoRGB(hue, 0.90f, 1.0f, sr, sg, sb);
-            if (isGlowMode) {
-                LightingSystem::setMaterial(0.75f, 40.0f, sr * 0.78f, sg * 0.78f, sb * 0.78f);
-            }
-            glColor3f(sr, sg, sb);
-
-            for (int side = -1; side <= 1; side += 2) {
-                drawCylinderBetween(
-                    MathCG::Vec3(r0 * ca, r0 * sa, side * 2.3f),
-                    MathCG::Vec3(r1 * ca, r1 * sa, side * 2.1f),
-                    0.18f, 0.16f, 6
-                );
-            }
-        }
-
-        // Cross-brace joining front & back outer rims at each spoke
-        LightingSystem::resetMaterial();
-        glColor3f(0.82f, 0.85f, 0.90f);
-        drawCylinderBetween(
-            MathCG::Vec3((R - 0.55f) * ca, (R - 0.55f) * sa, -2.1f),
-            MathCG::Vec3((R - 0.55f) * ca, (R - 0.55f) * sa,  2.1f),
-            0.18f, 0.18f, 6
-        );
-    }
-
-    // ========================================================================
-    // 3. 64 Upright Gondola Cabins (delta = 5.625 deg) with Counter-Rotation -(theta_k + alpha)
-    // ========================================================================
-    for (int k = 0; k < gState.numCabins; ++k) {
-        float cabinAngleDeg = (360.0f / gState.numCabins) * k;
-
-        glPushMatrix();
-        glRotatef(cabinAngleDeg, 0.0f, 0.0f, 1.0f);
-        glTranslatef(R, 0.0f, 0.0f);
-
-        // MANDATORY HIERARCHICAL COUNTER-ROTATION:
-        // Cancel both cabin angle and wheel rotation alpha so all 64 cabins hang upright!
-        glRotatef(-(cabinAngleDeg + alpha), 0.0f, 0.0f, 1.0f);
-
-        // Hanger bar
-        glColor3f(0.78f, 0.80f, 0.85f);
-        CoasterMesh::drawBox(0.0f, -0.65f, 0.0f, 0.14f, 1.30f, 0.14f);
-
-        // Crimson-red gondola body
-        LightingSystem::setMaterial(0.55f, 40.0f);
-        glColor3f(0.86f, 0.12f, 0.14f);
-        CoasterMesh::drawBox(0.0f, -1.95f, 0.0f, 1.85f, 1.75f, 1.50f);
-
-        // Panoramic glass cabin windows (glowing warmly at night)
-        if (isGlowMode) {
-            LightingSystem::setMaterial(0.85f, 48.0f, 0.72f, 0.56f, 0.26f);
-            glColor3f(1.0f, 0.86f, 0.52f);
-        } else {
-            glColor3f(0.14f, 0.24f, 0.36f);
-        }
-        CoasterMesh::drawBox(0.0f, -1.78f, 0.0f, 1.91f, 0.68f, 1.56f);
-        LightingSystem::resetMaterial();
-
-        glPopMatrix();
-    }
-
+    glTranslatef(0.0f, 0.0f, 28.0f); // South viewing deck facing the lake
+    bool smooth = (gLighting.shadingModel == ShadingModel::GOURAUD_SMOOTH);
+    pavilionMesh.draw(smooth, gState.showNormalsAndCtrl);
     glPopMatrix();
 }
 
@@ -665,106 +255,64 @@ static void drawParkGroundAndLake() {
     glVertex3f( 58.0f, 0.0f, -62.0f);
     glEnd();
     glDisable(GL_BLEND);
+
+    // Decorative Asian-style promenade lantern posts around the lake (showcasing all 4 ParametricShapes)
+    static const MathCG::Vec3 lampLocations[] = {
+        { -56.0f, 0.0f,  14.0f },
+        { -28.0f, 0.0f,  14.0f },
+        {   0.0f, 0.0f,  14.0f },
+        {  28.0f, 0.0f,  14.0f },
+        {  56.0f, 0.0f,  14.0f },
+        { -56.0f, 0.0f, -60.0f },
+        { -28.0f, 0.0f, -60.0f },
+        {   0.0f, 0.0f, -60.0f },
+        {  28.0f, 0.0f, -60.0f },
+        {  56.0f, 0.0f, -60.0f }
+    };
+
+    for (const auto& pos : lampLocations) {
+        glPushMatrix();
+        glTranslatef(pos.x, pos.y, pos.z);
+
+        // 1. Parametric Ruled Cylinder (Base & Pillar)
+        glColor3f(0.24f, 0.25f, 0.28f);
+        ParametricShapes::drawCylinderY(0.42f, 0.35f, 16, 2, true, gState.showNormalsAndCtrl);
+        glColor3f(0.38f, 0.40f, 0.44f);
+        ParametricShapes::drawCylinderY(0.16f, 3.80f, 16, 4, true, gState.showNormalsAndCtrl);
+
+        // 2. Parametric Toroid (Decorative collar ring)
+        glPushMatrix();
+        glTranslatef(0.0f, 3.80f, 0.0f);
+        glColor3f(0.85f, 0.70f, 0.20f);
+        ParametricShapes::drawToroidY(0.32f, 0.07f, 16, 8, gState.showNormalsAndCtrl);
+        glPopMatrix();
+
+        // 3. Parametric Sphere of Revolution (Glowing Lantern Bulb)
+        glPushMatrix();
+        glTranslatef(0.0f, 4.25f, 0.0f);
+        if (gLighting.lightingEnabled) {
+            GLfloat emit[4] = { 1.0f, 0.85f, 0.35f, 1.0f };
+            glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, emit);
+            glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, emit);
+        }
+        glColor3f(1.0f, 0.90f, 0.50f);
+        ParametricShapes::drawSphere(0.40f, 16, 12, gState.showNormalsAndCtrl);
+        if (gLighting.lightingEnabled) {
+            GLfloat zeroEmit[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+            glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, zeroEmit);
+        }
+        glPopMatrix();
+
+        // 4. Parametric Ruled Cone (Pagoda Roof Cap)
+        glPushMatrix();
+        glTranslatef(0.0f, 4.60f, 0.0f);
+        glColor3f(0.72f, 0.18f, 0.14f);
+        ParametricShapes::drawConeY(0.72f, 0.0f, 0.55f, 16, 2, true, gState.showNormalsAndCtrl);
+        glPopMatrix();
+
+        glPopMatrix();
+    }
 }
-
-/**
- * @brief Render on-screen HUD using glutBitmapCharacter (Chapter 3)
- */
-static void drawOnScreenHUD() {
-    if (!gState.showHUD) return;
-
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    gluOrtho2D(0.0, gState.windowWidth, 0.0, gState.windowHeight);
-
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-
-    glDisable(GL_LIGHTING);
-    glDisable(GL_DEPTH_TEST);
-
-    // Khung nen ban trong suot cho bang dieu khien goc tren ben trai
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glColor4f(0.03f, 0.05f, 0.10f, 0.78f);
-    glBegin(GL_QUADS);
-    glVertex2f(12.0f, gState.windowHeight - 12.0f);
-    glVertex2f(12.0f, gState.windowHeight - 252.0f);
-    glVertex2f(648.0f, gState.windowHeight - 252.0f);
-    glVertex2f(648.0f, gState.windowHeight - 12.0f);
-    glEnd();
-    glColor4f(0.35f, 0.65f, 0.95f, 0.55f);
-    glBegin(GL_LINE_LOOP);
-    glVertex2f(12.0f, gState.windowHeight - 12.0f);
-    glVertex2f(12.0f, gState.windowHeight - 252.0f);
-    glVertex2f(648.0f, gState.windowHeight - 252.0f);
-    glVertex2f(648.0f, gState.windowHeight - 12.0f);
-    glEnd();
-    glDisable(GL_BLEND);
-
-    float y = gState.windowHeight - 34.0f;
-    const float dy = 19.0f;
-
-    glColor3f(1.0f, 0.85f, 0.25f);
-    drawBitmapText(24.0f, y, GLUT_BITMAP_HELVETICA_18, "CONG VIEN CHAU A (DA NANG) - MO PHONG DO HOA 3D");
-    y -= (dy + 5.0f);
-
-    char buf[256];
-    glColor3f(0.90f, 0.95f, 1.0f);
-
-    std::snprintf(buf, sizeof(buf), "[C / 1-4] Camera    : %s", gCamera.getCameraModeName());
-    drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
-
-    std::snprintf(buf, sizeof(buf), "[P]       Phep chieu: %s", gCamera.getProjectionModeName());
-    drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
-
-    std::snprintf(buf, sizeof(buf), "[Quy dao] theta=%.1f do | Phi=%.1f do | R=%.1f | D=%.1f",
-                  gCamera.thetaDeg, gCamera.phiDeg, gCamera.distanceR, gCamera.viewPlaneD);
-    drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
-
-    std::snprintf(buf, sizeof(buf), "[Bezier]  Queen Cobra t=%.3f | Van toc=%.1f m/s",
-                  gCurves.queenCobraTrain.paramT, gCurves.queenCobraTrain.lastSpeedMps);
-    drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
-
-    std::snprintf(buf, sizeof(buf), "[S]       To bong   : %s", gLighting.getShadingModelName());
-    drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
-
-    std::snprintf(buf, sizeof(buf), "[W]       Kieu ve   : %s | [N] Phap tuyen/Ctrl: %s",
-                  gState.wireframeMode ? "KHUNG DAY (LINE)" : "TO DAC (FILL)",
-                  gState.showNormalsAndCtrl ? "BAT" : "TAT");
-    drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
-
-    std::snprintf(buf, sizeof(buf), "[B]       Khu mat sau: %s | [Z] Z-Buffer: %s",
-                  gState.backFaceCulling ? "BAT (CULL)" : "TAT",
-                  gState.zBufferEnabled  ? "BAT (DEPTH)" : "TAT");
-    drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
-
-    std::snprintf(buf, sizeof(buf), "[L]       Thoi gian : %s", gLighting.getTimeOfDayName());
-    drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
-
-    std::snprintf(buf, sizeof(buf), "[R] Phan xa ho: %s | [SPACE] %s | Chuot phai: Menu",
-                  gState.lakeReflection ? "BAT (y=0)" : "TAT",
-                  gState.isPaused ? "TAM DUNG" : "DANG CHAY");
-    drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
-
-    drawBitmapText(24.0f, y, GLUT_BITMAP_9_BY_15,
-                   "[H] An bang | [+/-] Zoom | [[ / ]] Doi D | [ESC] Thoat");
-
-    if (gState.zBufferEnabled) glEnable(GL_DEPTH_TEST);
-    if (gLighting.lightingEnabled) glEnable(GL_LIGHTING);
-
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-}
-
-// ============================================================================
-// GLUT DISPLAY, TIMER & INPUT CALLBACKS
-// ============================================================================
 
 static void displayCallback() {
     gLighting.applyClearColor();
@@ -824,13 +372,78 @@ static void displayCallback() {
 
     // 5. Render Main 3D Scene
     drawParkGroundAndLake();
+    drawLakesidePavilionMesh();
     drawHierarchicalSunWheelPreview();
     gCurves.draw(gState.showNormalsAndCtrl, gLighting.lightingEnabled, gLighting.timeOfDay);
-    // NOTE (Member 2): Plug in SunWheel, SkyTower, Carousel, NgoMonGate, and Minimap2D here
+
+    // Member 2 Rides & Monumental Architecture
+    bool isNightOrSunset = (gLighting.timeOfDay != TimeOfDay::DAY);
+    bool smooth = (gLighting.shadingModel == ShadingModel::GOURAUD_SMOOTH);
+    gSkyTower.draw(isNightOrSunset, gState.showNormalsAndCtrl);
+    gCarousel.draw(isNightOrSunset, gState.showNormalsAndCtrl);
+    gNgoMonGate.draw(isNightOrSunset, gState.showNormalsAndCtrl, smooth);
 
     // 6. Render 2D Overlays (Always in GL_FILL)
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    drawOnScreenHUD();
+
+    // 6.1 Minimap 2D Radar (Chapter 1 & 3: WCS->NCS->DCS, Cohen-Sutherland, Midpoint Circle, Bresenham Line)
+    if (gState.showMinimap) {
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glLoadIdentity();
+        gluOrtho2D(0.0, gState.windowWidth, 0.0, gState.windowHeight);
+
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+
+        std::vector<MathCG::Vec3> qcPoints;
+        for (const auto& s : gCurves.queenCobraTrack.samples) qcPoints.push_back(s.position);
+        std::vector<MathCG::Vec3> mrPoints;
+        for (const auto& s : gCurves.monorailTrack.samples) mrPoints.push_back(s.position);
+
+        TrackFrame qcFrame = gCurves.getQueenCobraCameraFrame();
+        TrackFrame mrFrame = gCurves.getMonorailCameraFrame();
+
+        gMinimap.draw(
+            gState.windowWidth, gState.windowHeight,
+            gCamera.getOrbitEyePosition(),
+            gCamera.thetaDeg,
+            gSunWheel.center,
+            gSunWheel.radius,
+            qcPoints,
+            mrPoints,
+            qcFrame.position,
+            mrFrame.position,
+            gSkyTower.position,
+            gCarousel.position,
+            gNgoMonGate.position
+        );
+
+        glMatrixMode(GL_MODELVIEW);
+        glPopMatrix();
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+    }
+
+    // 6.2 On-Screen Telemetry HUD (Chapter 3: glutBitmapCharacter)
+    if (gState.showHUD) {
+        AsiaParkUI::HUD::draw(
+            gState.windowWidth, gState.windowHeight,
+            gCamera,
+            gLighting,
+            gState.wireframeMode,
+            gState.showNormalsAndCtrl,
+            gState.backFaceCulling,
+            gState.zBufferEnabled,
+            gState.lakeReflection,
+            gState.showMinimap,
+            gState.isPaused,
+            gCurves.queenCobraTrain.paramT,
+            gCurves.queenCobraTrain.lastSpeedMps
+        );
+    }
 
     glutSwapBuffers();
 }
@@ -848,13 +461,18 @@ static void timerCallback(int value) {
 
     if (!gState.isPaused) {
         // Rotate Sun Wheel by angle alpha and cycle HSV Hue H in [0, 360)
-        gState.sunWheelAngleDeg = std::fmod(gState.sunWheelAngleDeg + 12.0f * dt, 360.0f);
+        gSunWheel.update(dt);
+        gState.sunWheelAngleDeg = gSunWheel.currentAngleDeg;
         gLighting.ledHueDeg     = std::fmod(gLighting.ledHueDeg     + 45.0f * dt, 360.0f);
 
         // Advance Carousel, Sky Tower & Bezier Coaster / Monorail along closed C^1 tracks
-        gState.carouselAngleDeg = std::fmod(gState.carouselAngleDeg + 35.0f * dt, 360.0f);
-        gState.carouselPhase    = std::fmod(gState.carouselPhase    + 3.0f  * dt, MathCG::TWO_PI);
-        gState.skyTowerTime    += dt;
+        gCarousel.update(dt);
+        gState.carouselAngleDeg = gCarousel.currentAngleDeg;
+        gState.carouselPhase    = gCarousel.oscillationPhase;
+
+        gSkyTower.update(dt);
+        gMinimap.update(dt);
+        gState.skyTowerTime     = gSkyTower.cycleTime;
         gCurves.update(dt);
         gState.coasterParamT    = gCurves.queenCobraTrain.paramT;
     }
@@ -1003,6 +621,9 @@ static void keyboardCallback(unsigned char key, int x, int y) {
         case 'n': case 'N':
             gState.showNormalsAndCtrl = !gState.showNormalsAndCtrl;
             break;
+        case 'm': case 'M':
+            gState.showMinimap = !gState.showMinimap;
+            break;
         case 'r': case 'R':
             gState.lakeReflection = !gState.lakeReflection;
             break;
@@ -1011,9 +632,6 @@ static void keyboardCallback(unsigned char key, int x, int y) {
             gLighting.timeOfDay = static_cast<TimeOfDay>(nextTime);
             break;
         }
-        case 'm': case 'M':
-            gState.showMinimap = !gState.showMinimap;
-            break;
         case 'h': case 'H':
             gState.showHUD = !gState.showHUD;
             break;
