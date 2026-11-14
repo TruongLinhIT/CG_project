@@ -18,6 +18,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <cctype>
 
 #include "core/MathCG.h"
 #include "core/Camera.h"
@@ -72,6 +73,16 @@ struct SimulationState {
     int  lastMouseY     = 0;
     bool leftMouseDown  = false;
     bool midMouseDown   = false;
+
+    // Smooth Drone Flight Input State (updated at 60 FPS in timerCallback)
+    bool keyDown[256]      = { false };
+    bool specialLeftDown   = false;
+    bool specialRightDown  = false;
+    bool specialUpDown     = false;
+    bool specialDownDown   = false;
+    bool specialPgUpDown   = false;
+    bool specialPgDnDown   = false;
+    int  prevElapsedMs     = 0;
 };
 
 static SimulationState      gState;
@@ -93,6 +104,7 @@ enum MenuOption {
     MENU_CAM_SUNWHEEL,
     MENU_CAM_COASTER,
     MENU_CAM_MONORAIL,
+    MENU_CAM_DRONE,
     MENU_CAM_RESET,
 
     MENU_PROJ_PERSPECTIVE = 20,
@@ -131,6 +143,48 @@ enum MenuOption {
  */
 static MathCG::Vec3 getTrackedCabinWorldPos() {
     return gSunWheel.getCabinWorldPosition(0);
+}
+
+static void clearHeldFlightKeys() {
+    std::fill(std::begin(gState.keyDown), std::end(gState.keyDown), false);
+    gState.specialLeftDown  = false;
+    gState.specialRightDown = false;
+    gState.specialUpDown    = false;
+    gState.specialDownDown  = false;
+    gState.specialPgUpDown  = false;
+    gState.specialPgDnDown  = false;
+}
+
+static void setDroneInputMode(bool enabled) {
+    clearHeldFlightKeys();
+    glutIgnoreKeyRepeat(enabled ? 1 : 0);
+}
+
+static void activateCameraMode(CameraMode nextMode) {
+    if (nextMode == CameraMode::DRONE_FREE) {
+        if (gCamera.cameraMode != CameraMode::DRONE_FREE) {
+            MathCG::Vec3 activeEye;
+            MathCG::Vec3 activeLook;
+            TrackFrame queenFrame    = gCurves.getQueenCobraCameraFrame();
+            TrackFrame monorailFrame = gCurves.getMonorailCameraFrame();
+            gCamera.getActiveEyeAndLookDir(
+                getTrackedCabinWorldPos(),
+                queenFrame.position, queenFrame.tangent, queenFrame.up,
+                monorailFrame.position, monorailFrame.tangent, monorailFrame.up,
+                activeEye, activeLook
+            );
+            gCamera.syncDroneFromPose(activeEye, activeLook);
+        }
+        gCamera.projectionMode = ProjectionMode::PERSPECTIVE;
+        gCamera.cameraMode     = CameraMode::DRONE_FREE;
+        setDroneInputMode(true);
+    } else {
+        gCamera.cameraMode = nextMode;
+        if (nextMode != CameraMode::FREE_ORBIT) {
+            gCamera.projectionMode = ProjectionMode::PERSPECTIVE;
+        }
+        setDroneInputMode(false);
+    }
 }
 
 /**
@@ -405,10 +459,24 @@ static void displayCallback() {
         TrackFrame qcFrame = gCurves.getQueenCobraCameraFrame();
         TrackFrame mrFrame = gCurves.getMonorailCameraFrame();
 
+        MathCG::Vec3 activeEye;
+        MathCG::Vec3 activeLook;
+        gCamera.getActiveEyeAndLookDir(
+            cabinPos,
+            qcFrame.position, qcFrame.tangent, qcFrame.up,
+            mrFrame.position, mrFrame.tangent, mrFrame.up,
+            activeEye, activeLook
+        );
+        MathCG::Vec3 radarEye(
+            std::clamp(activeEye.x, -132.0f, 132.0f),
+            activeEye.y,
+            std::clamp(activeEye.z, -132.0f, 132.0f)
+        );
+
         gMinimap.draw(
             gState.windowWidth, gState.windowHeight,
-            gCamera.getOrbitEyePosition(),
-            gCamera.thetaDeg,
+            radarEye,
+            gCamera.getMinimapYawDeg(activeLook),
             gSunWheel.center,
             gSunWheel.radius,
             qcPoints,
@@ -457,7 +525,24 @@ static void reshapeCallback(int width, int height) {
 
 static void timerCallback(int value) {
     (void)value;
-    const float dt = (1.0f / 60.0f) * gState.animSpeed;
+    int nowMs = glutGet(GLUT_ELAPSED_TIME);
+    float realDt = (gState.prevElapsedMs > 0)
+        ? std::clamp((nowMs - gState.prevElapsedMs) * 0.001f, 0.001f, 0.05f)
+        : (1.0f / 60.0f);
+    gState.prevElapsedMs = nowMs;
+
+    // Free Drone Flight stays active even when park rides are paused for close inspection
+    if (gCamera.cameraMode == CameraMode::DRONE_FREE) {
+        float moveFwd   = (gState.keyDown['w'] ? 1.0f : 0.0f) - (gState.keyDown['s'] ? 1.0f : 0.0f);
+        float moveRight = (gState.keyDown['d'] ? 1.0f : 0.0f) - (gState.keyDown['a'] ? 1.0f : 0.0f);
+        float moveUp    = ((gState.keyDown['e'] || gState.specialPgUpDown) ? 1.0f : 0.0f)
+                        - ((gState.keyDown['q'] || gState.specialPgDnDown) ? 1.0f : 0.0f);
+        float yawRate   = ((gState.specialRightDown ? 1.0f : 0.0f) - (gState.specialLeftDown ? 1.0f : 0.0f)) * 95.0f;
+        float pitchRate = ((gState.specialUpDown    ? 1.0f : 0.0f) - (gState.specialDownDown ? 1.0f : 0.0f)) * 75.0f;
+        gCamera.updateDrone(realDt, moveFwd, moveRight, moveUp, yawRate, pitchRate);
+    }
+
+    const float dt = realDt * gState.animSpeed;
 
     if (!gState.isPaused) {
         // Rotate Sun Wheel by angle alpha and cycle HSV Hue H in [0, 360)
@@ -485,22 +570,23 @@ static void applyMenuSelection(int option) {
     switch (option) {
         // Camera Modes
         case MENU_CAM_ORBIT:
-            gCamera.cameraMode = CameraMode::FREE_ORBIT;
+            activateCameraMode(CameraMode::FREE_ORBIT);
             break;
         case MENU_CAM_SUNWHEEL:
-            gCamera.projectionMode = ProjectionMode::PERSPECTIVE;
-            gCamera.cameraMode     = CameraMode::SUN_WHEEL_CABIN;
+            activateCameraMode(CameraMode::SUN_WHEEL_CABIN);
             break;
         case MENU_CAM_COASTER:
-            gCamera.projectionMode = ProjectionMode::PERSPECTIVE;
-            gCamera.cameraMode     = CameraMode::COASTER_FIRST_PERSON;
+            activateCameraMode(CameraMode::COASTER_FIRST_PERSON);
             break;
         case MENU_CAM_MONORAIL:
-            gCamera.projectionMode = ProjectionMode::PERSPECTIVE;
-            gCamera.cameraMode     = CameraMode::MONORAIL_FIRST_PERSON;
+            activateCameraMode(CameraMode::MONORAIL_FIRST_PERSON);
+            break;
+        case MENU_CAM_DRONE:
+            activateCameraMode(CameraMode::DRONE_FREE);
             break;
         case MENU_CAM_RESET:
             gCamera = Camera();
+            setDroneInputMode(false);
             break;
 
         // Projections
@@ -578,6 +664,22 @@ static void applyMenuSelection(int option) {
 
 static void keyboardCallback(unsigned char key, int x, int y) {
     (void)x; (void)y;
+    unsigned char lowerKey = static_cast<unsigned char>(std::tolower(key));
+    gState.keyDown[lowerKey] = true;
+
+    // In Free Drone mode, reserve W/A/S/D/E/Q for smooth flight and F/+/- for speed
+    if (gCamera.cameraMode == CameraMode::DRONE_FREE) {
+        if (lowerKey == 'w' || lowerKey == 's' || lowerKey == 'a' ||
+            lowerKey == 'd' || lowerKey == 'e' || lowerKey == 'q') {
+            return;
+        }
+        if (lowerKey == 'f') {
+            gCamera.cycleDroneSpeed();
+            glutPostRedisplay();
+            return;
+        }
+    }
+
     switch (key) {
         case '1':
             applyMenuSelection(MENU_CAM_ORBIT);
@@ -591,12 +693,12 @@ static void keyboardCallback(unsigned char key, int x, int y) {
         case '4':
             applyMenuSelection(MENU_CAM_MONORAIL);
             break;
+        case '5':
+            applyMenuSelection(MENU_CAM_DRONE);
+            break;
         case 'c': case 'C': {
-            int nextCam = (static_cast<int>(gCamera.cameraMode) + 1) % 4;
-            gCamera.cameraMode = static_cast<CameraMode>(nextCam);
-            if (gCamera.cameraMode != CameraMode::FREE_ORBIT) {
-                gCamera.projectionMode = ProjectionMode::PERSPECTIVE;
-            }
+            int nextCam = (static_cast<int>(gCamera.cameraMode) + 1) % 5;
+            applyMenuSelection(MENU_CAM_ORBIT + nextCam);
             break;
         }
         case 'p': case 'P': {
@@ -636,10 +738,18 @@ static void keyboardCallback(unsigned char key, int x, int y) {
             gState.showHUD = !gState.showHUD;
             break;
         case '+': case '=':
-            gCamera.zoom(-6.0f);
+            if (gCamera.cameraMode == CameraMode::DRONE_FREE) {
+                gCamera.adjustDroneSpeed(5.0f);
+            } else {
+                gCamera.zoom(-6.0f);
+            }
             break;
         case '-': case '_':
-            gCamera.zoom(6.0f);
+            if (gCamera.cameraMode == CameraMode::DRONE_FREE) {
+                gCamera.adjustDroneSpeed(-5.0f);
+            } else {
+                gCamera.zoom(6.0f);
+            }
             break;
         case '[':
             gCamera.viewPlaneD = std::max(15.0f, gCamera.viewPlaneD - 3.0f);
@@ -659,8 +769,40 @@ static void keyboardCallback(unsigned char key, int x, int y) {
     glutPostRedisplay();
 }
 
+static void keyboardUpCallback(unsigned char key, int x, int y) {
+    (void)x; (void)y;
+    unsigned char lowerKey = static_cast<unsigned char>(std::tolower(key));
+    gState.keyDown[lowerKey] = false;
+    gState.keyDown[key]      = false;
+}
+
 static void specialKeysCallback(int key, int x, int y) {
     (void)x; (void)y;
+    if (key == GLUT_KEY_F2) {
+        gState.wireframeMode = !gState.wireframeMode;
+        glutPostRedisplay();
+        return;
+    } else if (key == GLUT_KEY_F3) {
+        gLighting.shadingModel = (gLighting.shadingModel == ShadingModel::GOURAUD_SMOOTH)
+            ? ShadingModel::LAMBERT_FLAT
+            : ShadingModel::GOURAUD_SMOOTH;
+        glutPostRedisplay();
+        return;
+    }
+
+    if (gCamera.cameraMode == CameraMode::DRONE_FREE) {
+        switch (key) {
+            case GLUT_KEY_LEFT:      gState.specialLeftDown  = true; break;
+            case GLUT_KEY_RIGHT:     gState.specialRightDown = true; break;
+            case GLUT_KEY_UP:        gState.specialUpDown    = true; break;
+            case GLUT_KEY_DOWN:      gState.specialDownDown  = true; break;
+            case GLUT_KEY_PAGE_UP:   gState.specialPgUpDown  = true; break;
+            case GLUT_KEY_PAGE_DOWN: gState.specialPgDnDown  = true; break;
+            default: break;
+        }
+        return;
+    }
+
     switch (key) {
         case GLUT_KEY_LEFT:
             gCamera.orbit(-4.0f, 0.0f);
@@ -684,6 +826,19 @@ static void specialKeysCallback(int key, int x, int y) {
             break;
     }
     glutPostRedisplay();
+}
+
+static void specialKeysUpCallback(int key, int x, int y) {
+    (void)x; (void)y;
+    switch (key) {
+        case GLUT_KEY_LEFT:      gState.specialLeftDown  = false; break;
+        case GLUT_KEY_RIGHT:     gState.specialRightDown = false; break;
+        case GLUT_KEY_UP:        gState.specialUpDown    = false; break;
+        case GLUT_KEY_DOWN:      gState.specialDownDown  = false; break;
+        case GLUT_KEY_PAGE_UP:   gState.specialPgUpDown  = false; break;
+        case GLUT_KEY_PAGE_DOWN: gState.specialPgDnDown  = false; break;
+        default: break;
+    }
 }
 
 static void mouseButtonCallback(int button, int state, int x, int y) {
@@ -710,11 +865,26 @@ static void mouseMotionCallback(int x, int y) {
     gState.lastMouseY = y;
 
     if (gState.leftMouseDown) {
-        gCamera.orbit(-dx * 0.35f, dy * 0.35f);
+        if (gCamera.cameraMode == CameraMode::DRONE_FREE) {
+            gCamera.droneLook(dx * 0.28f, -dy * 0.25f);
+        } else {
+            gCamera.orbit(-dx * 0.35f, dy * 0.35f);
+        }
         glutPostRedisplay();
     } else if (gState.midMouseDown) {
-        gCamera.zoom(dy * 0.6f);
+        if (gCamera.cameraMode == CameraMode::DRONE_FREE) {
+            gCamera.droneNudgeForward(-dy * 0.45f);
+        } else {
+            gCamera.zoom(dy * 0.6f);
+        }
         glutPostRedisplay();
+    }
+}
+
+static void menuStatusCallback(int status, int x, int y) {
+    (void)x; (void)y;
+    if (status == GLUT_MENU_IN_USE) {
+        clearHeldFlightKeys();
     }
 }
 
@@ -724,6 +894,7 @@ static void createGLUTMenus() {
     glutAddMenuEntry("Goc nhin thu 1: Cabin Sun Wheel [2]",     MENU_CAM_SUNWHEEL);
     glutAddMenuEntry("Goc nhin thu 1: Tau luon Queen Cobra [3]",MENU_CAM_COASTER);
     glutAddMenuEntry("Goc nhin thu 1: Tau dien Monorail [4]",   MENU_CAM_MONORAIL);
+    glutAddMenuEntry("Camera Drone Tu Do (Bay quan sat) [5]",   MENU_CAM_DRONE);
     glutAddMenuEntry("Dat lai thong so Camera",                 MENU_CAM_RESET);
 
     int projSubMenu = glutCreateMenu(applyMenuSelection);
@@ -733,9 +904,9 @@ static void createGLUTMenus() {
     glutAddMenuEntry("Truc giao: Chieu canh SIDE (ZY)",         MENU_PROJ_ORTHO_SIDE);
 
     int shadeSubMenu = glutCreateMenu(applyMenuSelection);
-    glutAddMenuEntry("To bong noi suy Gouraud (GL_SMOOTH) [S]", MENU_SHADE_GOURAUD);
-    glutAddMenuEntry("To bong hang Lambert (GL_FLAT) [S]",      MENU_SHADE_LAMBERT);
-    glutAddMenuEntry("Bat/Tat Khung day / To dac [W]",          MENU_TOGGLE_WIREFRAME);
+    glutAddMenuEntry("To bong noi suy Gouraud (GL_SMOOTH) [S/F3]", MENU_SHADE_GOURAUD);
+    glutAddMenuEntry("To bong hang Lambert (GL_FLAT) [S/F3]",      MENU_SHADE_LAMBERT);
+    glutAddMenuEntry("Bat/Tat Khung day / To dac [W/F2]",          MENU_TOGGLE_WIREFRAME);
     glutAddMenuEntry("Bat/Tat Khu mat sau (Back-Face) [B]",     MENU_TOGGLE_CULLING);
     glutAddMenuEntry("Bat/Tat Z-Buffer (Depth Test) [Z]",       MENU_TOGGLE_ZBUFFER);
     glutAddMenuEntry("Bat/Tat Phap tuyen & Da giac Bezier [N]", MENU_TOGGLE_NORMALS);
@@ -779,9 +950,12 @@ int main(int argc, char** argv) {
     glutDisplayFunc(displayCallback);
     glutReshapeFunc(reshapeCallback);
     glutKeyboardFunc(keyboardCallback);
+    glutKeyboardUpFunc(keyboardUpCallback);
     glutSpecialFunc(specialKeysCallback);
+    glutSpecialUpFunc(specialKeysUpCallback);
     glutMouseFunc(mouseButtonCallback);
     glutMotionFunc(mouseMotionCallback);
+    glutMenuStatusFunc(menuStatusCallback);
     glutTimerFunc(16, timerCallback, 0);
 
     // Initialize Member 1 Curves & Rides (Queen Cobra + Monorail)

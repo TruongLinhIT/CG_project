@@ -113,14 +113,20 @@ public:
         // Telemetry lines
         glColor3f(0.90f, 0.95f, 1.0f);
 
-        std::snprintf(buf, sizeof(buf), "[C / 1-4] Camera    : %s", camera.getCameraModeName());
+        std::snprintf(buf, sizeof(buf), "[C / 1-5] Camera    : %s", camera.getCameraModeName());
         drawBitmapText(panelX + 14.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
 
         std::snprintf(buf, sizeof(buf), "[P]       Phep chieu: %s", camera.getProjectionModeName());
         drawBitmapText(panelX + 14.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
 
-        std::snprintf(buf, sizeof(buf), "[Quy dao] theta=%.1f do | Phi=%.1f do | R=%.1f | D=%.1f",
-                      camera.thetaDeg, camera.phiDeg, camera.distanceR, camera.viewPlaneD);
+        if (camera.cameraMode == CameraMode::DRONE_FREE) {
+            std::snprintf(buf, sizeof(buf), "[Drone]   Vi tri (%.1f, %.1f, %.1f) | Huong %.0f/%.0f | %.0f m/s",
+                          camera.dronePos.x, camera.dronePos.y, camera.dronePos.z,
+                          camera.droneYawDeg, camera.dronePitchDeg, camera.droneSpeed);
+        } else {
+            std::snprintf(buf, sizeof(buf), "[Quy dao] theta=%.1f do | Phi=%.1f do | R=%.1f | D=%.1f",
+                          camera.thetaDeg, camera.phiDeg, camera.distanceR, camera.viewPlaneD);
+        }
         drawBitmapText(panelX + 14.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
 
         std::snprintf(buf, sizeof(buf), "[Bezier]  Queen Cobra t=%.3f | Van toc=%.1f m/s",
@@ -151,8 +157,13 @@ public:
         drawBitmapText(panelX + 14.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
 
         glColor3f(0.65f, 0.85f, 1.0f);
-        drawBitmapText(panelX + 14.0f, y, GLUT_BITMAP_9_BY_15,
-                       "[H] An bang | [+/-] Zoom | [[ / ]] Doi D | [ESC] Thoat");
+        if (camera.cameraMode == CameraMode::DRONE_FREE) {
+            drawBitmapText(panelX + 14.0f, y, GLUT_BITMAP_9_BY_15,
+                           "[WASD] Bay | [E/Q] Cao | [F/+/-] Toc do | [Chuot] Xoay | [F2/F3]");
+        } else {
+            drawBitmapText(panelX + 14.0f, y, GLUT_BITMAP_9_BY_15,
+                           "[H] An bang | [+/-] Zoom | [[ / ]] Doi D | [5] Drone | [ESC] Thoat");
+        }
 
         // Restore OpenGL matrices & capabilities
         if (zBufferEnabled) glEnable(GL_DEPTH_TEST);

@@ -27,7 +27,8 @@ enum class CameraMode {
     FREE_ORBIT = 0,
     SUN_WHEEL_CABIN = 1,
     COASTER_FIRST_PERSON = 2,
-    MONORAIL_FIRST_PERSON = 3
+    MONORAIL_FIRST_PERSON = 3,
+    DRONE_FREE = 4
 };
 
 enum class ProjectionMode {
@@ -52,6 +53,13 @@ public:
     // Ortho half-height scale
     float orthoSize;
 
+    // Free Drone Flight Camera Parameters (Position, Smoothed Velocity, Yaw/Pitch Gimbal)
+    MathCG::Vec3 dronePos;
+    MathCG::Vec3 droneVelocity;
+    float droneYawDeg;    // 0 deg = North (-Z), +90 = East (+X), -90 = West (-X)
+    float dronePitchDeg;  // Clamped in [-85, +85] deg
+    float droneSpeed;     // Flight cruise speed (m/s): 12 (Detail), 35 (Cruise), 75 (Fast)
+
     Camera()
         : thetaDeg(35.0f),
           phiDeg(18.0f),
@@ -60,7 +68,12 @@ public:
           target(0.0f, 36.0f, -12.0f),
           cameraMode(CameraMode::FREE_ORBIT),
           projectionMode(ProjectionMode::PERSPECTIVE),
-          orthoSize(115.0f) {}
+          orthoSize(115.0f),
+          dronePos(60.0f, 48.0f, 95.0f),
+          droneVelocity(0.0f, 0.0f, 0.0f),
+          droneYawDeg(-25.0f),
+          dronePitchDeg(-8.0f),
+          droneSpeed(35.0f) {}
 
     /**
      * @brief Compute eye position O'(x, y, z) from spherical coordinates (R, theta, Phi)
@@ -165,6 +178,14 @@ public:
                 center.x, center.y, center.z,
                 up.x,     up.y,     up.z
             );
+        } else if (cameraMode == CameraMode::DRONE_FREE) {
+            MathCG::Vec3 fwd    = getDroneForward();
+            MathCG::Vec3 center = dronePos + fwd * 25.0f;
+            gluLookAt(
+                dronePos.x, dronePos.y, dronePos.z,
+                center.x,   center.y,   center.z,
+                0.0,        1.0,        0.0
+            );
         } else {
             // Default Free Spherical Orbit Camera
             MathCG::Vec3 eye = getOrbitEyePosition();
@@ -176,6 +197,143 @@ public:
         }
     }
 
+    // ------------------------------------------------------------------------
+    // Free Drone Gimbal & 6DOF Flight Controls
+    // ------------------------------------------------------------------------
+
+    MathCG::Vec3 getDroneForward() const {
+        float yaw   = droneYawDeg   * MathCG::DEG2RAD;
+        float pitch = dronePitchDeg * MathCG::DEG2RAD;
+        return MathCG::Vec3(
+            std::cos(pitch) * std::sin(yaw),
+            std::sin(pitch),
+            -std::cos(pitch) * std::cos(yaw)
+        ).normalized();
+    }
+
+    MathCG::Vec3 getDroneRight() const {
+        MathCG::Vec3 fwd = getDroneForward();
+        return MathCG::cross(fwd, MathCG::Vec3(0.0f, 1.0f, 0.0f)).normalized();
+    }
+
+    void clampDroneBounds() {
+        dronePos.x = std::clamp(dronePos.x, -220.0f, 220.0f);
+        dronePos.y = std::clamp(dronePos.y,    1.2f, 220.0f);
+        dronePos.z = std::clamp(dronePos.z, -220.0f, 220.0f);
+    }
+
+    void droneLook(float dYawDeg, float dPitchDeg) {
+        droneYawDeg = std::fmod(droneYawDeg + dYawDeg, 360.0f);
+        if (droneYawDeg > 180.0f)  droneYawDeg -= 360.0f;
+        if (droneYawDeg < -180.0f) droneYawDeg += 360.0f;
+        dronePitchDeg = std::clamp(dronePitchDeg + dPitchDeg, -85.0f, 85.0f);
+    }
+
+    void syncDroneFromPose(const MathCG::Vec3& eye, const MathCG::Vec3& lookDir) {
+        dronePos      = eye;
+        droneVelocity = MathCG::Vec3(0.0f, 0.0f, 0.0f);
+        clampDroneBounds();
+
+        if (lookDir.lengthSquared() < 1e-6f) return;
+        MathCG::Vec3 dir = lookDir.normalized();
+        dronePitchDeg = std::clamp(
+            std::asin(std::clamp(dir.y, -0.99f, 0.99f)) * MathCG::RAD2DEG,
+            -85.0f, 85.0f
+        );
+        if (dir.x * dir.x + dir.z * dir.z > 1e-5f) {
+            droneYawDeg = std::atan2(dir.x, -dir.z) * MathCG::RAD2DEG;
+        }
+    }
+
+    void cycleDroneSpeed() {
+        if (droneSpeed < 20.0f) {
+            droneSpeed = 35.0f;
+        } else if (droneSpeed < 55.0f) {
+            droneSpeed = 75.0f;
+        } else {
+            droneSpeed = 12.0f;
+        }
+    }
+
+    void adjustDroneSpeed(float delta) {
+        droneSpeed = std::clamp(droneSpeed + delta, 5.0f, 140.0f);
+    }
+
+    void droneNudgeForward(float dist) {
+        dronePos += getDroneForward() * dist;
+        clampDroneBounds();
+    }
+
+    void updateDrone(
+        float dt,
+        float inputFwd,
+        float inputRight,
+        float inputUp,
+        float turnYawRateDeg,
+        float turnPitchRateDeg
+    ) {
+        if (dt <= 0.0f) return;
+        droneLook(turnYawRateDeg * dt, turnPitchRateDeg * dt);
+
+        MathCG::Vec3 fwd   = getDroneForward();
+        MathCG::Vec3 right = getDroneRight();
+        MathCG::Vec3 up(0.0f, 1.0f, 0.0f);
+
+        MathCG::Vec3 desiredDir = fwd * inputFwd + right * inputRight + up * inputUp;
+        float dirLen = desiredDir.length();
+        if (dirLen > 1.0f) {
+            desiredDir = desiredDir / dirLen;
+        }
+
+        MathCG::Vec3 targetVel = desiredDir * droneSpeed;
+        float blend = 1.0f - std::exp(-10.0f * dt);
+        droneVelocity = MathCG::lerp(droneVelocity, targetVel, blend);
+        if (dirLen < 1e-4f && droneVelocity.length() < 0.02f) {
+            droneVelocity = MathCG::Vec3(0.0f, 0.0f, 0.0f);
+        }
+
+        dronePos += droneVelocity * dt;
+        clampDroneBounds();
+    }
+
+    void getActiveEyeAndLookDir(
+        const MathCG::Vec3& cabinWorldPos,
+        const MathCG::Vec3& coasterPos,
+        const MathCG::Vec3& coasterTangent,
+        const MathCG::Vec3& coasterUp,
+        const MathCG::Vec3& monorailPos,
+        const MathCG::Vec3& monorailTangent,
+        const MathCG::Vec3& monorailUp,
+        MathCG::Vec3& outEye,
+        MathCG::Vec3& outLookDir
+    ) const {
+        if (cameraMode == CameraMode::DRONE_FREE) {
+            outEye     = dronePos;
+            outLookDir = getDroneForward();
+        } else if (cameraMode == CameraMode::SUN_WHEEL_CABIN) {
+            float yawRad = thetaDeg * MathCG::DEG2RAD;
+            outEye       = cabinWorldPos;
+            outLookDir   = MathCG::Vec3(std::sin(yawRad), -0.12f, std::cos(yawRad)).normalized();
+        } else if (cameraMode == CameraMode::COASTER_FIRST_PERSON) {
+            MathCG::Vec3 fwd = coasterTangent.normalized();
+            MathCG::Vec3 up  = coasterUp.normalized();
+            outEye           = coasterPos + up * 1.95f + fwd * 0.65f;
+            outLookDir       = (fwd * 14.0f - up * 0.45f).normalized();
+        } else if (cameraMode == CameraMode::MONORAIL_FIRST_PERSON) {
+            MathCG::Vec3 fwd = monorailTangent.normalized();
+            MathCG::Vec3 up  = monorailUp.normalized();
+            outEye           = monorailPos + up * 1.90f + fwd * 2.15f;
+            outLookDir       = (fwd * 18.0f - up * 0.35f).normalized();
+        } else {
+            outEye     = getOrbitEyePosition();
+            outLookDir = (target - outEye).normalized();
+        }
+    }
+
+    float getMinimapYawDeg(const MathCG::Vec3& lookDir) const {
+        return std::atan2(lookDir.x, -lookDir.z) * MathCG::RAD2DEG;
+    }
+
     void orbit(float dTheta, float dPhi) {
         thetaDeg = std::fmod(thetaDeg + dTheta, 360.0f);
         phiDeg   = std::clamp(phiDeg + dPhi, 3.0f, 87.0f);
@@ -183,7 +341,11 @@ public:
 
     void zoom(float dR) {
         if (projectionMode == ProjectionMode::PERSPECTIVE) {
-            distanceR = std::clamp(distanceR + dR, 15.0f, 380.0f);
+            if (cameraMode == CameraMode::DRONE_FREE) {
+                droneNudgeForward(-dR * 0.65f);
+            } else {
+                distanceR = std::clamp(distanceR + dR, 15.0f, 380.0f);
+            }
         } else {
             orthoSize = std::clamp(orthoSize + dR * 0.5f, 15.0f, 260.0f);
         }
@@ -201,6 +363,7 @@ public:
             case CameraMode::SUN_WHEEL_CABIN:       return "Goc nhin thu 1: Cabin Sun Wheel";
             case CameraMode::COASTER_FIRST_PERSON:  return "Goc nhin thu 1: Tau luon Queen Cobra";
             case CameraMode::MONORAIL_FIRST_PERSON: return "Goc nhin thu 1: Tau dien Monorail";
+            case CameraMode::DRONE_FREE:            return "Camera Drone Tu Do (WASD + E/Q + Chuot)";
             default:                                return "Khong xac dinh";
         }
     }
