@@ -33,6 +33,10 @@
 #include "rides/NgoMonGate.h"
 #include "ui/Minimap2D.h"
 #include "ui/HUD.h"
+#include "actors/Human.h"
+#include "rides/Playground.h"
+#include "rides/BumperCars.h"
+#include "rides/PirateShip.h"
 
 // ============================================================================
 // GLOBAL SIMULATION & GRAPHICS PIPELINE STATE MACHINE
@@ -94,6 +98,10 @@ static AsiaParkRides::SkyTower   gSkyTower;
 static AsiaParkRides::Carousel   gCarousel;
 static AsiaParkRides::NgoMonGate  gNgoMonGate;
 static AsiaParkUI::Minimap2D     gMinimap;
+static AsiaParkRides::Playground  gPlayground;
+static AsiaParkRides::BumperCars  gBumperCars;
+static AsiaParkRides::PirateShip  gPirateShip;
+static std::vector<AsiaParkActors::Human> gHumans;
 
 // ============================================================================
 // GLUT RIGHT-CLICK MENU IDENTIFIERS
@@ -436,6 +444,10 @@ static void displayCallback() {
     gSkyTower.draw(isNightOrSunset, gState.showNormalsAndCtrl);
     gCarousel.draw(isNightOrSunset, gState.showNormalsAndCtrl);
     gNgoMonGate.draw(isNightOrSunset, gState.showNormalsAndCtrl, smooth);
+    gPlayground.draw(isNightOrSunset, gState.showNormalsAndCtrl);
+    gBumperCars.draw(isNightOrSunset, gState.showNormalsAndCtrl);
+    gPirateShip.draw(isNightOrSunset, gState.showNormalsAndCtrl);
+    for (const auto& h : gHumans) h.draw(isNightOrSunset);
 
     // 6. Render 2D Overlays (Always in GL_FILL)
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -559,6 +571,10 @@ static void timerCallback(int value) {
         gMinimap.update(dt);
         gState.skyTowerTime     = gSkyTower.cycleTime;
         gCurves.update(dt);
+        gPlayground.update(dt);
+        gBumperCars.update(dt);
+        gPirateShip.update(dt);
+        for (auto& h : gHumans) h.update(dt);
         gState.coasterParamT    = gCurves.queenCobraTrain.paramT;
     }
 
@@ -960,6 +976,7 @@ int main(int argc, char** argv) {
 
     // Initialize Member 1 Curves & Rides (Queen Cobra + Monorail)
     gCurves.init();
+    gHumans = AsiaParkActors::createDefaultCrowd();
 
     // Create right-click hierarchical menu
     createGLUTMenus();
