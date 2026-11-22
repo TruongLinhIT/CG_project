@@ -1435,8 +1435,8 @@ static bool renderHeadlessPerspectiveShots() {
         if (!saveFramebufferPPM(sh.outPath, capW, capH)) return false;
     }
 
-    // Chụp bộ ảnh kiểm tra Đợt 4, Đợt 5A & Đợt 5B
-    const ShotSpec wave4And5Shots[11] = {
+    // Chụp bộ ảnh kiểm tra Đợt 4, Đợt 5A, Đợt 5B & Đợt 6
+    const ShotSpec wave4And5Shots[15] = {
         // 1. Toàn cảnh góc cao Đợt 4
         {
             "/tmp/w4_overview.ppm",
@@ -1501,7 +1501,7 @@ static bool renderHeadlessPerspectiveShots() {
             50.0f,
             TimeOfDay::DAY
         },
-        // 9. ĐỢT 5B - Ảnh 1: Toàn cảnh khu Tây từ trên cao (bao quát toàn bộ Đợt 5a + 5b: nhà mái xanh, nhà mái đỏ, 3 dãy quầy mái sọc, 4 đu quay tròn, quảng trường Angkor, núi đá Paradise Fall)
+        // 9. ĐỢT 5B - Ảnh 1: Toàn cảnh khu Tây từ trên cao
         {
             "/tmp/w5b_west_overview.ppm",
             MathCG::Vec3(-325.0f, 170.0f,  190.0f),
@@ -1509,7 +1509,7 @@ static bool renderHeadlessPerspectiveShots() {
             54.0f,
             TimeOfDay::DAY
         },
-        // 10. ĐỢT 5B - Ảnh 2: Cận cảnh cụm Nhà mái ngói xanh (#7 & #8) quanh sân bông hoa (-113.4, +81.5) & Dãy 3 hàng gian hàng mái sọc đỏ trắng (#6)
+        // 10. ĐỢT 5B - Ảnh 2: Cận cảnh cụm Nhà mái ngói xanh (#7 & #8) quanh sân bông hoa & Dãy 3 hàng gian hàng mái sọc đỏ trắng (#6)
         {
             "/tmp/w5b_blue_roof_halls.ppm",
             MathCG::Vec3( -52.0f,  38.0f,  135.0f),
@@ -1524,6 +1524,38 @@ static bool renderHeadlessPerspectiveShots() {
             MathCG::Vec3(-138.0f,   6.0f,  -75.0f),
             52.0f,
             TimeOfDay::DAY
+        },
+        // 12. ĐỢT 6 - Ảnh 1: Toàn cảnh góc cao toàn công viên (bao quát Ngọ Môn, Quảng trường, Sun Wheel, Khu Tây nhiều cây xanh, Hồ Bắc & nửa Đông trống)
+        {
+            "/tmp/w6_overview_high.ppm",
+            MathCG::Vec3(-145.0f, 185.0f,  295.0f),
+            MathCG::Vec3( -45.0f,  18.0f,  -35.0f),
+            54.0f,
+            TimeOfDay::SUNSET
+        },
+        // 13. ĐỢT 6 - Ảnh 2: Cận Quảng trường Cổng Ngọ Môn - Sun Wheel (thấy rõ cột cờ, bồn hoa, đèn đường phát sáng, đèn lồng, cây xanh & người đi dạo)
+        {
+            "/tmp/w6_gate_plaza_sw.ppm",
+            MathCG::Vec3(  24.0f,  34.0f,  178.0f),
+            MathCG::Vec3(   4.0f,  22.0f,   -5.0f),
+            52.0f,
+            TimeOfDay::SUNSET
+        },
+        // 14. ĐỢT 6 - Ảnh 3: Khu phía Tây có nhiều cây xanh, mái che + hàng cột BumperCars, bệ đá Playground/PirateShip, nhà mái xanh & tàu lượn
+        {
+            "/tmp/w6_west_trees.ppm",
+            MathCG::Vec3(-265.0f,  88.0f,  165.0f),
+            MathCG::Vec3(-145.0f,   6.0f,  -45.0f),
+            52.0f,
+            TimeOfDay::DAY
+        },
+        // 15. ĐỢT 6 - Ảnh 4: Góc nhìn ngang tầm mắt du khách (eye-level y = 3.2m trên Quảng trường Trung tâm nhìn về Tháp Đồng Hồ, Sân khấu 2 màn hình tròn, Sun Wheel, bồn hoa, đèn đường & người đi bộ)
+        {
+            "/tmp/w6_eye_level.ppm",
+            MathCG::Vec3(  -4.0f,   3.5f,   98.0f),
+            MathCG::Vec3(   2.0f,  26.0f,  -25.0f),
+            55.0f,
+            TimeOfDay::SUNSET
         }
     };
 

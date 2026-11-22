@@ -483,6 +483,160 @@ constexpr MathCG::Vec3 WEST_CANOPY_THEATER_POS(-256.0f, 0.0f, -128.7f);     // #
 constexpr MathCG::Vec3 ANGKOR_LAKESIDE_HALL_POS(-138.0f, 0.0f, -242.0f);    // #18: Nhà mái xanh khu Angkor ven hồ (20x14m, xoay -22°) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
 constexpr MathCG::Vec3 ANGKOR_STAR_PLAZA_POS(-185.0f, 0.0f, -254.0f);       // #19: Quảng trường Ngôi sao & 4 tháp chòi nhọn Angkor (24x24m) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
 
+// ============================================================================
+// 8. ĐỢT 6A & 6B: TIỂU CẢNH ĐÈN ĐƯỜNG, GHẾ NGHỈ, BỒN HOA, CỘT CỜ, BIỂN CHỈ DẪN
+//    VÀ 123 CÂY XANH PHÂN BỐ KHU TÂY / TÂY-NAM / QUẢNG TRƯỜNG / BỜ HỒ (NỬA ĐÔNG TRỐNG)
+//    Đã kiểm tra bằng script: 0 cây trong hồ, 0 cây trên lối đi, 0 cây đè công trình,
+//    cách dầm và trụ Monorail >= 3.6m.
+// ============================================================================
+
+struct TreePlacement {
+    float x;
+    float z;
+    int   style; // 0: Cây tán tròn rộng, 1: Cây thông/tùng tháp nhọn, 2: Cây cọ/dừa cảnh quan
+    float scale;
+};
+
+struct OrientedPropXZ {
+    float x;
+    float z;
+    float rotYDeg;
+    int   variant;
+};
+
+// 8.1. 24 Trụ đèn cảnh quan dọc Quảng trường Trung tâm, Sân cổng Ngọ Môn & Trục lối đi chính phía Tây
+//      (Chỉ dùng vật liệu phát sáng emissive khi chiều/tối, KHÔNG dùng thêm nguồn sáng GL_LIGHTi)
+constexpr int NUM_PARK_PATH_LAMPS = 24;
+constexpr PointXZ PARK_PATH_LAMP_POS[NUM_PARK_PATH_LAMPS] = {
+    // Dọc hai mép Đông - Tây Quảng trường Trung tâm
+    { -25.5f, 106.0f }, {  57.5f, 106.0f },
+    { -25.5f,  84.0f }, {  57.5f,  84.0f },
+    { -25.5f,  46.0f }, {  57.5f,  46.0f },
+    { -25.5f,  22.0f }, {  57.5f,  22.0f },
+    { -25.5f,   0.0f }, {  57.5f,   0.0f },
+    // Sân đón phía Nam & phía Bắc Cổng Ngọ Môn
+    {   4.0f, 156.0f }, {  28.2f, 156.0f },
+    {   4.0f, 114.0f }, {  28.2f, 114.0f },
+    // Dọc trục lối đi khu Tây & đường nối ngang
+    { -68.0f,  95.0f }, { -112.0f,  87.0f },
+    { -156.0f,  81.0f }, { -183.0f,  46.0f },
+    { -190.0f, -18.0f }, { -238.0f, -50.0f },
+    { -228.0f,-108.0f }, { -222.0f,-185.0f },
+    {  -68.0f,  40.0f }, { -142.0f,  38.0f }
+};
+
+// 8.2. 16 Ghế nghỉ công viên đặt dọc rìa quảng trường và lối đi
+constexpr int NUM_PARK_BENCHES = 16;
+constexpr OrientedPropXZ PARK_BENCH_POS[NUM_PARK_BENCHES] = {
+    { -25.0f,  95.0f,  90.0f, 0 }, {  57.0f,  95.0f, -90.0f, 0 },
+    { -25.0f,  34.0f,  90.0f, 0 }, {  57.0f,  34.0f, -90.0f, 0 },
+    { -25.0f,  10.0f,  90.0f, 0 }, {  57.0f,  10.0f, -90.0f, 0 },
+    {   6.0f, 150.0f,  90.0f, 0 }, {  26.2f, 150.0f, -90.0f, 0 },
+    { -45.0f, -63.0f,   0.0f, 0 }, {  22.0f, -63.0f,   0.0f, 0 },
+    { -96.0f,  74.0f, -45.0f, 0 }, { -120.0f, 74.0f,  45.0f, 0 },
+    { -183.0f, 32.0f,  90.0f, 0 }, { -190.0f,-10.0f,  90.0f, 0 },
+    { -238.0f,-62.0f,  45.0f, 0 }, { -208.0f,-270.0f,  0.0f, 0 }
+};
+
+// 8.3. 16 Bồn hoa hộp màu trang trí tại Quảng trường Cổng, Quảng trường Trung tâm & khu Tây
+constexpr int NUM_PARK_FLOWER_PLANTERS = 16;
+constexpr OrientedPropXZ PARK_FLOWER_PLANTER_POS[NUM_PARK_FLOWER_PLANTERS] = {
+    {   5.5f, 160.0f,  0.0f, 0 }, {  26.7f, 160.0f,  0.0f, 1 },
+    {   5.5f, 112.0f,  0.0f, 2 }, {  26.7f, 112.0f,  0.0f, 0 },
+    {  -8.0f,  86.0f,  0.0f, 1 }, {  38.0f,  86.0f,  0.0f, 2 },
+    {  -8.0f,  42.0f,  0.0f, 0 }, {  38.0f,  42.0f,  0.0f, 1 },
+    { -18.0f,   6.0f,  0.0f, 2 }, {  18.0f,   6.0f,  0.0f, 0 },
+    { -18.0f,  -6.0f,  0.0f, 1 }, {  18.0f,  -6.0f,  0.0f, 2 },
+    { -98.0f,  66.0f, 12.0f, 0 }, { -118.0f, 66.0f, 12.0f, 1 },
+    { -162.0f, 82.0f,  0.0f, 2 }, { -238.0f,-46.0f,  0.0f, 0 }
+};
+
+// 8.4. 6 Cột cờ lễ hội tại Sân Cổng Ngọ Môn và Quảng trường Sân khấu Sun Wheel
+constexpr int NUM_PARK_FLAGPOLES = 6;
+constexpr PointXZ PARK_FLAGPOLE_POS[NUM_PARK_FLAGPOLES] = {
+    {  -3.0f, 148.0f }, {  35.2f, 148.0f }, // 2 cột cờ trước Cổng Ngọ Môn
+    { -28.0f,  -7.5f }, { -21.0f,  -7.5f }, // 2 cột cờ cánh Tây Sân khấu Sun Wheel
+    {  21.0f,  -7.5f }, {  28.0f,  -7.5f }  // 2 cột cờ cánh Đông Sân khấu Sun Wheel
+};
+
+// 8.5. 6 Biển chỉ dẫn đa hướng tại các ngã ba lối đi chính
+constexpr int NUM_PARK_SIGNBOARDS = 6;
+constexpr OrientedPropXZ PARK_SIGNBOARD_POS[NUM_PARK_SIGNBOARDS] = {
+    {  10.0f,  96.0f,   0.0f, 0 }, // Ngã ba sân Bắc Ngọ Môn rẽ sang Ga Monorail Nam
+    {  -4.0f,  25.0f,  30.0f, 1 }, // Ngã ba Quảng trường Sun Wheel rẽ sang khu Tây
+    { -110.0f, 86.0f, -20.0f, 2 }, // Ngã ba Sân bông hoa khu Tây-Nam
+    { -183.0f, 44.0f,  45.0f, 0 }, // Ngã ba Port of Sky Treasure / Pirate Ship
+    { -239.0f,-52.0f,  15.0f, 1 }, // Quảng trường Đông Sky Tower
+    { -210.0f,-272.0f,-30.0f, 2 }  // Ngã ba Quảng trường Angkor dẫn lên Queen Cobra
+};
+
+// 8.6. 123 Cây xanh đơn giản (thân trụ + tán cầu/nón/lá cọ, vẽ bằng Display List)
+constexpr int NUM_PARK_TREES = 123;
+constexpr TreePlacement PARK_TREES[NUM_PARK_TREES] = {
+    {  -42.0f,  152.0f, 0, 0.90f }, {  -36.0f,  166.0f, 1, 1.05f },
+    {   -2.0f,  169.0f, 2, 1.18f }, {   34.0f,  169.0f, 0, 0.96f },
+    {   68.0f,  152.0f, 1, 1.25f }, {   76.0f,  152.0f, 2, 1.10f },
+    {  -46.0f,  127.0f, 0, 0.88f }, {   44.0f,  127.0f, 1, 0.90f },
+    {   58.0f,  127.0f, 2, 1.05f }, {   72.0f,  127.0f, 0, 1.18f },
+    {   -4.0f,  119.0f, 1, 0.96f }, {   52.0f,  121.0f, 2, 1.25f },
+    {  -31.0f,  102.0f, 0, 1.10f }, {  -31.0f,   88.0f, 1, 0.88f },
+    {  -31.0f,   76.0f, 2, 0.90f }, {  -31.0f,   50.0f, 0, 1.05f },
+    {  -31.0f,   40.0f, 1, 1.18f }, {   63.0f,  104.0f, 2, 0.96f },
+    {   63.0f,   90.0f, 0, 1.25f }, {   63.0f,   76.0f, 1, 1.10f },
+    {   63.0f,   50.0f, 2, 0.88f }, {   63.0f,   36.0f, 0, 0.90f },
+    {   63.0f,   20.0f, 1, 1.05f }, {   63.0f,    4.0f, 2, 1.18f },
+    {   63.0f,  -12.0f, 0, 0.96f }, {   52.0f,  -20.0f, 1, 1.25f },
+    {   52.0f,  -38.0f, 2, 1.10f }, {   52.0f,  -54.0f, 0, 0.88f },
+    {  -56.0f,  -58.0f, 1, 0.90f }, {  -42.0f,  -58.0f, 2, 1.05f },
+    {  -22.0f,  -61.0f, 0, 1.18f }, {   10.0f,  -61.0f, 1, 0.96f },
+    {   26.0f,  -61.0f, 2, 1.25f }, {   42.0f,  -59.0f, 0, 1.10f },
+    {  -71.0f,  -82.0f, 1, 0.88f }, {  -73.0f,  -98.0f, 2, 0.90f },
+    {  -83.0f, -145.0f, 0, 1.05f }, {  -87.0f, -163.0f, 1, 1.18f },
+    {  -91.0f, -179.0f, 2, 0.96f }, { -102.0f, -207.0f, 0, 1.25f },
+    { -112.0f, -223.0f, 1, 1.10f }, { -135.0f, -271.0f, 2, 0.88f },
+    { -148.0f, -287.0f, 0, 0.90f }, {  -52.0f,  111.0f, 1, 1.05f },
+    {  -64.0f,  108.0f, 2, 1.18f }, {  -80.0f,  124.0f, 0, 0.96f },
+    {  -64.0f,  130.0f, 1, 1.25f }, {  -82.0f,  142.0f, 2, 1.10f },
+    {  -96.0f,  146.0f, 0, 0.88f }, {  -92.0f,  162.0f, 1, 0.90f },
+    { -148.0f,  148.0f, 2, 1.05f }, { -158.0f,  136.0f, 0, 1.18f },
+    { -174.0f,  132.0f, 1, 0.96f }, { -186.0f,  128.0f, 2, 1.25f },
+    { -228.0f,  124.0f, 0, 1.10f }, { -238.0f,  108.0f, 1, 0.88f },
+    { -235.0f,   92.0f, 2, 0.90f }, { -180.0f,  106.0f, 0, 1.05f },
+    { -180.0f,   92.0f, 1, 1.18f }, { -142.0f,   96.0f, 2, 0.96f },
+    { -134.0f,   68.0f, 0, 1.25f }, { -148.0f,   66.0f, 1, 1.10f },
+    { -166.0f,   66.0f, 2, 0.88f }, { -180.0f,   66.0f, 0, 0.90f },
+    {  -82.0f,   86.0f, 1, 1.05f }, {  -64.0f,   86.0f, 2, 1.18f },
+    {  -50.0f,   82.0f, 0, 0.96f }, {  -50.0f,   68.0f, 1, 1.25f },
+    {  -68.0f,   68.0f, 2, 1.10f }, {  -84.0f,   66.0f, 0, 0.88f },
+    {  -84.0f,   50.0f, 1, 0.90f }, {  -68.0f,   50.0f, 2, 1.05f },
+    {  -50.0f,   50.0f, 0, 1.18f }, {  -72.0f,   22.0f, 1, 0.96f },
+    {  -72.0f,    6.0f, 2, 1.25f }, {  -72.0f,  -10.0f, 0, 1.10f },
+    {  -72.0f,  -26.0f, 1, 0.88f }, {  -72.0f,  -44.0f, 2, 0.90f },
+    {  -88.0f,   -4.0f, 0, 1.05f }, {  -88.0f,  -42.0f, 1, 1.18f },
+    { -116.0f,  -44.0f, 2, 0.96f }, { -134.0f,  -44.0f, 0, 1.25f },
+    { -152.0f,  -44.0f, 1, 1.10f }, { -170.0f,  -44.0f, 2, 0.88f },
+    { -156.0f,   18.0f, 0, 0.90f }, { -156.0f,  -22.0f, 1, 1.05f },
+    { -188.0f,  -44.0f, 2, 1.18f }, { -206.0f,  -44.0f, 0, 0.96f },
+    { -222.0f,  -54.0f, 1, 1.25f }, { -134.0f,  -66.0f, 2, 1.10f },
+    { -152.0f,  -66.0f, 0, 0.88f }, { -170.0f,  -66.0f, 1, 0.90f },
+    { -206.0f,  -66.0f, 2, 1.05f }, { -224.0f,  -68.0f, 0, 1.18f },
+    { -248.0f,  -78.0f, 1, 0.96f }, { -124.0f,  -88.0f, 2, 1.25f },
+    { -144.0f,  -88.0f, 0, 1.10f }, { -156.0f, -106.0f, 1, 0.88f },
+    { -134.0f, -112.0f, 2, 0.90f }, { -114.0f, -112.0f, 0, 1.05f },
+    {  -96.0f, -112.0f, 1, 1.18f }, {  -98.0f, -134.0f, 2, 0.96f },
+    { -116.0f, -134.0f, 0, 1.25f }, { -116.0f, -156.0f, 1, 1.10f },
+    { -102.0f, -156.0f, 2, 0.88f }, { -106.0f, -176.0f, 0, 0.90f },
+    { -122.0f, -176.0f, 1, 1.05f }, { -166.0f, -142.0f, 2, 1.18f },
+    { -166.0f, -162.0f, 0, 0.96f }, { -166.0f, -182.0f, 1, 1.25f },
+    { -186.0f, -156.0f, 2, 1.10f }, { -206.0f, -156.0f, 0, 0.88f },
+    { -216.0f, -174.0f, 1, 0.90f }, { -246.0f, -160.0f, 2, 1.05f },
+    { -256.0f, -178.0f, 0, 1.18f }, { -256.0f, -198.0f, 1, 0.96f },
+    { -256.0f, -218.0f, 2, 1.25f }, { -256.0f, -242.0f, 0, 1.10f },
+    { -124.0f, -198.0f, 1, 0.88f }, { -144.0f, -204.0f, 2, 0.90f },
+    { -152.0f, -220.0f, 0, 1.05f }, { -160.0f, -256.0f, 1, 1.18f },
+    { -212.0f, -252.0f, 2, 0.96f }
+};
+
 } // namespace ParkLayout
 
 #endif // PARK_LAYOUT_H

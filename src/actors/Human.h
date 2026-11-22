@@ -143,29 +143,35 @@ private:
 // ============================================================================
 inline std::vector<Human> createDefaultCrowd() {
     using C = MathCG::ColorRGB;
+    // Lộ trình đi bộ đã cập nhật theo bố cục Đợt 6: đi dạo trên Quảng trường Trung tâm,
+    // sân đón Cổng Ngọ Môn, Sân bông hoa khu Tây-Nam và trục lối đi chính khu Tây
+    // (0% đi xuống hồ nước hoặc xuyên qua các công trình).
     std::vector<HumanConfig> configs = {
-        // Near Sun Wheel (around z=-15)
-        { MathCG::Vec3( 0.0f, 0.0f,-15.0f), 8.0f, 0.00f, 0.40f, C(0.9f,0.2f,0.2f), C(0.2f,0.3f,0.7f), C(1.0f,0.85f,0.72f) },
-        { MathCG::Vec3( 0.0f, 0.0f,-15.0f), 8.0f, 2.09f, 0.35f, C(0.2f,0.6f,0.9f), C(0.4f,0.4f,0.4f), C(0.9f,0.76f,0.60f) },
-        { MathCG::Vec3( 0.0f, 0.0f,-15.0f), 8.0f, 4.18f, 0.45f, C(0.3f,0.7f,0.3f), C(0.5f,0.3f,0.2f), C(1.0f,0.85f,0.72f) },
-        // Near Carousel (approx 25, 0, 20)
-        { MathCG::Vec3(25.0f, 0.0f, 20.0f), 7.0f, 0.80f, 0.50f, C(0.9f,0.6f,0.1f), C(0.2f,0.4f,0.2f), C(0.9f,0.76f,0.60f) },
-        { MathCG::Vec3(25.0f, 0.0f, 20.0f), 7.0f, 3.00f, 0.42f, C(0.7f,0.1f,0.6f), C(0.3f,0.3f,0.3f), C(1.0f,0.85f,0.72f) },
-        // Near SkyTower
-        { MathCG::Vec3(-28.0f,0.0f,-28.0f), 6.0f, 1.57f, 0.38f, C(1.0f,0.5f,0.0f), C(0.2f,0.2f,0.6f), C(0.9f,0.76f,0.60f) },
-        { MathCG::Vec3(-28.0f,0.0f,-28.0f), 6.0f, 4.70f, 0.55f, C(0.2f,0.8f,0.8f), C(0.5f,0.4f,0.2f), C(1.0f,0.85f,0.72f) },
-        // Near Pavilion
-        { MathCG::Vec3( 0.0f, 0.0f, 22.0f), 9.0f, 0.30f, 0.30f, C(0.9f,0.9f,0.2f), C(0.3f,0.5f,0.3f), C(0.9f,0.76f,0.60f) },
-        { MathCG::Vec3( 0.0f, 0.0f, 22.0f), 9.0f, 3.40f, 0.33f, C(0.6f,0.3f,0.9f), C(0.4f,0.4f,0.4f), C(1.0f,0.85f,0.72f) },
-        // Near NgoMon Gate
-        { MathCG::Vec3(55.0f, 0.0f,  5.0f),10.0f, 1.00f, 0.28f, C(0.8f,0.2f,0.4f), C(0.2f,0.3f,0.5f), C(0.9f,0.76f,0.60f) },
-        { MathCG::Vec3(55.0f, 0.0f,  5.0f),10.0f, 4.00f, 0.32f, C(0.3f,0.4f,0.8f), C(0.6f,0.4f,0.2f), C(1.0f,0.85f,0.72f) },
-        // Near Playground / BumperCars area
-        { MathCG::Vec3(40.0f, 0.0f,-45.0f), 5.0f, 0.60f, 0.60f, C(0.9f,0.5f,0.5f), C(0.3f,0.3f,0.3f), C(0.9f,0.76f,0.60f) },
-        { MathCG::Vec3(-45.0f,0.0f, 20.0f), 5.0f, 2.80f, 0.55f, C(0.4f,0.9f,0.5f), C(0.3f,0.2f,0.6f), C(1.0f,0.85f,0.72f) },
-        // Near Pirate Ship
-        { MathCG::Vec3(-20.0f,0.0f,-58.0f), 8.0f, 1.20f, 0.35f, C(0.8f,0.6f,0.1f), C(0.2f,0.3f,0.6f), C(0.9f,0.76f,0.60f) },
-        { MathCG::Vec3(-20.0f,0.0f,-58.0f), 8.0f, 4.50f, 0.40f, C(0.5f,0.2f,0.8f), C(0.4f,0.4f,0.2f), C(1.0f,0.85f,0.72f) },
+        // 1. Quảng trường phía Nam Sân khấu Sun Wheel (tâm (0, 0, 4.0), R = 5.5m -> Z thuộc [-1.5, +9.5], cách sân khấu Z=-11.4 là 10m)
+        { MathCG::Vec3(   0.0f, 0.0f,   4.0f), 5.5f, 0.00f, 0.40f, C(0.9f,0.2f,0.2f), C(0.2f,0.3f,0.7f), C(1.0f,0.85f,0.72f) },
+        { MathCG::Vec3(   0.0f, 0.0f,   4.0f), 5.5f, 2.09f, 0.35f, C(0.2f,0.6f,0.9f), C(0.4f,0.4f,0.4f), C(0.9f,0.76f,0.60f) },
+        { MathCG::Vec3(   0.0f, 0.0f,   4.0f), 5.5f, 4.18f, 0.45f, C(0.3f,0.7f,0.3f), C(0.5f,0.3f,0.2f), C(1.0f,0.85f,0.72f) },
+        // 2. Quảng trường Trung tâm phía Bắc & Đông Tháp Đồng Hồ (tâm (28.0, 0, 34.0) và (-6.0, 0, 38.0))
+        { MathCG::Vec3(  28.0f, 0.0f,  34.0f), 6.5f, 0.80f, 0.50f, C(0.9f,0.6f,0.1f), C(0.2f,0.4f,0.2f), C(0.9f,0.76f,0.60f) },
+        { MathCG::Vec3(  28.0f, 0.0f,  34.0f), 6.5f, 3.00f, 0.42f, C(0.7f,0.1f,0.6f), C(0.3f,0.3f,0.3f), C(1.0f,0.85f,0.72f) },
+        { MathCG::Vec3(  -6.0f, 0.0f,  38.0f), 6.0f, 1.57f, 0.38f, C(1.0f,0.5f,0.0f), C(0.2f,0.2f,0.6f), C(0.9f,0.76f,0.60f) },
+        { MathCG::Vec3(  -6.0f, 0.0f,  38.0f), 6.0f, 4.70f, 0.55f, C(0.2f,0.8f,0.8f), C(0.5f,0.4f,0.2f), C(1.0f,0.85f,0.72f) },
+        // 3. Quảng trường Trung tâm phía Nam Tháp Đồng Hồ (tâm (16.1, 0, 92.0), R = 7.5m)
+        { MathCG::Vec3(  16.1f, 0.0f,  92.0f), 7.5f, 0.30f, 0.30f, C(0.9f,0.9f,0.2f), C(0.3f,0.5f,0.3f), C(0.9f,0.76f,0.60f) },
+        { MathCG::Vec3(  16.1f, 0.0f,  92.0f), 7.5f, 3.40f, 0.33f, C(0.6f,0.3f,0.9f), C(0.4f,0.4f,0.4f), C(1.0f,0.85f,0.72f) },
+        // 4. Đường dẫn phía Nam Cổng Ngọ Môn giữa 2 Hồ sen (tâm (16.1, 0, 156.0), R = 4.0m)
+        { MathCG::Vec3(  16.1f, 0.0f, 156.0f), 4.0f, 1.00f, 0.28f, C(0.8f,0.2f,0.4f), C(0.2f,0.3f,0.5f), C(0.9f,0.76f,0.60f) },
+        { MathCG::Vec3(  16.1f, 0.0f, 156.0f), 4.0f, 4.00f, 0.32f, C(0.3f,0.4f,0.8f), C(0.6f,0.4f,0.2f), C(1.0f,0.85f,0.72f) },
+        // 5. Sân lát Bông hoa 8 cánh khu Tây-Nam (tâm (-108.0, 0, 76.0), R = 6.5m)
+        { MathCG::Vec3(-108.0f, 0.0f,  76.0f), 6.5f, 0.60f, 0.45f, C(0.9f,0.5f,0.5f), C(0.3f,0.3f,0.3f), C(0.9f,0.76f,0.60f) },
+        { MathCG::Vec3(-108.0f, 0.0f,  76.0f), 6.5f, 3.70f, 0.42f, C(0.4f,0.9f,0.5f), C(0.3f,0.2f,0.6f), C(1.0f,0.85f,0.72f) },
+        // 6. Ngã ba lối đi khu Tây giữa Port of Sky Treasure & Pirate Ship (tâm (-188.0, 0, 38.0), R = 4.5m)
+        { MathCG::Vec3(-188.0f, 0.0f,  38.0f), 4.5f, 1.20f, 0.38f, C(0.8f,0.6f,0.1f), C(0.2f,0.3f,0.6f), C(0.9f,0.76f,0.60f) },
+        { MathCG::Vec3(-188.0f, 0.0f,  38.0f), 4.5f, 4.50f, 0.40f, C(0.5f,0.2f,0.8f), C(0.4f,0.4f,0.2f), C(1.0f,0.85f,0.72f) },
+        // 7. Sân phía Đông Sky Tower & Hành lang khu giữa (tâm (-238.0, 0, -54.6) và (-120.0, 0, -108.0))
+        { MathCG::Vec3(-238.0f, 0.0f, -54.6f), 4.2f, 0.50f, 0.42f, C(0.9f,0.3f,0.2f), C(0.2f,0.3f,0.6f), C(1.0f,0.85f,0.72f) },
+        { MathCG::Vec3(-120.0f, 0.0f,-108.0f), 5.5f, 2.20f, 0.36f, C(0.2f,0.7f,0.8f), C(0.3f,0.3f,0.4f), C(0.9f,0.76f,0.60f) },
+        { MathCG::Vec3(-212.0f, 0.0f,-274.0f), 4.2f, 3.80f, 0.38f, C(0.9f,0.7f,0.2f), C(0.3f,0.4f,0.3f), C(1.0f,0.85f,0.72f) },
     };
     std::vector<Human> crowd;
     crowd.reserve(configs.size());

@@ -80,8 +80,10 @@ public:
 
 private:
     mutable Geometry::PolygonMesh staticArchMesh;
-    mutable GLuint archSmoothList = 0;
-    mutable GLuint archFlatList   = 0;
+    mutable Geometry::PolygonMesh emissiveLampMesh;
+    mutable GLuint archSmoothList   = 0;
+    mutable GLuint archFlatList     = 0;
+    mutable GLuint emissiveLampList = 0;
     mutable GLuint roundRideSpinLists[4] = { 0, 0, 0, 0 };
 
     void ensureDisplayLists() const {
@@ -166,12 +168,10 @@ private:
     }
 
     /**
-     * @brief MỘT HÀM VẼ NHÀ MÁI NGÓI THAM SỐ HÓA DÙNG CHUNG (ĐỢT 5B):
-     *        Tham số: vị trí, góc xoay, rộng (w), sâu (d), cao thân (wallH), màu mái (roofCol), kiểu mái cong (roofStyle).
-     *        Dùng chung cho 4 nhà mái xanh/teal (#7, #8, #15, #18) và nhà mái đỏ ven hồ (#12).
-     *        100% liền khối: mái đặt trực tiếp lên xà đỡ, cột và thân tường, có bậc thềm và sảnh hiên.
-     *        - roofStyle = 0: Mái ngói cong 2 tầng truyền thống có cổ lầu và hiên sảnh (#7, #8, #12, #18)
-     *        - roofStyle = 1: Mái ngói cong 2 tầng vòm rộng viền diềm trắng kiểu nhà biểu diễn (#15)
+     * @brief MỘT HÀM VẼ NHÀ MÁI NGÓI THAM SỐ HÓA DÙNG CHUNG (ĐỢT 5B & 6A):
+     *        Tham số: vị trí, góc xoay, rộng (w), sâu (d), cao thân (wallH), màu mái (roofCol),
+     *        kiểu mái cong (roofStyle), và tùy chọn mở thông 4 mặt tường thành nhà vòm cột (openColonnadeOnly)
+     *        để bao quanh sân xe điện đụng BumperCars mà không che khuất xe bên trong.
      */
     static void appendTileRoofedHall(
         Geometry::PolygonMesh& target,
@@ -179,7 +179,8 @@ private:
         float w, float d, float wallH,
         float rotYDeg,
         const MathCG::ColorRGB& roofCol,
-        int roofStyle
+        int roofStyle,
+        bool openColonnadeOnly = false
     ) {
         Geometry::PolygonMesh local("TileRoofedHall");
 
@@ -197,33 +198,43 @@ private:
         const MathCG::ColorRGB doorCol(0.24f, 0.18f, 0.14f);
         const MathCG::ColorRGB goldCol(0.94f, 0.78f, 0.22f);
 
-        // 1. Bệ đá nền & bậc tam cấp mặt tiền (+Z) và mặt hậu (-Z) (y = 0.0 .. 0.65m)
-        appendBoxByYRange(local, 0.0f, 0.0f, 0.35f, 0.0f, w + 1.8f, d + 1.8f, plinthCol);
-        appendBoxByYRange(local, 0.0f, 0.30f, 0.65f, 0.0f, w + 0.8f, d + 0.8f, stepCol);
-        appendBoxByYRange(local, 0.0f, 0.0f, 0.32f,  d * 0.5f + 1.2f, 5.4f, 1.4f, stepCol);
-        appendBoxByYRange(local, 0.0f, 0.0f, 0.32f, -d * 0.5f - 1.2f, 5.4f, 1.4f, stepCol);
+        const float baseTopY = openColonnadeOnly ? 0.006f : 0.65f;
+        if (openColonnadeOnly) {
+            // Bệ sàn đá mỏng y = 0.0 .. 0.006m nằm dưới mặt sàn BumperCars (y = 0.01m) để không đè lên sàn xe
+            appendBoxByYRange(local, 0.0f, -0.02f, 0.006f, 0.0f, w + 2.4f, d + 2.4f, stepCol);
+        } else {
+            // 1. Bệ đá nền & bậc tam cấp mặt tiền (+Z) và mặt hậu (-Z) (y = 0.0 .. 0.65m)
+            appendBoxByYRange(local, 0.0f, 0.0f, 0.35f, 0.0f, w + 1.8f, d + 1.8f, plinthCol);
+            appendBoxByYRange(local, 0.0f, 0.30f, 0.65f, 0.0f, w + 0.8f, d + 0.8f, stepCol);
+            appendBoxByYRange(local, 0.0f, 0.0f, 0.32f,  d * 0.5f + 1.2f, 5.4f, 1.4f, stepCol);
+            appendBoxByYRange(local, 0.0f, 0.0f, 0.32f, -d * 0.5f - 1.2f, 5.4f, 1.4f, stepCol);
+        }
 
-        // 2. Thân nhà đặc liền khối từ bệ đá lên đỉnh tường (y = 0.60 .. 0.65 + wallH)
-        const float yWallTop = 0.65f + wallH;
-        appendBoxByYRange(local, 0.0f, 0.60f, yWallTop, 0.0f, w, d, wallCol);
+        // 2. Thân nhà đặc liền khối (nếu không phải nhà vòm cột mở) và hệ cột trụ xung quanh
+        const float yWallTop = baseTopY + wallH;
+        if (!openColonnadeOnly) {
+            appendBoxByYRange(local, 0.0f, 0.60f, yWallTop, 0.0f, w, d, wallCol);
+        }
 
-        // Hệ cột trụ nổi dọc 4 mặt tường tạo nhịp kiến trúc Á Đông
+        // Hệ cột trụ nổi dọc 4 mặt biên đỡ mái
         const int numColsX = 5;
         for (int i = 0; i < numColsX; ++i) {
             float tx = -w * 0.46f + (w * 0.92f) * (static_cast<float>(i) / (numColsX - 1));
             for (int sz : {-1, 1}) {
-                appendBoxByYRange(local, tx, 0.60f, yWallTop + 0.05f, sz * (d * 0.5f + 0.08f), 0.48f, 0.32f, colColor);
+                appendBoxByYRange(local, tx, baseTopY, yWallTop + 0.05f, sz * (d * 0.5f + 0.08f), 0.52f, 0.42f, colColor);
             }
         }
         for (int sx : {-1, 1}) {
             for (int iz = -1; iz <= 1; ++iz) {
-                appendBoxByYRange(local, sx * (w * 0.5f + 0.08f), 0.60f, yWallTop + 0.05f, iz * d * 0.32f, 0.32f, 0.48f, colColor);
+                appendBoxByYRange(local, sx * (w * 0.5f + 0.08f), baseTopY, yWallTop + 0.05f, iz * d * 0.32f, 0.42f, 0.52f, colColor);
             }
         }
 
-        // Ô cửa chính ở mặt trước (+Z) và mặt sau (-Z)
-        for (int sz : {-1, 1}) {
-            appendBoxByYRange(local, 0.0f, 0.65f, 0.65f + wallH * 0.72f, sz * (d * 0.5f + 0.04f), 3.6f, 0.18f, doorCol);
+        if (!openColonnadeOnly) {
+            // Ô cửa chính ở mặt trước (+Z) và mặt sau (-Z)
+            for (int sz : {-1, 1}) {
+                appendBoxByYRange(local, 0.0f, 0.65f, 0.65f + wallH * 0.72f, sz * (d * 0.5f + 0.04f), 3.6f, 0.18f, doorCol);
+            }
         }
 
         // 3. Dầm cổ diềm đỡ mái tầng 1 (y = yWallTop - 0.15 .. yWallTop + 0.25)
@@ -258,17 +269,19 @@ private:
             (roofStyle == 1) ? beamCol : goldCol
         ));
 
-        // 6. Sảnh hiên đón khách phía trước (+Z) có 2 cột trụ và mái cong liền khối
-        const float porchZ = d * 0.5f + 1.15f;
-        const float porchH = wallH * 0.78f;
-        for (int sx : {-1, 1}) {
-            appendBoxByYRange(local, sx * 2.3f, 0.32f, 0.65f + porchH, porchZ + 0.55f, 0.36f, 0.36f, colColor);
+        if (!openColonnadeOnly) {
+            // 6. Sảnh hiên đón khách phía trước (+Z) có 2 cột trụ và mái cong liền khối
+            const float porchZ = d * 0.5f + 1.15f;
+            const float porchH = wallH * 0.78f;
+            for (int sx : {-1, 1}) {
+                appendBoxByYRange(local, sx * 2.3f, 0.32f, 0.65f + porchH, porchZ + 0.55f, 0.36f, 0.36f, colColor);
+            }
+            appendBoxByYRange(local, 0.0f, 0.65f + porchH - 0.12f, 0.65f + porchH + 0.16f, porchZ, 5.2f, 1.8f, beamCol);
+            local.append(Geometry::PolygonMesh::createCurvedAsianRoof(
+                0.0f, 0.65f + porchH + 0.12f, porchZ,
+                5.4f, 2.0f, 1.15f, 0.95f, roofCol
+            ));
         }
-        appendBoxByYRange(local, 0.0f, 0.65f + porchH - 0.12f, 0.65f + porchH + 0.16f, porchZ, 5.2f, 1.8f, beamCol);
-        local.append(Geometry::PolygonMesh::createCurvedAsianRoof(
-            0.0f, 0.65f + porchH + 0.12f, porchZ,
-            5.4f, 2.0f, 1.15f, 0.95f, roofCol
-        ));
 
         appendRotatedTranslatedMesh(target, local, centerPos, rotYDeg);
     }
@@ -435,6 +448,181 @@ private:
             // Dầm cổ diềm & mái hành lang tròn tầng dưới
             target.append(Geometry::PolygonMesh::createPrismY(pos.x, 0.55f + colH - 0.10f, pos.z, radius + 0.45f, 0.45f, 20, colColor));
             target.append(Geometry::PolygonMesh::createPrismY(pos.x, 0.55f + colH + 0.32f, pos.z, radius * 0.88f, 0.42f, 20, roofCol));
+        }
+    }
+
+    /**
+     * @brief ĐỢT 6A: Sinh toàn bộ trụ đèn lối đi, ghế nghỉ, bồn hoa hộp màu, cột cờ, biển chỉ dẫn
+     *        và dãy đèn lồng dọc Cổng Ngọ Môn cùng các chòi mái ngói.
+     */
+    void appendWave6aPropsAndLanterns(Geometry::PolygonMesh& target) {
+        emissiveLampMesh.clear();
+        emissiveLampMesh.name = "Wave6aEmissiveBulbsAndLanterns";
+
+        const MathCG::ColorRGB ironCol(0.24f, 0.25f, 0.28f);
+        const MathCG::ColorRGB goldCol(0.92f, 0.74f, 0.20f);
+        const MathCG::ColorRGB bulbWarmCol(1.00f, 0.92f, 0.58f);
+        const MathCG::ColorRGB lanternRedCol(0.94f, 0.22f, 0.14f);
+
+        // 1. 24 Trụ đèn lối đi & quảng trường (PARK_PATH_LAMP_POS)
+        for (int i = 0; i < ParkLayout::NUM_PARK_PATH_LAMPS; ++i) {
+            float lx = ParkLayout::PARK_PATH_LAMP_POS[i].x;
+            float lz = ParkLayout::PARK_PATH_LAMP_POS[i].z;
+            // Chân đế & thân trụ đèn cao 4.2m
+            appendBoxByYRange(target, lx, 0.0f, 0.45f, lz, 0.55f, 0.55f, ironCol);
+            target.append(Geometry::PolygonMesh::createPrismY(lx, 0.40f, lz, 0.12f, 3.80f, 6, ironCol));
+            appendBoxByYRange(target, lx, 4.10f, 4.30f, lz, 0.48f, 0.48f, goldCol);
+            // Bóng đèn phát sáng (đưa vào emissiveLampMesh) + nón chụp trên đỉnh
+            emissiveLampMesh.append(Geometry::PolygonMesh::createPrismY(lx, 4.28f, lz, 0.28f, 0.45f, 8, bulbWarmCol));
+            target.append(Geometry::PolygonMesh::createPyramid(lx, 4.70f, lz, 0.68f, 0.68f, 0.42f, ironCol));
+        }
+
+        // 2. 16 Ghế nghỉ công viên (PARK_BENCH_POS)
+        const MathCG::ColorRGB woodBenchCol(0.62f, 0.38f, 0.18f);
+        for (int i = 0; i < ParkLayout::NUM_PARK_BENCHES; ++i) {
+            const auto& bp = ParkLayout::PARK_BENCH_POS[i];
+            Geometry::PolygonMesh bench("Bench");
+            appendBoxByYRange(bench, -0.95f, 0.0f, 0.48f, 0.0f, 0.16f, 0.62f, ironCol);
+            appendBoxByYRange(bench,  0.95f, 0.0f, 0.48f, 0.0f, 0.16f, 0.62f, ironCol);
+            appendBoxByYRange(bench,  0.0f,  0.42f, 0.54f, 0.0f, 2.25f, 0.65f, woodBenchCol);
+            appendBoxByYRange(bench,  0.0f,  0.52f, 1.05f, -0.26f, 2.25f, 0.12f, woodBenchCol);
+            appendRotatedTranslatedMesh(target, bench, MathCG::Vec3(bp.x, 0.0f, bp.z), bp.rotYDeg);
+        }
+
+        // 3. 16 Bồn hoa hộp màu (PARK_FLOWER_PLANTER_POS)
+        const MathCG::ColorRGB planterStone(0.74f, 0.70f, 0.64f);
+        const MathCG::ColorRGB leafGreen(0.18f, 0.56f, 0.22f);
+        const MathCG::ColorRGB flowerColors[3] = {
+            MathCG::ColorRGB(0.94f, 0.22f, 0.24f), // Hoa đỏ
+            MathCG::ColorRGB(0.98f, 0.82f, 0.16f), // Hoa vàng
+            MathCG::ColorRGB(0.92f, 0.32f, 0.76f)  // Hoa hồng tím
+        };
+        for (int i = 0; i < ParkLayout::NUM_PARK_FLOWER_PLANTERS; ++i) {
+            const auto& fp = ParkLayout::PARK_FLOWER_PLANTER_POS[i];
+            Geometry::PolygonMesh pl("Planter");
+            appendBoxByYRange(pl, 0.0f, 0.0f, 0.58f, 0.0f, 2.8f, 1.4f, planterStone);
+            appendBoxByYRange(pl, 0.0f, 0.55f, 0.82f, 0.0f, 2.5f, 1.1f, leafGreen);
+            const MathCG::ColorRGB& fc = flowerColors[fp.variant % 3];
+            for (int k = -1; k <= 1; ++k) {
+                appendBoxByYRange(pl, k * 0.75f, 0.78f, 1.08f, 0.0f, 0.55f, 0.65f, fc);
+            }
+            appendRotatedTranslatedMesh(target, pl, MathCG::Vec3(fp.x, 0.0f, fp.z), fp.rotYDeg);
+        }
+
+        // 4. 6 Cột cờ lễ hội tại Quảng trường Cổng Ngọ Môn và Sân khấu Sun Wheel (PARK_FLAGPOLE_POS)
+        const MathCG::ColorRGB poleSilver(0.86f, 0.88f, 0.90f);
+        const MathCG::ColorRGB flagRed(0.90f, 0.14f, 0.14f);
+        for (int i = 0; i < ParkLayout::NUM_PARK_FLAGPOLES; ++i) {
+            float fx = ParkLayout::PARK_FLAGPOLE_POS[i].x;
+            float fz = ParkLayout::PARK_FLAGPOLE_POS[i].z;
+            appendBoxByYRange(target, fx, 0.0f, 0.65f, fz, 1.1f, 1.1f, planterStone);
+            target.append(Geometry::PolygonMesh::createPrismY(fx, 0.60f, fz, 0.11f, 11.2f, 8, poleSilver));
+            // Lá cờ đỏ sao vàng tung bay ở đỉnh cột
+            appendBoxByYRange(target, fx + 1.15f, 10.1f, 11.5f, fz, 2.2f, 0.10f, flagRed);
+            appendBoxByYRange(target, fx + 1.15f, 10.6f, 11.0f, fz, 0.45f, 0.14f, goldCol);
+        }
+
+        // 5. 6 Biển chỉ dẫn đa hướng tại các ngã ba lối đi chính (PARK_SIGNBOARD_POS)
+        const MathCG::ColorRGB signCols[3] = {
+            MathCG::ColorRGB(0.16f, 0.54f, 0.78f),
+            MathCG::ColorRGB(0.88f, 0.44f, 0.14f),
+            MathCG::ColorRGB(0.22f, 0.64f, 0.32f)
+        };
+        for (int i = 0; i < ParkLayout::NUM_PARK_SIGNBOARDS; ++i) {
+            const auto& sp = ParkLayout::PARK_SIGNBOARD_POS[i];
+            Geometry::PolygonMesh sg("Signboard");
+            appendBoxByYRange(sg, 0.0f, 0.0f, 0.35f, 0.0f, 0.65f, 0.65f, planterStone);
+            appendBoxByYRange(sg, 0.0f, 0.30f, 3.40f, 0.0f, 0.18f, 0.18f, woodBenchCol);
+            // 3 tấm bảng mũi tên chỉ hướng ở độ cao 2.2m .. 3.2m
+            appendBoxByYRange(sg,  0.45f, 2.90f, 3.22f, 0.0f, 1.35f, 0.12f, signCols[0]);
+            appendBoxByYRange(sg, -0.45f, 2.50f, 2.82f, 0.0f, 1.35f, 0.12f, signCols[1]);
+            appendBoxByYRange(sg,  0.0f,  2.10f, 2.42f, 0.45f, 0.12f, 1.35f, signCols[2]);
+            appendRotatedTranslatedMesh(target, sg, MathCG::Vec3(sp.x, 0.0f, sp.z), sp.rotYDeg);
+        }
+
+        // 6. Dãy đèn lồng đỏ dọc 2 cánh tường thành Cổng Ngọ Môn và dưới hiên các chòi mái ngói
+        auto addHangingLantern = [&](float lx, float ly, float lz) {
+            appendBoxByYRange(target, lx, ly + 0.22f, ly + 0.55f, lz, 0.08f, 0.08f, ironCol);
+            emissiveLampMesh.append(Geometry::PolygonMesh::createPrismY(lx, ly - 0.25f, lz, 0.26f, 0.48f, 8, lanternRedCol));
+        };
+
+        // Đèn lồng dọc hai cánh tường thành Cổng Ngọ Môn (Z = 142.2m và Z = 137.8m)
+        for (int s : {-1, 1}) {
+            for (int k = 1; k <= 5; ++k) {
+                float wx = ParkLayout::NGO_MON_GATE_POS.x + s * (16.0f + k * 7.5f);
+                addHangingLantern(wx, 4.8f, 142.0f);
+            }
+        }
+        // Đèn lồng treo ở 4 góc mái của các chòi Quảng trường, chòi Sun Wheel và chòi bờ hồ
+        const MathCG::Vec3 pavCenters[6] = {
+            ParkLayout::PLAZA_PAVILION_WEST_POS,
+            ParkLayout::PLAZA_PAVILION_EAST_POS,
+            ParkLayout::SUN_WHEEL_SIDE_PAVILION_WEST_POS,
+            ParkLayout::SUN_WHEEL_SIDE_PAVILION_EAST_POS,
+            ParkLayout::LAKE_SHORE_PAVILION_WEST_POS,
+            ParkLayout::LAKE_SHORE_PAVILION_EAST_POS
+        };
+        const float pavHalfW[6] = { 7.6f, 7.6f, 5.8f, 5.8f, 4.8f, 4.8f };
+        const float pavHalfD[6] = { 4.3f, 4.3f, 5.8f, 5.8f, 3.8f, 3.8f };
+        for (int p = 0; p < 6; ++p) {
+            for (int sx : {-1, 1}) {
+                for (int sz : {-1, 1}) {
+                    addHangingLantern(
+                        pavCenters[p].x + sx * pavHalfW[p],
+                        3.95f,
+                        pavCenters[p].z + sz * pavHalfD[p]
+                    );
+                }
+            }
+        }
+
+        emissiveLampMesh.computeNormals();
+    }
+
+    /**
+     * @brief ĐỢT 6B: Sinh 123 cây xanh đơn giản (3 kiểu: tán tròn, tùng tháp, cọ dừa)
+     *        vào lưới tĩnh để biên dịch chung trong OpenGL Display List.
+     */
+    static void appendWave6bTrees(Geometry::PolygonMesh& target) {
+        const MathCG::ColorRGB trunkBrown(0.44f, 0.29f, 0.16f);
+        const MathCG::ColorRGB palmTrunk(0.54f, 0.42f, 0.26f);
+        const MathCG::ColorRGB foliagePalette[4] = {
+            MathCG::ColorRGB(0.18f, 0.52f, 0.22f),
+            MathCG::ColorRGB(0.24f, 0.58f, 0.24f),
+            MathCG::ColorRGB(0.15f, 0.45f, 0.19f),
+            MathCG::ColorRGB(0.28f, 0.62f, 0.26f)
+        };
+
+        for (int i = 0; i < ParkLayout::NUM_PARK_TREES; ++i) {
+            const auto& tr = ParkLayout::PARK_TREES[i];
+            const float tx = tr.x;
+            const float tz = tr.z;
+            const float sc = tr.scale;
+            const MathCG::ColorRGB& leafCol1 = foliagePalette[i % 4];
+            const MathCG::ColorRGB& leafCol2 = foliagePalette[(i + 1) % 4];
+
+            if (tr.style == 0) {
+                // Kiểu 0: Cây bóng mát tán tròn 2 tầng
+                float th = 2.6f * sc;
+                target.append(Geometry::PolygonMesh::createPrismY(tx, 0.0f, tz, 0.28f * sc, th, 6, trunkBrown));
+                target.append(Geometry::PolygonMesh::createPrismY(tx, th - 0.2f, tz, 2.15f * sc, 2.10f * sc, 8, leafCol1));
+                target.append(Geometry::PolygonMesh::createPrismY(tx, th + 1.5f * sc, tz, 1.45f * sc, 1.55f * sc, 8, leafCol2));
+            } else if (tr.style == 1) {
+                // Kiểu 1: Cây tùng / thông tán tháp nón 3 tầng
+                float th = 1.9f * sc;
+                target.append(Geometry::PolygonMesh::createPrismY(tx, 0.0f, tz, 0.24f * sc, th, 6, trunkBrown));
+                target.append(Geometry::PolygonMesh::createPyramid(tx, th - 0.1f,        tz, 3.4f * sc, 3.4f * sc, 2.2f * sc, leafCol1));
+                target.append(Geometry::PolygonMesh::createPyramid(tx, th + 1.4f * sc,   tz, 2.6f * sc, 2.6f * sc, 2.0f * sc, leafCol2));
+                target.append(Geometry::PolygonMesh::createPyramid(tx, th + 2.8f * sc,   tz, 1.7f * sc, 1.7f * sc, 1.7f * sc, leafCol1));
+            } else {
+                // Kiểu 2: Cây cọ / dừa cảnh quan nhiệt đới
+                float th = 4.6f * sc;
+                target.append(Geometry::PolygonMesh::createPrismY(tx, 0.0f, tz, 0.24f * sc, th, 6, palmTrunk));
+                // Búp đỉnh & 4 tàu lá cọ vươn ra 4 hướng
+                appendBoxByYRange(target, tx, th - 0.2f, th + 0.55f * sc, tz, 1.1f * sc, 1.1f * sc, leafCol2);
+                appendBoxByYRange(target, tx, th + 0.05f * sc, th + 0.35f * sc, tz, 4.4f * sc, 0.85f * sc, leafCol1);
+                appendBoxByYRange(target, tx, th + 0.05f * sc, th + 0.35f * sc, tz, 0.85f * sc, 4.4f * sc, leafCol1);
+            }
         }
     }
 
@@ -708,6 +896,47 @@ private:
         appendRoundRideStaticBase(staticArchMesh, ParkLayout::CENTRAL_ROTUNDA_RIDE_POS, 9.0f, 8.8f, MathCG::ColorRGB(0.78f, 0.24f, 0.16f), true);
         appendRoundRideStaticBase(staticArchMesh, ParkLayout::ROUND_SPIN_RIDE_3_POS,    7.5f, 7.4f, MathCG::ColorRGB(0.16f, 0.64f, 0.68f), false);
 
+        // ====================================================================
+        // 8. ĐỢT 6A: BỆ SÀN ĐÁ/GẠCH MỎNG DƯỚI PLAYGROUND & PIRATE SHIP +
+        //    NHÀ VÒM CỘT MÁI NGÓI BAO QUANH BUMPER CARS (KHÔNG SỬA 3 FILE CỦA BẠN)
+        // ====================================================================
+        // 8.1. Mái che + hàng cột + bệ đá bao quanh BumperCars (-206.5, 0, +108.1, R=10.0m) bằng chính hàm appendTileRoofedHall (openColonnadeOnly = true)
+        appendTileRoofedHall(staticArchMesh, ParkLayout::BUMPER_CARS_TARGET_POS, 23.0f, 23.0f, 3.8f, 0.0f, tealBlueRoof1, 0, true);
+
+        // 8.2. Bệ sàn đá/gạch mỏng dưới Playground (-104.9, 0, -24.7; trải từ X:-118..+93, Z:-28..-13)
+        {
+            const float pgX = ParkLayout::PLAYGROUND_TARGET_POS.x - 0.8f;
+            const float pgZ = ParkLayout::PLAYGROUND_TARGET_POS.z + 4.2f;
+            appendBoxByYRange(staticArchMesh, pgX, -0.01f, 0.024f, pgZ, 26.8f, 15.8f, MathCG::ColorRGB(0.56f, 0.53f, 0.48f));
+            appendBoxByYRange(staticArchMesh, pgX,  0.022f, 0.032f, pgZ, 25.4f, 14.4f, MathCG::ColorRGB(0.84f, 0.74f, 0.56f));
+            // Viền bó vỉa thấp 4 góc bệ sân chơi
+            appendBoxByYRange(staticArchMesh, pgX,  0.030f, 0.20f, pgZ - 7.7f, 26.6f, 0.35f, MathCG::ColorRGB(0.68f, 0.34f, 0.22f));
+            appendBoxByYRange(staticArchMesh, pgX,  0.030f, 0.20f, pgZ + 7.7f, 26.6f, 0.35f, MathCG::ColorRGB(0.68f, 0.34f, 0.22f));
+        }
+
+        // 8.3. Bệ sàn đá/gạch mỏng dưới PirateShip (-172.0, 0, -2.0; khung 18x13m)
+        {
+            const float psX = ParkLayout::PIRATE_SHIP_TARGET_POS.x;
+            const float psZ = ParkLayout::PIRATE_SHIP_TARGET_POS.z;
+            appendBoxByYRange(staticArchMesh, psX, -0.01f, 0.024f, psZ, 21.6f, 15.2f, MathCG::ColorRGB(0.52f, 0.50f, 0.46f));
+            appendBoxByYRange(staticArchMesh, psX,  0.022f, 0.032f, psZ, 20.2f, 13.8f, MathCG::ColorRGB(0.78f, 0.72f, 0.62f));
+            // Hai bục lan can đá thấp dọc hai cạnh Đông - Tây ngoài hành trình văng thuyền
+            appendBoxByYRange(staticArchMesh, psX - 10.2f, 0.030f, 0.45f, psZ, 0.65f, 13.6f, MathCG::ColorRGB(0.62f, 0.58f, 0.52f));
+            appendBoxByYRange(staticArchMesh, psX + 10.2f, 0.030f, 0.45f, psZ, 0.65f, 13.6f, MathCG::ColorRGB(0.62f, 0.58f, 0.52f));
+        }
+
+        // ====================================================================
+        // 9. ĐỢT 6A: TRỤ ĐÈN LỐI ĐI, GHẾ NGHỈ, BỒN HOA HỘP MÀU, CỘT CỜ,
+        //    BIỂN CHỈ DẪN & DÃY ĐÈN LỒNG DỌC CỔNG NGỌ MÔN VÀ CÁC CHÒI
+        // ====================================================================
+        appendWave6aPropsAndLanterns(staticArchMesh);
+
+        // ====================================================================
+        // 10. ĐỢT 6B: 123 CÂY XANH ĐƠN GIẢN (3 KIỂU: TÁN TRÒN, TÙNG THÁP, CỌ DỪA)
+        //     Nén trực tiếp vào Display List tĩnh để giữ FPS > 130
+        // ====================================================================
+        appendWave6bTrees(staticArchMesh);
+
         staticArchMesh.computeNormals();
     }
 
@@ -807,6 +1036,58 @@ private:
             }
             glEnd();
         }
+
+        // 6. ĐỢT 6A: Các mảng cỏ đậm / nhạt phân vùng tự nhiên (y = -0.022m, trên nền cỏ gốc -0.04m và dưới lối đi +0.035m)
+        struct GrassZoneRect {
+            float x1, z1, x2, z2;
+            float r, g, b;
+        };
+        const GrassZoneRect grassZones[8] = {
+            { -290.0f,  55.0f, -135.0f, 178.0f, 0.16f, 0.34f, 0.17f }, // Thảm cỏ sáng khu Tây-Nam
+            { -135.0f,  42.0f,  -30.0f, 130.0f, 0.12f, 0.27f, 0.14f }, // Thảm cỏ đậm quanh Sân bông hoa
+            { -275.0f, -45.0f, -145.0f,  52.0f, 0.17f, 0.35f, 0.18f }, // Thảm cỏ sáng khu Port of Sky Treasure
+            { -145.0f, -62.0f,  -45.0f,  32.0f, 0.13f, 0.28f, 0.14f }, // Thảm cỏ đậm quanh Đu quay tròn #9-#10
+            { -285.0f,-195.0f, -155.0f, -60.0f, 0.15f, 0.33f, 0.16f }, // Thảm cỏ trung gian khu Paradise Fall
+            { -155.0f,-195.0f,  -78.0f, -65.0f, 0.12f, 0.26f, 0.13f }, // Thảm cỏ ven bờ Tây hồ nước
+            { -280.0f,-340.0f, -150.0f,-195.0f, 0.17f, 0.34f, 0.17f }, // Thảm cỏ sáng khu Nepal - Angkor
+            {   72.0f,-160.0f,  340.0f,  95.0f, 0.16f, 0.33f, 0.16f }  // Trảng cỏ tự nhiên nửa phía Đông
+        };
+        glBegin(GL_QUADS);
+        for (const auto& gz : grassZones) {
+            glColor3f(gz.r, gz.g, gz.b);
+            glVertex3f(gz.x1, -0.022f, gz.z1);
+            glVertex3f(gz.x1, -0.022f, gz.z2);
+            glVertex3f(gz.x2, -0.022f, gz.z2);
+            glVertex3f(gz.x2, -0.022f, gz.z1);
+        }
+        glEnd();
+
+        // 7. ĐỢT 6A: Các mảng sân lát đá / gạch bao quanh các cụm trò chơi và nhà mái ngói khu Tây (y = 0.022m)
+        struct PavedCourtRect {
+            float cx, cz, w, d;
+            float r, g, b;
+        };
+        const PavedCourtRect courts[8] = {
+            { -124.1f, 155.7f, 36.0f, 28.0f, 0.62f, 0.58f, 0.52f }, // Sân đá dưới Garuda Valley
+            { -159.4f, 102.5f, 21.0f, 21.0f, 0.66f, 0.61f, 0.54f }, // Sân gạch quanh Đu quay Ngựa gỗ Carousel
+            { -224.0f,  22.0f, 36.0f, 48.0f, 0.60f, 0.57f, 0.52f }, // Sân đá dưới Port of Sky Treasure
+            { -113.5f,  15.0f, 64.0f, 24.0f, 0.65f, 0.61f, 0.55f }, // Sân chung nối 2 Đu quay tròn #9 và #10
+            {  -94.2f, -71.2f, 28.0f, 24.0f, 0.67f, 0.62f, 0.56f }, // Sân gạch quanh Nhà ngói đỏ lớn ven hồ #12
+            { -188.0f,-106.0f, 56.0f, 46.0f, 0.58f, 0.55f, 0.50f }, // Sân đá khu Núi đá & Ray số 8 Paradise Fall
+            { -142.0f,-158.0f, 26.0f, 66.0f, 0.64f, 0.60f, 0.54f }, // Sân gạch nối Công trình tròn #13 & Đu quay #14
+            { -176.0f,-214.0f, 36.0f, 28.0f, 0.61f, 0.58f, 0.53f }  // Sân đá dưới tàu lượn Highway Boat
+        };
+        glBegin(GL_QUADS);
+        for (const auto& ct : courts) {
+            float hw2 = ct.w * 0.5f;
+            float hd2 = ct.d * 0.5f;
+            glColor3f(ct.r, ct.g, ct.b);
+            glVertex3f(ct.cx - hw2, 0.022f, ct.cz - hd2);
+            glVertex3f(ct.cx - hw2, 0.022f, ct.cz + hd2);
+            glVertex3f(ct.cx + hw2, 0.022f, ct.cz + hd2);
+            glVertex3f(ct.cx + hw2, 0.022f, ct.cz - hd2);
+        }
+        glEnd();
     }
 
     /**
@@ -864,6 +1145,31 @@ private:
         glVertex3f(-9.5f, 7.25f, stZ + 3.72f);
         glEnd();
 
+        if (isNightOrSunset) {
+            GLfloat zeroEmit[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+            glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, zeroEmit);
+        }
+
+        // 3. ĐỢT 6A: Bóng đèn trụ đèn lối đi & dãy đèn lồng phát sáng bằng vật liệu emissive khi chiều/tối
+        //    (KHÔNG dùng quá 8 nguồn sáng GL_LIGHTi; chỉ bật GL_EMISSION trên vật liệu)
+        if (isNightOrSunset) {
+            GLfloat warmBulbEmit[4] = { 1.0f, 0.88f, 0.45f, 1.0f };
+            glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, warmBulbEmit);
+            glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, warmBulbEmit);
+        }
+        if (emissiveLampList == 0) {
+            emissiveLampList = glGenLists(1);
+            if (emissiveLampList != 0) {
+                glNewList(emissiveLampList, GL_COMPILE);
+                emissiveLampMesh.draw(true, false);
+                glEndList();
+            }
+        }
+        if (emissiveLampList != 0) {
+            glCallList(emissiveLampList);
+        } else {
+            emissiveLampMesh.draw(true, false);
+        }
         if (isNightOrSunset) {
             GLfloat zeroEmit[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
             glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, zeroEmit);

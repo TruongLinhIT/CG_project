@@ -428,13 +428,55 @@ Theo yêu cầu điều chỉnh số 1 & 2, cả 5 hạng mục dưới đây đ
 
 - **Hiệu năng (FPS trước và sau Đợt 5B ở `1280 × 768`, 200 khung hình liên tiếp):**
   - **Trước Đợt 5B (cuối Đợt 5A):** `206.8 FPS` (`200 frames / 0.967 s`).
-  - **Sau Đợt 5B (thêm toàn bộ 11 cụm công trình tĩnh & 4 đu quay tròn có animation quay, dùng Display List cho cả khối kiến trúc tĩnh và cụm tán quay):** **`155.3 FPS`** (`200 frames / 1.288 s` — đảm bảo yêu cầu `> 150 FPS`).
+  - **Sau Đợt 5B (thêm toàn bộ 11 cụm công trình tĩnh & 4 đu quay tròn có animation quay, dùng Display List cho cả khối kiến trúc tĩnh và cụm tán quay):** **`163.7 FPS`** (`200 frames / 1.222 s` — đảm bảo yêu cầu `> 150 FPS`).
 - **Bộ ảnh kết quả Đợt 5B:**
   - [`img/wave5b_west_overview.png`](img/wave5b_west_overview.png) — Ảnh 1 Đợt 5B: Toàn cảnh khu Tây từ trên cao bao quát toàn bộ các công trình Đợt 5A + 5B.
   - [`img/wave5b_blue_roof_halls.png`](img/wave5b_blue_roof_halls.png) — Ảnh 2 Đợt 5B: Cận cảnh cụm nhà mái ngói xanh (`#7`, `#8`) quanh sân bông hoa 8 cánh và dãy 3 hàng quầy mái sọc đỏ-trắng (`#6`).
   - [`img/wave5b_round_rides.png`](img/wave5b_round_rides.png) — Ảnh 3 Đợt 5B: Cận cảnh khu đu quay tròn (`#9`, `#10`, `#13`, `#14`), nhà ngói đỏ lớn ven hồ (`#12`) và Tòa nhà núi đá gồ ghề nhiều tầng của `Paradise Fall`.
   - [`img/wave5b_topdown_overlay.png`](img/wave5b_topdown_overlay.png) — Ảnh chụp trực giao từ trên xuống sau Đợt 5B chồng trực tiếp lên ảnh vệ tinh Wayback 2019.
   - [`img/wave4_ngomon_back.png`](img/wave4_ngomon_back.png) — Ảnh chụp Cổng Ngọ Môn nhìn từ phía Bắc xác nhận dầm Monorail đã lùi về `Z = +121.8 m` (cách mặt Bắc cổng `11.6 m`) và không còn che khuất Cổng Ngọ Môn.
+
+---
+
+### 12.8. Bảng hạng mục đã hoàn thành trong ĐỢT 6 (6a: Bệ sàn đá, Mái che BumperCars, Nền đa sắc độ, Đèn đường, Ghế nghỉ, Bồn hoa, Cột cờ, Biển chỉ dẫn & Đèn lồng; 6b: 123 Cây xanh & Cập nhật lộ trình Người đi dạo)
+
+#### 12.8.1. Hạng mục Đợt 6a (`ParkLayout.h` & `ParkArchitecture.h` — không sửa code bên trong `Playground.h`, `PirateShip.h`, `BumperCars.h`)
+1. **Lót bệ sàn đá/gạch mỏng dưới `Playground`, `PirateShip`, `BumperCars` (không phóng to mô hình gốc):**
+   - `Playground` (`(−105.7, 0, −20.5)`): bệ sàn đá-gạch 2 lớp `26.8 × 15.8 m` (`y = 0.024..0.032 m`) kèm gờ bó vỉa gạch thấp ở hai biên Bắc – Nam.
+   - `PirateShip` (`(−172.0, 0, −2.0)`): bệ sàn đá đón khách `21.6 × 15.2 m` (`y = 0.024..0.032 m`) kèm 2 tường lan can đá thấp ở hai cạnh Đông – Tây (ngoài hành trình văng thuyền).
+   - `BumperCars` (`(−206.5, 0, +108.1)`): bệ sàn đá `25.4 × 25.4 m` (`y = 0.006 m`, nằm dưới sàn sân xe `y = 0.010 m`) và **nhà vòm 16 cột + mái ngói cong xanh 2 tầng (`23 × 23 m`, thông 4 mặt tường)** dựng bằng chính hàm tham số hóa `appendTileRoofedHall(..., openColonnadeOnly = true)` để bao quanh sân xe điện đụng mà vẫn thấy trọn vẹn 6 xe chạy bên trong.
+2. **Đa dạng hóa mặt nền (không dùng texture nặng):**
+   - **8 mảng thảm cỏ sắc độ đậm/nhạt** (`y = −0.022 m`) phân vùng tự nhiên giữa khu Tây-Nam, khu Sân bông hoa, khu Port of Sky Treasure, khu ven bờ Tây hồ nước, khu Nepal – Angkor và trảng cỏ nửa Đông.
+   - **8 mảng sân lát đá/gạch phẳng** (`y = +0.022 m`) bao quanh chân các cụm trò chơi và nhà mái ngói (`Garuda Valley`, `Carousel`, `Port of Sky Treasure`, cụm `Đu quay tròn #9–#10`, `Nhà ngói đỏ ven hồ #12`, cụm `Paradise Fall`, cụm `Công trình tròn #13–#14`, `Highway Boat`).
+3. **Hệ thống tiểu cảnh đường dạo & chiếu sáng emissive (`appendWave6aPropsAndLanterns`):**
+   - **24 Trụ đèn lối đi & quảng trường (`PARK_PATH_LAMP_POS[24]`, cao `5.1 m`):** đặt dọc rìa Đông – Tây Quảng trường Trung tâm, sân đón Cổng Ngọ Môn và trục `PATH_WEST_SPINE`. Phần bóng đèn phát sáng vàng ấm ở chế độ Hoàng hôn / Đêm **chỉ dùng vật liệu `GL_EMISSION`** (biên dịch trong `emissiveLampList`), không dùng quá 8 nguồn sáng `GL_LIGHTi` của OpenGL.
+   - **16 Ghế nghỉ công viên (`PARK_BENCH_POS[16]`)** bằng gỗ-sắt dọc rìa quảng trường, bờ hồ Nam và các lối đi chính.
+   - **16 Bồn hoa hộp màu (`PARK_FLOWER_PLANTER_POS[16]`, `2.8 × 1.4 × 1.08 m`)** với 3 màu hoa (đỏ, vàng, hồng tím) bố trí đối xứng ở sân trước/sau Ngọ Môn, Quảng trường Trung tâm và khu Tây.
+   - **6 Cột cờ lễ hội (`PARK_FLAGPOLE_POS[6]`, cao `11.8 m`, cờ đỏ sao vàng):** 2 cột cờ trước Cổng Ngọ Môn (`(−3.0, +148.0)`, `(+35.2, +148.0)`) và 4 cột cờ hai bên thềm Sân khấu Sun Wheel (`(±21.0, −7.5)`, `(±28.0, −7.5)`).
+   - **6 Biển chỉ dẫn đa hướng (`PARK_SIGNBOARD_POS[6]`, cao `3.4 m`, 3 bảng mũi tên màu)** tại 6 ngã ba chính.
+   - **34 Đèn lồng đỏ phát sáng emissive** treo dọc hai cánh tường thành Cổng Ngọ Môn và dưới 4 góc mái của 6 nhà chòi Quảng trường / Sun Wheel / Bờ hồ.
+
+#### 12.8.2. Hạng mục Đợt 6b (123 Cây xanh bằng Display List & Lộ trình Người đi dạo)
+1. **123 Cây xanh đơn giản (`PARK_TREES[123]` trong `ParkLayout.h`, dựng bằng `appendWave6bTrees` trong Display List `archSmoothList`):**
+   - Gồm 3 kiểu xen kẽ với hệ số tỷ lệ `0.88..1.25` và 4 sắc độ lá xanh:
+     - **Kiểu 0 (Cây bóng mát tán tròn 2 tầng):** thân trụ nâu + 2 khối tán đa giác tròn chồng nhau.
+     - **Kiểu 1 (Cây thông / tùng tán tháp 3 tầng):** thân trụ nâu + 3 tầng tán chóp nhọn.
+     - **Kiểu 2 (Cây cọ / dừa nhiệt đới):** thân trụ cao + búp đỉnh và 4 tàu lá vươn 4 hướng.
+   - **Kiểm tra va chạm bằng script:** toàn bộ `123 / 123` cây nằm trên đất khô (cách bờ hồ `≥ 2.2 m`, **0 cây dưới hồ**), nằm ngoài biên của cả 6 tuyến lối đi (**0 cây trên lối đi**), nằm ngoài toàn bộ 37 khung bao công trình/trò chơi, và **cách dầm cũng như mọi chân trụ Monorail `≥ 3.6 m`** (vượt yêu cầu `≥ 3.0 m`). Nửa phía Đông ranh giới (`X > +76 m`) giữ trống đúng hiện trạng 2019.
+2. **Cập nhật lộ trình 18 người đi dạo (`createDefaultCrowd()` trong [`src/actors/Human.h`](../src/actors/Human.h)):**
+   - Thay toàn bộ các tâm đi bộ cũ (vốn đi xuyên qua Sân khấu Sun Wheel `(0, −15)` hoặc vùng trống cũ) bằng **18 du khách** đi bộ tuần hoàn trên 8 khu vực an toàn: Quảng trường Nam Sân khấu Sun Wheel `(0, 0, +4.0)`, Quảng trường Đông & Tây-Bắc Tháp Đồng Hồ `(+28, 0, +34)` & `(−6, 0, +38)`, Quảng trường Nam Tháp Đồng Hồ `(+16.1, 0, +92)`, đường dẫn Nam Cổng Ngọ Môn `(+16.1, 0, +156)`, Sân bông hoa `(-108, 0, +76)`, ngã ba Port of Sky Treasure `(-188, 0, +38)`, sân Đông Sky Tower `(-238, 0, -54.6)`, hành lang khu giữa `(-120, 0, -108)` và Quảng trường Angkor `(-212, 0, -274)`.
+
+#### 12.8.3. Hiệu năng (FPS trước và sau Đợt 6) & Bộ ảnh kiểm tra Đợt 6
+- **Đo FPS ở độ phân giải `1280 × 768` (200 khung hình liên tiếp, chế độ Hoàng hôn bật đầy đủ đèn & hoạt ảnh của toàn bộ công viên):**
+  - **Trước Đợt 6 (cuối Đợt 5B):** `163.7 FPS` (`200 frames / 1.222 s`).
+  - **Sau Đợt 6 (thêm toàn bộ bệ đá, mái che BumperCars, 16 mảng cỏ/sân đá, 24 trụ đèn, 16 ghế nghỉ, 16 bồn hoa, 6 cột cờ, 6 biển chỉ dẫn, 34 đèn lồng, 123 cây xanh và 18 người đi dạo):** **`118.5 FPS`** (`200 frames / 1.688 s` — cao hơn ngưỡng `100 FPS` nên không cần cắt giảm số cây hay chi tiết).
+- **Bộ ảnh kết quả Đợt 6:**
+  - [`img/wave6_overview_high.png`](img/wave6_overview_high.png) — Ảnh 1 Đợt 6: Toàn cảnh góc cao toàn công viên lúc hoàng hôn.
+  - [`img/wave6_gate_plaza_sunwheel.png`](img/wave6_gate_plaza_sunwheel.png) — Ảnh 2 Đợt 6: Cận Quảng trường Cổng Ngọ Môn – Tháp Đồng Hồ – Sân khấu Sun Wheel với cột cờ, bồn hoa, trụ đèn phát sáng, đèn lồng, cây xanh và người đi dạo.
+  - [`img/wave6_west_trees.png`](img/wave6_west_trees.png) — Ảnh 3 Đợt 6: Khu phía Tây phủ nhiều cây xanh, mái che + hàng cột quanh `BumperCars`, bệ đá dưới `Playground` & `PirateShip`, các mảng cỏ đậm/nhạt và sân lát đá quanh các trò chơi.
+  - [`img/wave6_eye_level.png`](img/wave6_eye_level.png) — Ảnh 4 Đợt 6: Góc nhìn ngang tầm mắt du khách (`y = 3.5 m`) từ Quảng trường Trung tâm nhìn về Tháp Đồng Hồ, Sân khấu 2 màn hình tròn, Sun Wheel, chòi mái ngói treo đèn lồng, bồn hoa, ghế nghỉ và người đi bộ.
+  - [`img/wave6_ngomon_from_north.png`](img/wave6_ngomon_from_north.png) — Ảnh chụp Cổng Ngọ Môn nhìn từ phía Bắc xác nhận dầm Monorail (`Z = +121.8 m`) không che khuất Cổng Ngọ Môn.
+  - [`img/wave6_topdown_overlay.png`](img/wave6_topdown_overlay.png) — Ảnh chụp trực giao từ trên xuống sau Đợt 6 chồng lên ảnh vệ tinh Wayback 2019.
 
 ---
 
