@@ -56,7 +56,9 @@ public:
         bool showMinimap,
         bool isPaused,
         float coasterParamT,
-        float coasterSpeedMps
+        float coasterSpeedMps,
+        float sunWheelSpeedDeg = 0.4f,
+        bool sunWheelFastDemo = false
     ) {
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
@@ -129,8 +131,10 @@ public:
         }
         drawBitmapText(panelX + 14.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
 
-        std::snprintf(buf, sizeof(buf), "[Bezier]  Queen Cobra t=%.3f | Van toc=%.1f m/s",
-                      coasterParamT, coasterSpeedMps);
+        std::snprintf(buf, sizeof(buf), "[Bezier]  Queen Cobra t=%.3f (%.1f m/s) | [V] SunWheel: %.1f do/s (%s)",
+                      coasterParamT, coasterSpeedMps,
+                      sunWheelSpeedDeg,
+                      sunWheelFastDemo ? "TUA x5" : "THUC 1x");
         drawBitmapText(panelX + 14.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
 
         std::snprintf(buf, sizeof(buf), "[S]       To bong   : %s", lighting.getShadingModelName());

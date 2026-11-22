@@ -31,13 +31,13 @@ constexpr float RAD2DEG = 180.0f / PI;
 
 struct Vec2 {
     float x, y;
-    Vec2(float _x = 0.0f, float _y = 0.0f) : x(_x), y(_y) {}
+    constexpr Vec2(float _x = 0.0f, float _y = 0.0f) : x(_x), y(_y) {}
 };
 
 struct Vec3 {
     float x, y, z;
 
-    Vec3(float _x = 0.0f, float _y = 0.0f, float _z = 0.0f)
+    constexpr Vec3(float _x = 0.0f, float _y = 0.0f, float _z = 0.0f)
         : x(_x), y(_y), z(_z) {}
 
     Vec3 operator+(const Vec3& rhs) const { return Vec3(x + rhs.x, y + rhs.y, z + rhs.z); }

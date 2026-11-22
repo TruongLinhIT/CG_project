@@ -1,7 +1,8 @@
 # Tài liệu đối chiếu thông số & bố cục — Asia Park (Đà Nẵng)
 
-> Tài liệu phục vụ **Bước 1 + Bước 2 + Bước 3 (kế hoạch chờ duyệt)** để chuẩn hóa bố cục và tỷ lệ. **Chưa có dòng mã nguồn C++ nào bị sửa.**
-> Cập nhật: 2026-11-22 (đối chiếu thêm ảnh vệ tinh Wayback 2019 & 2022 Zoom 19, dữ liệu RCDB và 38 ảnh mặt đất gắn GPS trên Wikimedia Commons).
+> Tài liệu phục vụ chuẩn hóa bố cục và tỷ lệ dự án **Mô phỏng 3D Công viên Châu Á (Asia Park / Da Nang Downtown)**.
+> **Mốc hiện trạng mô hình:** Khoảng **năm 2019** (`SNAPSHOT_YEAR = 2019` — thời điểm công viên còn nguyên Tháp Đồng Hồ tại quảng trường trung tâm, đầy đủ các trò chơi phía Tây và khu vực nửa phía Đông ranh giới là nền cỏ đơn giản nơi tuyến Monorail chạy qua).
+> Cập nhật: 2026-11-22 (đã cập nhật 5 quyết định duyệt kế hoạch 3 đợt & hoàn thành Đợt 1).
 
 ## 0. Quy tắc dữ liệu & thang tin cậy
 
@@ -91,7 +92,7 @@ Bản đồ chồng lớp giữa **bố cục hiện tại trong code (`Xanh ngo
 | Chiều cao | **115 m** (`65 + 50`) | **115 m** | **1.00** | [Đã xác minh] | [sunworld.vn](https://sunworld.vn/vi/check-in/vong-quay-sun-wheel-tai-asia-park-niem-tu-hao-cua-da-nang-6125), [VnExpress](https://vnexpress.net/ngam-vong-quay-khong-lo-tai-da-nang-3017385.html), [Wikipedia](https://en.wikipedia.org/wiki/Sun_Wheel_(Da_Nang)) |
 | Đường kính | **100 m** (`radius = 50`) | **~101 m** đo ảnh vệ tinh *(chưa mở được tài liệu hãng ghi số 100 m)* | 1.00 | [Ước lượng từ ảnh vệ tinh] ±5 m | Wayback 2022/2019 |
 | Số cabin / sức chứa | 64 cabin | **64 cabin, 6 người/cabin, 384 khách/lượt** | 1.00 | [Đã xác minh] | sunworld.vn, VnExpress |
-| Tốc độ quay | `12.0°/s` (30 s/vòng) | **15 phút/vòng = `0.4°/s`** | tốc độ **×0.033** | [Đã xác minh] | sunworld.vn, VnExpress, Wikipedia |
+| Tốc độ quay | `0.4°/s` (thực tế) + chế độ tua nhanh trình diễn `×5` (`2.0°/s`, phím `[V]`) | **15 phút/vòng = `0.4°/s`** | tốc độ **1:1** (có phím tua `×5`) | [Đã xác minh] | sunworld.vn, VnExpress, Wikipedia |
 | Số nan hoa / LED | 32 nan hoa | — | — | **[Không tìm thấy]** nguồn xác nhận | — |
 
 ### 5.2. Tháp rơi tự do Golden Sky Tower
@@ -129,9 +130,9 @@ Bản đồ chồng lớp giữa **bố cục hiện tại trong code (`Xanh ngo
 
 ### 5.6. Đu quay ngựa gỗ (Festival Carousel)
 
-| Hạng mục | Scene hiện tại | Thực tế | Tin cậy | Ghi chú |
+| Hạng mục | Scene hiện tại | Thực tế / Tọa độ dùng tạm | Tin cậy | Ghi chú |
 |:---|:---|:---|:---|:---|
-| Vị trí | `(45, 0, 48)` (Đông Nam) | **Không tìm thấy** *(chưa đủ căn cứ)* | **[Không tìm thấy]** | Trên ảnh vệ tinh 2019/2022 ở khu Tây-Nam (khu trò chơi trẻ em) có **1 mái bạt hình nón kẻ sọc đen-trắng đường kính ~16.5 m tại `16.03923°N, 108.22689°E`** (`Local (−159.4, +140.5)` / `Engine (−159.4, +102.5)`), nhưng trong khu còn vài trò chơi tròn khác (`16.04004, 108.22715`, `16.04180, 108.22706`) và không có ảnh mặt đất biển tên đối chứng trong bộ Wikimedia Commons → **giữ "Không tìm thấy", không đoán**. |
+| Vị trí | `(45, 0, 48)` (Đông Nam) | **Dùng tạm `Engine (−159.4, 0, +102.5)`** (`16.03923°N, 108.22689°E`, `Local (−159.4, +140.5)`) — **Ghi chú: "chưa xác minh"** | **[Không tìm thấy / Chưa xác minh]** | Trên ảnh vệ tinh 2019/2022 ở khu Tây-Nam có 1 mái bạt hình nón kẻ sọc đen-trắng ĐK ~16.5 m tại `16.03923°N, 108.22689°E`, nhưng chưa có ảnh mặt đất biển tên đối chứng. Theo quyết định duyệt: dùng tạm `(-159.4, +102.5)` ở Đợt 3 và ghi chú rõ `"chưa xác minh"` trong `ParkLayout.h` và tài liệu. |
 | Kích thước | bán kính 8.5 m (ĐK 17 m), cao 8.8 m | — | **[Không tìm thấy]** | — |
 
 ### 5.7. Thủy đình, Trụ đèn & các tàu lượn khác ghi nhận thêm trong thực tế
@@ -193,13 +194,21 @@ Vùng bao khép kín trên [`layout_overlay.png`](img/layout_overlay.png) (nét 
 
 ---
 
-## 9. Cần mình bổ sung / xác nhận trước khi sửa code
+## 9. Các quyết định đã chốt để triển khai 3 đợt
 
-1. **Vị trí Đu quay Ngựa gỗ (`Carousel`):** Hiện đang để **[Không tìm thấy]** (trên ảnh vệ tinh có mái nón kẻ sọc ĐK ~16.5 m tại `16.03923°N, 108.22689°E` tức `Engine (−159.4, +102.5)` nhưng chưa có ảnh mặt đất xác nhận tên). Bạn có xác nhận muốn dùng tọa độ này hay giữ nguyên/cung cấp tọa độ khác từ Google Maps?
-2. **Tháp Đồng Hồ & Cổng Ngọ Môn (`NgoMonGate.h`):** Thực tế Cổng chính ở `(+16.1, 0, +139.1)` và Tháp Đồng Hồ (2019) ở `(+10.7, 0, +61.6)` là **2 công trình tách rời cách nhau ~77 m** (và Tháp Đồng Hồ đã bị tháo trước 2022). Bạn muốn giữ nguyên thành 1 cụm tại vị trí Cổng chính `(+16.1, 0, +139.1)` cho gọn hay tách riêng mô hình cổng & tháp?
-3. **Phương án xử lý va chạm Queen Cobra không scale:** Chọn **(A)** đặt đúng tâm thật `(−227.9, −386.6)` (chấp nhận mũi Bắc nhô trên mặt hồ ~17 m), hay **(B)** dời/xoay né mặt nước hoàn toàn về `(−255, −358)` góc `−25°`, hay **(C)** bổ sung chỉ đạo khác?
-4. **Thủy đình & 10 trụ đèn lồng (`main.cpp`):** Thực tế **có thủy đình bắc cầu ra hồ ngay phía Bắc Sun Wheel** tại `(−5.4, 0, −107.7)` → mình đề xuất dời Thủy đình ra đúng vị trí này (còn 10 trụ đèn ven hồ giữ làm chi tiết trang trí rải dọc bờ kè Nam của hồ mới). Bạn có đồng ý không?
-5. **Tốc độ Sun Wheel:** Sửa về tốc độ thật **`0.4°/s` (15 phút/vòng)** thì khi xem trực tiếp vòng quay sẽ chuyển động rất chậm (nhưng người dùng vẫn nhấn nút tăng tốc `MENU_ANIM_FASTER` tới ×4 được). Bạn muốn đổi hẳn về `0.4°/s` hay giữ mặc định nhanh hơn một chút kèm ghi chú?
+1. **Mốc hiện trạng & phạm vi cảnh quan:** Mô hình biểu diễn hiện trạng khoảng **năm 2019**. Nửa phía Đông của ranh giới chỉ dựng mặt phẳng nền cỏ đơn giản. Không dựng/thêm cây cối, bụi cây hay chi tiết cảnh quan trang trí. Không gian xung quanh chỉ gồm: hồ nước phía Bắc Sun Wheel, đường bao quanh công viên (Phan Đăng Lưu, Đỗ Pháp Thuận/Thuận Yến, đường phía Tây), dải Sông Hàn, và **hệ thống lối đi phẳng** (`quad-strip` nâng cao `3.5–4 cm` tránh Z-fighting, rộng `5–6 m` cho lối chính và `3–3.5 m` cho lối phụ).
+2. **Queen Cobra (Đợt 3):** Chọn **Phương án B** — chỉ tịnh tiến tâm cụm về `Engine (−255.0, 0, −358.0)` (`Local (−255.0, −320.0)`) và xoay `−25°` quanh trục Y, **KHÔNG scale**, giữ nguyên 100% hình học và animation.
+3. **Đu quay Ngựa gỗ (Đợt 3):** Dùng tạm vị trí `Engine (−159.4, 0, +102.5)` (`16.03923°N, 108.22689°E`), gắn ghi chú `"chưa xác minh"` trong `src/core/ParkLayout.h` (`CAROUSEL_POS_UNVERIFIED`) và tài liệu.
+4. **Cổng Ngọ Môn & Tháp Đồng Hồ (Đợt 3):** Đặt Cổng Ngọ Môn tại `(+16.1, 0, +139.1)` với `scale = 0.76`. Tách Tháp Đồng Hồ (nếu không ảnh hưởng hình học) đặt tại `(+10.7, 0, +61.6)` với `scale = 1.0`.
+5. **Thủy đình & 10 trụ đèn lồng (Đợt 1):** Dời Thủy đình về vị trí thực tế `(−5.4, 0, −107.7)` trên mặt hồ phía Bắc Sun Wheel kèm cầu gỗ nối vào bờ Nam (`y = 0.25 m`); đặt 10 trụ đèn lồng dọc bờ kè phía Nam của hồ mới (`Z_eng = −70.0 m`).
+6. **Tốc độ Sun Wheel (Đợt 1):** Đặt hằng số tốc độ thực `0.4°/s` (15 phút/vòng) và hệ số tua nhanh trình diễn `×5` (`2.0°/s`) bật/tắt bằng phím `[V]` (hoặc menu chuột phải).
+7. **Hệ thống lối đi nội bộ (Đợt 1 — `[Ước lượng từ ảnh vệ tinh]`):** Đã số hóa thành các mảng hằng số trong `src/core/ParkLayout.h` theo đúng vết lối đi trên ảnh vệ tinh Wayback 2019 (`wb19_south.png`, `wb19_mid.png`, `wb19_north.png`), nối liên hoàn:
+   - `PATH_MAIN_SPINE` (rộng `6.0 m`): Quảng trường Phan Đăng Lưu `(16.1, 166.0)` → xuyên qua vòm trung tâm Cổng Ngọ Môn `(16.1, 139.1)` → vòng qua phía Đông Tháp Đồng Hồ `(30.0, 74.9 → 48.3)` → Quảng trường Nam Sun Wheel `(0.0, 28.4 → 0.7)` → vòng qua hành lang Tây Sun Wheel `(−34.2, −2.6 → −66.8)` → đầu cầu Thủy đình `(−5.4, −66.8)`.
+   - `PATH_SOUTH_LAKE_PROM` (rộng `5.0 m`): Dọc bờ kè Nam hồ nước từ `(−63.5, −66.8)` tới `(+53.5, −65.7)`.
+   - `PATH_PAVILION_PIER` (rộng `3.0 m`, cầu cao `y = 0.25 m`): Từ bờ kè Nam `(−5.4, −66.8)` dẫn thẳng ra bệ đá Thủy đình `(−5.4, −102.7)`.
+   - `PATH_WEST_SPINE` (rộng `5.0 m`): Tách từ sân trong Ngọ Môn `(16.1, 94.8)` → Ga Monorail Nam `(−24.6, 111.4)` → qua phía Bắc Ngựa gỗ `(−159.4, 81.5)` → trục trò chơi phía Tây `(−174.4, 33.9)` → Quảng trường Đông Sky Tower `(−246.1, −54.6)` → Ga Monorail Nepal `(−231.1, −220.6)` → Quảng trường ngôi sao Angkor `(−214.0, −275.9)` → lối vào Nam Queen Cobra `(−246.1, −334.6)`.
+   - `PATH_LAKESIDE_WEST` (rộng `3.0 m`) & `PATH_CENTRAL_CONNECTOR` (rộng `3.5 m`): Tuyến phụ ven bờ Tây hồ nước và tuyến nối ngang từ Quảng trường Sun Wheel sang trục phía Tây.
+   - **Kiểm tra va chạm:** Đã kiểm tra bằng script hình học (`0` điểm lối đi mặt đất phạm vào đa giác hồ nước `LAKE_OUTLINE_POLY` hay chân các công trình đề xuất).
 
 ---
 

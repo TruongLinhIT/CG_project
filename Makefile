@@ -11,7 +11,7 @@ ifeq ($(OS),Windows_NT)
     TARGET := AsiaPark3D.exe
     LDFLAGS := -lfreeglut -lopengl32 -lglu32 -lm
 else
-    LDFLAGS := -lglut -lGL -lGLU -lm
+    LDFLAGS := -lglut -lGL -lGLU -lEGL -lm
 endif
 
 SRCS := src/main.cpp
