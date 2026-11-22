@@ -45,6 +45,7 @@
 #include "rides/Playground.h"
 #include "rides/BumperCars.h"
 #include "rides/PirateShip.h"
+#include "rides/MiniCoaster.h"
 
 // ============================================================================
 // MÁY TRẠNG THÁI MÔ PHỎNG & ĐƯỜNG ỐNG ĐỒ HỌA TOÀN CỤC
@@ -110,6 +111,7 @@ static AsiaParkUI::Minimap2D     gMinimap;
 static AsiaParkRides::Playground  gPlayground;
 static AsiaParkRides::BumperCars  gBumperCars;
 static AsiaParkRides::PirateShip  gPirateShip;
+static std::array<AsiaParkRides::MiniCoaster, 4> gMiniCoasters;
 static std::vector<AsiaParkActors::Human> gHumans;
 
 // ============================================================================
@@ -629,6 +631,9 @@ static void displayCallback() {
     gPlayground.draw(isNightOrSunset, gState.showNormalsAndCtrl);
     gBumperCars.draw(isNightOrSunset, gState.showNormalsAndCtrl);
     gPirateShip.draw(isNightOrSunset, gState.showNormalsAndCtrl);
+    for (const auto& mc : gMiniCoasters) {
+        mc.draw(isNightOrSunset, gState.showNormalsAndCtrl, smooth);
+    }
     for (const auto& h : gHumans) h.draw(isNightOrSunset);
 
     // 6. Vẽ các lớp phủ giao diện 2D (Luôn ở chế độ tô đặc GL_FILL)
@@ -760,6 +765,7 @@ static void timerCallback(int value) {
         gPlayground.update(dt);
         gBumperCars.update(dt);
         gPirateShip.update(dt);
+        for (auto& mc : gMiniCoasters) mc.update(dt);
         for (auto& h : gHumans) h.update(dt);
         gState.coasterParamT    = gCurves.queenCobraTrain.paramT;
     }
@@ -1243,6 +1249,7 @@ static bool renderHeadlessTopDownPPM(const char* outPpmPath) {
     );
 
     // 4. Vẽ toàn bộ cảnh 3D
+    AsiaParkRides::initWave5aMiniCoasters(gMiniCoasters);
     gHumans = AsiaParkActors::createDefaultCrowd();
     drawParkGroundAndLake();
     gParkArch.draw(false, false, true);
@@ -1255,6 +1262,7 @@ static bool renderHeadlessTopDownPPM(const char* outPpmPath) {
     gPlayground.draw(false, false);
     gBumperCars.draw(false, false);
     gPirateShip.draw(false, false);
+    for (const auto& mc : gMiniCoasters) mc.draw(false, false, true);
     for (const auto& h : gHumans) h.draw(false);
 
     // 5. Vẽ thêm lưới tọa độ mét (bước 50m / 100m theo Local X, Z) để dễ đối chiếu trực tiếp với layout_overlay.png
@@ -1325,6 +1333,7 @@ static bool renderHeadlessPerspectiveShots() {
     if (!eglMakeCurrent(dpy, surf, surf, ctx)) return false;
 
     gCurves.init();
+    AsiaParkRides::initWave5aMiniCoasters(gMiniCoasters);
     gHumans = AsiaParkActors::createDefaultCrowd();
 
     struct ShotSpec {
@@ -1417,6 +1426,7 @@ static bool renderHeadlessPerspectiveShots() {
         gPlayground.draw(isNightOrSunset, false);
         gBumperCars.draw(isNightOrSunset, false);
         gPirateShip.draw(isNightOrSunset, false);
+        for (const auto& mc : gMiniCoasters) mc.draw(isNightOrSunset, false, true);
         for (const auto& h : gHumans) h.draw(isNightOrSunset);
 
         glFlush();
@@ -1424,9 +1434,9 @@ static bool renderHeadlessPerspectiveShots() {
         if (!saveFramebufferPPM(sh.outPath, capW, capH)) return false;
     }
 
-    // Chụp bộ ảnh kiểm tra Đợt 4 (Toàn cảnh, 3 góc cận Cổng Ngọ Môn, Quảng trường nhìn về Sun Wheel)
-    const ShotSpec wave4Shots[5] = {
-        // 1. Toàn cảnh góc cao từ phía Nam-Đông-Nam nhìn vào Cổng Ngọ Môn 2 cánh tường thành, Quảng trường & Sun Wheel
+    // Chụp bộ ảnh kiểm tra Đợt 4 & Đợt 5A (Cổng Ngọ Môn nhìn từ Bắc sau Phương án A, Toàn cảnh khu Tây, Cận 2 tàu lượn nhỏ)
+    const ShotSpec wave4And5aShots[8] = {
+        // 1. Toàn cảnh góc cao Đợt 4
         {
             "/tmp/w4_overview.ppm",
             MathCG::Vec3( 115.0f, 165.0f, 295.0f),
@@ -1434,7 +1444,7 @@ static bool renderHeadlessPerspectiveShots() {
             50.0f,
             TimeOfDay::SUNSET
         },
-        // 2. Cận Cổng Ngọ Môn - Góc 1 (Chính diện phía Nam thấy 2 hồ sen, bậc thềm, 3 vòm cổng, 2 cánh tường thành răng cưa & Lầu Ngũ Phụng)
+        // 2. Cận Cổng Ngọ Môn - Góc 1 (Chính diện phía Nam)
         {
             "/tmp/w4_gate_front.ppm",
             MathCG::Vec3(  16.1f,  18.0f, 192.0f),
@@ -1442,7 +1452,7 @@ static bool renderHeadlessPerspectiveShots() {
             48.0f,
             TimeOfDay::SUNSET
         },
-        // 3. Cận Cổng Ngọ Môn - Góc 2 (Góc xiên Tây-Nam 45 độ kiểm tra độ liền khối giữa mái cong, cột, thân tường & cánh tường thành)
+        // 3. Cận Cổng Ngọ Môn - Góc 2 (Góc xiên Tây-Nam 45 độ)
         {
             "/tmp/w4_gate_angle.ppm",
             MathCG::Vec3( -26.0f,  19.0f, 174.0f),
@@ -1450,25 +1460,49 @@ static bool renderHeadlessPerspectiveShots() {
             46.0f,
             TimeOfDay::DAY
         },
-        // 4. Cận Cổng Ngọ Môn - Góc 3 (Mặt Bắc / Sân trong nhìn ngược về cổng và hai cánh tường thành)
+        // 4. Cận Cổng Ngọ Môn - Góc 3 (Mặt Bắc / Quảng trường nhìn ngược về cổng, dầm Monorail & Ga Nam sau Phương án A)
         {
             "/tmp/w4_gate_back.ppm",
-            MathCG::Vec3(  38.0f,  17.0f, 102.0f),
-            MathCG::Vec3(  16.1f,   8.5f, 139.1f),
-            48.0f,
+            MathCG::Vec3(  28.0f,  24.0f,  86.0f),
+            MathCG::Vec3(   2.0f,   8.5f, 136.0f),
+            52.0f,
             TimeOfDay::DAY
         },
-        // 5. Quảng trường lát gạch nhìn về phía Bắc (thấy 2 chòi quảng trường, Tháp Đồng Hồ, Sân khấu chân Sun Wheel + 2 màn hình tròn & Vòng quay)
+        // 5. Quảng trường lát gạch nhìn về phía Bắc (Sân khấu chân Sun Wheel đã lùi về Z = -15.9m)
         {
             "/tmp/w4_plaza_to_sw.ppm",
             MathCG::Vec3( -14.0f,  23.0f,  88.0f),
             MathCG::Vec3(   0.0f,  30.0f, -35.0f),
             54.0f,
             TimeOfDay::SUNSET
+        },
+        // 6. ĐỢT 5A - Ảnh 1: Toàn cảnh khu Tây từ trên cao (bao quát cả 4 tàu lượn MiniCoaster + 3 trò dời vị trí + lối đi WEST_SPINE)
+        {
+            "/tmp/w5a_west_overview.ppm",
+            MathCG::Vec3(-335.0f, 175.0f,  195.0f),
+            MathCG::Vec3(-175.0f,  10.0f,  -45.0f),
+            54.0f,
+            TimeOfDay::DAY
+        },
+        // 7. ĐỢT 5A - Ảnh 2a: Cận cảnh tàu lượn Port of Sky Treasure (-224, 0, +22) & Thuyền cướp biển Pirate Ship (-172, 0, -2) cùng lối đi (-195, -20)
+        {
+            "/tmp/w5a_coaster_port_sky.ppm",
+            MathCG::Vec3(-170.0f,  28.0f,   72.0f),
+            MathCG::Vec3(-216.0f,   5.5f,   12.0f),
+            50.0f,
+            TimeOfDay::DAY
+        },
+        // 8. ĐỢT 5A - Ảnh 2b: Cận cảnh tàu lượn Paradise Fall (vòng ray số 8 tại -199, -119.9 + Tòa nhà đá tại -179.8, -91.1) & Highway Boat (-176, -214)
+        {
+            "/tmp/w5a_coaster_paradise_fall.ppm",
+            MathCG::Vec3(-142.0f,  32.0f,  -62.0f),
+            MathCG::Vec3(-194.0f,   5.5f, -124.0f),
+            50.0f,
+            TimeOfDay::DAY
         }
     };
 
-    for (const auto& sh : wave4Shots) {
+    for (const auto& sh : wave4And5aShots) {
         glViewport(0, 0, capW, capH);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
@@ -1511,6 +1545,7 @@ static bool renderHeadlessPerspectiveShots() {
         gPlayground.draw(isNightOrSunset, false);
         gBumperCars.draw(isNightOrSunset, false);
         gPirateShip.draw(isNightOrSunset, false);
+        for (const auto& mc : gMiniCoasters) mc.draw(isNightOrSunset, false, true);
         for (const auto& h : gHumans) h.draw(isNightOrSunset);
 
         glFlush();
@@ -1526,6 +1561,7 @@ static bool renderHeadlessPerspectiveShots() {
     for (int f = 0; f < benchFrames; ++f) {
         gSunWheel.update(1.0f / 60.0f);
         gCurves.update(1.0f / 60.0f);
+        for (auto& mc : gMiniCoasters) mc.update(1.0f / 60.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
@@ -1545,6 +1581,7 @@ static bool renderHeadlessPerspectiveShots() {
         gPlayground.draw(true, false);
         gBumperCars.draw(true, false);
         gPirateShip.draw(true, false);
+        for (const auto& mc : gMiniCoasters) mc.draw(true, false, true);
         for (const auto& h : gHumans) h.draw(true);
     }
     glFinish();
@@ -1610,6 +1647,7 @@ int main(int argc, char** argv) {
 
     // Khởi tạo hệ thống đường cong & đoàn tàu (Queen Cobra + Monorail)
     gCurves.init();
+    AsiaParkRides::initWave5aMiniCoasters(gMiniCoasters);
     gHumans = AsiaParkActors::createDefaultCrowd();
 
     // Tạo menu phân cấp khi nhấp chuột phải

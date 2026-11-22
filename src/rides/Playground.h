@@ -13,6 +13,7 @@
 #include <GL/freeglut.h>
 #include <cmath>
 #include "core/MathCG.h"
+#include "core/ParkLayout.h"
 #include "geometry/ParametricShapes.h"
 #include "geometry/MeshModel.h"
 
@@ -20,7 +21,7 @@ namespace AsiaParkRides {
 
 class Playground {
 public:
-    MathCG::Vec3 position{40.0f, 0.0f, -50.0f};
+    MathCG::Vec3 position = ParkLayout::PLAYGROUND_TARGET_POS;
 
     float swingPhase   = 0.0f;
     float seesawPhase  = 0.0f;

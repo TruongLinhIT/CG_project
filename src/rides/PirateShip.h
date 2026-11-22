@@ -17,6 +17,7 @@
 #include <GL/freeglut.h>
 #include <cmath>
 #include "core/MathCG.h"
+#include "core/ParkLayout.h"
 #include "geometry/ParametricShapes.h"
 #include "geometry/MeshModel.h"
 
@@ -24,7 +25,7 @@ namespace AsiaParkRides {
 
 class PirateShip {
 public:
-    MathCG::Vec3 position{-20.0f, 0.0f, -65.0f};
+    MathCG::Vec3 position = ParkLayout::PIRATE_SHIP_TARGET_POS;
     float swingPhase     = 0.0f;
     float swingAmplitude = 55.0f; // Max degrees
     float swingPeriod    = 6.0f;  // Seconds

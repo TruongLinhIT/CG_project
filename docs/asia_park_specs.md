@@ -277,13 +277,13 @@ Theo yêu cầu điều chỉnh số 1 & 2, cả 5 hạng mục dưới đây đ
 > Ghim GPS trên RCDB thường đặt tại **một điểm biên của vòng ray hoặc cổng vào** thay vì tâm hình học của cả khu đất trò chơi (`nhà ga + vùng đường ray`). Khi đặt mô hình 3D vào scene, ta lấy **tâm khung bao (bounding-box center)** của toàn bộ công trình trên ảnh vệ tinh Zoom 19 để khối mô hình không bị tràn sang lối đi hay đè lên công trình kế cận:
 > - Với **Garuda Valley** (RCDB `#12676`): ghim RCDB `(16.038689, 108.227418)` quy đổi ra `Engine (−102.9, +162.4)`, nằm ở **mút rìa phía Đông của vòng ray** (khớp ảnh thực địa Wikimedia Commons `49356303773.jpg` chụp tại `16.038722, 108.227402`). Trên ảnh vệ tinh Zoom 19 (`z19_south_plaza.png`), toàn bộ khu Garuda Valley (gồm nhà ga mái dài ở phía Tây `lon ≈ 108.22708`, cổng vào tại Commons `49374160882.jpg` `16.038783, 108.227194`, và vòng ray vươn sang Đông tới `108.22742`) trải rộng trên `X_eng ∈ [−142, −103]`, `Z_eng ∈ [+143, +169]`. Do đó **tâm khung bao `34 × 26 m`** của cả cụm trò chơi nằm tại **`(−124.1, +155.7)`**, lệch `(ΔX = −21.2 m, ΔZ = −6.7 m, |d| = 22.2 m)` về phía Tây so với ghim rìa Đông của RCDB.
 
-| # | Hạng mục (`[Đã xác minh tên/vị trí; hình dạng đơn giản hóa]`) | Nguồn GPS gốc | Tọa độ GPS gốc `(lat, lon)` | Quy đổi trực tiếp `Engine_GPS (X, Z)` (m) | Tâm khung bao đã chọn `Engine_Chosen (X, Z)` (m) | Độ lệch `(ΔX, ΔZ)` (m) | Khoảng cách lệch `|d|` (m) | Nguyên nhân lệch giữa ghim GPS và tâm khung bao |
+| # | Hạng mục & Nhãn độ tin cậy | Nguồn GPS gốc | Tọa độ GPS gốc `(lat, lon)` | Quy đổi trực tiếp `Engine_GPS (X, Z)` (m) | Tâm khung bao đã chọn `Engine_Chosen (X, Z)` (m) | Độ lệch `(ΔX, ΔZ)` (m) | Khoảng cách lệch `|d|` (m) | Nguyên nhân lệch giữa ghim GPS và tâm khung bao |
 |:-:|:---|:---|:---|:---:|:---:|:---:|:---:|:---|
-| 1 | **Tàu lượn Garuda Valley** *(34 × 26 m)* | RCDB `#12676` + Commons `49374160882`, `49356303773` | `16.038689, 108.227418` | `(−102.9, +162.4)` | **`(−124.1, +155.7)`** | `(−21.2, −6.7)` | **`22.2 m`** | Ghim RCDB nằm ở **mút vòng ray phía Đông**; tâm khung bao `34 × 26 m` bao gồm cả nhà ga phía Tây (`lon 108.22708`) và vòng ray nên dịch `21.2 m` sang Tây. |
-| 2 | **Tàu lượn Port of Sky Treasure** *(36 × 26 m)* | RCDB `#13603` + Commons `49358003766` | `16.039907, 108.226363` | `(−215.8, +27.6)` | **`(−224.0, +22.0)`** | `(−8.2, −5.6)` | **`9.9 m`** | Ghim RCDB đặt tại **mép Đông-Nam nhà ga** gần trục lối đi; tâm hình học của toàn vùng ray + nhà ga `36 × 26 m` trên ảnh vệ tinh nằm lệch `9.9 m` về Tây-Bắc. |
-| 3 | **Tòa nhà đá Paradise Fall** *(28 × 22 m)* | RCDB `#15548` + Commons `49358210737` | `16.040998, 108.226822` | `(−166.7, −93.1)` | **`(−179.8, −91.1)`** | `(−13.1, +2.0)` | **`13.2 m`** | Ghim RCDB và ảnh Commons `49358210737` đặt tại **cổng vào phía Đông** nhìn ra lối đi chính; tâm khối nhà giả núi đá `28 × 22 m` nằm lùi `13.1 m` vào phía Tây. |
-| 4 | **Đường ray số 8 Paradise Fall** *(34 × 28 m)* | RCDB `#15548` (cùng ghim khu Paradise Fall) | `16.040998, 108.226822` | `(−166.7, −93.1)` | **`(−199.0, −119.9)`** | `(−32.3, −26.8)` | **`41.9 m`** | RCDB chỉ dùng 1 ghim chung cho cả cụm Paradise Fall tại cổng Đông nhà ga, trong khi **vòng ray lượn số 8 ngoài trời** nằm nối tiếp về phía Tây-Bắc của tòa nhà đá. |
-| 5 | **Tàu lượn Highway Boat** *(36 × 24 m)* | RCDB `#15549` + Commons `49374702231` | `16.042034, 108.226667` | `(−183.3, −207.8)` | **`(−176.0, −214.0)`** | `(+7.3, −6.2)` | **`9.6 m`** | Ghim RCDB nằm gần mép Tây-Nam sát Ga Monorail Nepal; tâm vùng ray `36 × 24 m` dịch `9.6 m` sang Đông-Bắc để không chạm hành lang Ga Nepal `(−217.2, −220.6)`. |
+| 1 | **Tàu lượn Garuda Valley** *(34 × 26 m)*<br>`[Đã xác minh tên/vị trí; hình dạng đơn giản hóa]` | RCDB `#12676` + Commons `49374160882`, `49356303773` | `16.038689, 108.227418` | `(−102.9, +162.4)` | **`(−124.1, +155.7)`** | `(−21.2, −6.7)` | **`22.2 m`** | Ghim RCDB nằm ở **mút vòng ray phía Đông**; tâm khung bao `34 × 26 m` bao gồm cả nhà ga phía Tây (`lon 108.22708`) và vòng ray nên dịch `21.2 m` sang Tây. |
+| 2 | **Tàu lượn Port of Sky Treasure** *(36 × 52 m)*<br>`[Đã xác minh tên/vị trí; hình dạng đơn giản hóa]` | RCDB `#13603` + Commons `49358003766` | `16.039907, 108.226363` | `(−215.8, +27.6)` | **`(−224.0, +22.0)`** | `(−8.2, −5.6)` | **`9.9 m`** | Ghim RCDB đặt tại **mép Đông-Nam nhà ga** gần trục lối đi; tâm hình học của toàn vùng ray + nhà ga trên ảnh vệ tinh nằm lệch `9.9 m` về Tây-Bắc. |
+| 3 | **Tòa nhà đá Paradise Fall** *(24 × 14 m)*<br>`[Đã xác minh tên/vị trí; hình dạng đơn giản hóa]` | RCDB `#15548` + Commons `49358210737` | `16.040998, 108.226822` | `(−166.7, −93.1)` | **`(−179.8, −91.1)`** | `(−13.1, +2.0)` | **`13.2 m`** | Ghim RCDB và ảnh Commons `49358210737` đặt tại **cổng vào phía Đông** nhìn ra lối đi chính; tâm khối nhà giả núi đá nằm lùi `13.1 m` vào phía Tây. |
+| 4 | **Đường ray số 8 Paradise Fall** *(34 × 24 m)*<br>**`[Ước lượng từ ảnh vệ tinh; hình dạng đơn giản hóa]`** | RCDB `#15548` (cùng ghim khu Paradise Fall) | `16.040998, 108.226822` | `(−166.7, −93.1)` | **`(−199.0, −119.9)`** | `(−32.3, −26.8)` | **`41.9 m`** | RCDB chỉ dùng 1 ghim chung tại cổng Đông nhà ga, còn **vòng ray lượn số 8 ngoài trời** nằm nối tiếp về phía Tây-Bắc tòa nhà đá (lệch `41.9 m` nên gắn nhãn **`[Ước lượng từ ảnh vệ tinh]`**). |
+| 5 | **Tàu lượn Highway Boat** *(34 × 26 m)*<br>`[Đã xác minh tên/vị trí; hình dạng đơn giản hóa]` | RCDB `#15549` + Commons `49374702231` | `16.042034, 108.226667` | `(−183.3, −207.8)` | **`(−176.0, −214.0)`** | `(+7.3, −6.2)` | **`9.6 m`** | Ghim RCDB nằm gần mép Tây-Nam sát Ga Monorail Nepal; tâm vùng ray dịch `9.6 m` sang Đông-Bắc để không chạm hành lang Ga Nepal `(−217.2, −220.6)`. |
 
 ---
 
@@ -308,13 +308,14 @@ Theo yêu cầu điều chỉnh số 1 & 2, cả 5 hạng mục dưới đây đ
    - **Cánh tường thành phía Tây (`West Wing Wall`, cao `~6.8 m`, trải từ `X = −1.38 m` sang `X = −49.2 m`):**
      - Trong bản dựng Đợt 4 hiện tại (chưa tự ý dời cổng hay dời waypoint theo đúng chỉ dẫn), cánh tường Tây được bố trí chạy thẳng theo phương Đông–Tây tại `Z_wall ∈ [+138.4, +141.6 m]`, để chừa khe hở **`3.2 m`** phía Nam Ga Monorail Nam (`Z_station_max = +135.2 m`).
      - Tuy nhiên, nếu đối chiếu với ảnh chụp flycam thực tế (`media_1795356545507_984436ca.jpg`), hai cánh tường thành thực tế hơi ôm cong về phía Bắc (`Z ≈ 133–148 m`) và tuyến đường ray Monorail phía sau lưng cổng cách mặt Bắc cổng tới `~12–15 m` (để nhường chỗ cho hàng cây và đường dạo nội bộ sau tường thành). Với tọa độ `WP0/WP1` hiện tại (`Z = +128.0 m`), nhà ga Nam (`Z_max = +135.2 m`) **chồng lấn `~2.2 m` vào vùng hành lang Bắc của cánh tường Tây (`Z ≈ 133–148 m`)** và dầm Monorail chạy rất sát (`2.7–3.1 m`) mặt Bắc Lầu Ngũ Phụng.
-3. **Hai phương án xử lý để bạn lựa chọn (chưa tự sửa tọa độ đã chốt):**
-   - **Phương án A (Khuyến nghị — Chỉnh nhẹ 3 waypoint Monorail phía Nam & Ga Nam lùi `8.0 m` về phía Bắc, nằm trong biên `±10 m`):**
-     - Dịch `MONORAIL_WAYPOINTS[0]` từ `(+16.1, 12, +128.0)` → `(+16.1, 12, +120.0)`, `MONORAIL_WAYPOINTS[1]` từ `(−24.6, 12, +128.0)` → `(−24.6, 12, +120.0)`, `MONORAIL_WAYPOINTS[2]` từ `(−69.3, 12, +119.1)` → `(−69.3, 12, +114.0)`, và `MONORAIL_SOUTH_STATION_POS` từ `(−24.6, 0, +128.0)` → `(−24.6, 0, +120.0)`.
-     - **Ưu điểm:** Giữ nguyên 100% vị trí Cổng Ngọ Môn `(+16.1, 0, +139.1)`, 2 hồ sen và mặt tiền Đường Phan Đăng Lưu; tăng khoảng cách từ dầm Monorail & Ga Nam tới Cổng Ngọ Môn và cánh tường Tây lên **`9.5–11.2 m`** đúng như ảnh chụp thực tế.
-   - **Phương án B (Dời cả cụm Cổng Ngọ Môn + cánh tường + 2 hồ sen lùi `+8.0 m` về phía Nam):**
-     - Dịch `NGO_MON_GATE_POS` từ `(+16.1, 0, +139.1)` → `(+16.1, 0, +147.1)` và 2 hồ sen từ `Z = +154.0` → `Z = +161.0` (vẫn nằm trong biên Nam công viên `+172.3 m`).
-     - **Nhược điểm:** Làm hẹp khoảng sân đón khách và hồ sen phía trước Đường Phan Đăng Lưu.
+3. **Kết quả áp dụng PHƯƠNG ÁN A đã duyệt:**
+   - Đã dịch `MONORAIL_WAYPOINTS[0]` → `(+16.1, 12.0, +121.8)`, `MONORAIL_WAYPOINTS[1]` → `(−24.6, 12.0, +121.8)`, `MONORAIL_WAYPOINTS[2]` → `(−78.1, 12.2, +114.0)` và `MONORAIL_SOUTH_STATION_POS` → `(−24.6, 0.0, +121.8)`, đồng thời giữ nguyên 100% Cổng Ngọ Môn `(+16.1, 0.0, +139.1)` và 2 hồ sen.
+   - **Kiểm tra hình học sau khi áp dụng Phương án A:**
+     - **0 điểm dầm và 0 chân trụ Monorail** nằm trong vùng Quảng trường lát gạch (`X ∈ [−26.9, +59.1]`, `Z ≤ +115.0 m`).
+     - Khoảng cách tối thiểu từ dầm Monorail tới mặt Bắc thân Cổng Ngọ Môn (`Z = +133.40 m`) là **`10.26 m`**.
+     - Ga Monorail Nam chiếm `X ∈ [−36.6, −12.6 m]`, **`Z ∈ [+119.2, +129.0 m]`**: cách mép Nam Quảng trường lát gạch (`Z = +115.0 m`) **`4.20 m`** và cách cánh tường thành phía Tây (`Z = +138.4 m`) **`9.40 m`**.
+     - Đường cong Bézier $C^1$ của Monorail giữ độ trơn mượt tuyệt đối (tổng chiều dài vòng `1 884.5 m`, tốc độ `9.2 m/s` ≈ `3.41 phút/vòng`).
+     - Đã chỉnh điểm `PATH_WEST_SPINE[1]` về `(−24.6, +112.5)` để lối đi chạy ngay trước sảnh Bắc của Ga Monorail Nam mới với khoảng đệm `4.20 m`.
 
 ---
 
@@ -323,9 +324,9 @@ Theo yêu cầu điều chỉnh số 1 & 2, cả 5 hạng mục dưới đây đ
 - Trong `SunWheel.h`, 4 bệ móng bê tông chịu lực của chân tháp chữ A đặt tại `X = ±27.0 m` (rộng `5.4 m` → `|X| ∈ [24.30, 29.70 m]`), tâm Sun Wheel tại `Z = −38.0 m` với nửa khoảng mở chân `legSpreadZ = 12.5 m` (sâu `5.4 m`):
   - **2 bệ móng chân phía Nam (`sz = +1`):** chiếm `Z ∈ [−28.20, −22.80 m]`, `|X| ∈ [24.30, 29.70 m]`, `Y ∈ [0.0, 3.55 m]`.
   - **2 ống thép chân chữ A phía Nam:** nghiêng từ đỉnh bệ `(±27.0, 3.2, −25.50)` thu dần vào trục ổ quay `(±6.2, 65.0, −31.8)`.
-- Trong `ParkLayout.h` & `ParkArchitecture.h`, cụm **Sân khấu Sun Wheel (`SUN_WHEEL_STAGE_POS = (0.0, 0.0, −17.7)`)** được thiết kế với chiều rộng `52.0 m` (`X ∈ [−26.0, +26.0 m]`) và chiều sâu `9.0 m` (**`Z ∈ [−22.20, −13.20 m]`**):
-  - Mặt lưng phía Bắc của sân khấu và 2 tháp màn hình tròn dừng tại **`Z = −22.20 m`**, hoàn toàn nằm ở phía Nam của mép Nam bệ bê tông chân Sun Wheel (`Z = −22.80 m`) với **khe hở an toàn `0.60 m` so với mép đế bê tông và `3.30 m` so với ống thép chân chữ A** (`Z = −25.50 m`).
-  - Hai nhà chòi phụ hai bên sân khấu (`STAGE_PAVILION_WEST_POS / EAST_POS`) đặt tại `(±40.0, 0.0, −24.0)` với bề rộng `12.0 m` (`|X| ∈ [34.0, 46.0 m]`), cách mép ngoài bệ móng chân Sun Wheel (`|X| = 29.70 m`) **`4.30 m`**.
+- Trong `ParkLayout.h` & `ParkArchitecture.h`, cụm **Sân khấu Sun Wheel (`SUN_WHEEL_STAGE_POS = (0.0, 0.0, −15.9)`)** đã được lùi thêm `1.8 m` về phía Nam với chiều rộng `52.0 m` (`X ∈ [−26.0, +26.0 m]`) và chiều sâu `9.0 m` (**`Z ∈ [−20.40, −11.40 m]`**):
+  - Mặt lưng phía Bắc của sân khấu và 2 tháp màn hình tròn dừng tại **`Z = −20.40 m`**, nằm hoàn toàn ở phía Nam của mép Nam bệ bê tông chân Sun Wheel (`Z = −22.80 m`) với **khe hở thoáng `2.40 m` so với mép đế bê tông và `5.10 m` so với ống thép chân chữ A** (`Z = −25.50 m`).
+  - Hai nhà chòi phụ hai bên sân khấu (`SUN_WHEEL_SIDE_PAVILION_WEST_POS / EAST_POS`) đặt tại `(±40.0, 0.0, −22.2)` với bề rộng `12.0 m` (`|X| ∈ [34.0, 46.0 m]`), cách mép ngoài bệ móng chân Sun Wheel (`|X| = 29.70 m`) **`4.30 m`**.
   - **Kết luận:** **Không có bất kỳ điểm giao cắt hình học nào** giữa tổ hợp sân khấu và chân chữ A của Sun Wheel.
 
 ---
@@ -353,9 +354,45 @@ Theo yêu cầu điều chỉnh số 1 & 2, cả 5 hạng mục dưới đây đ
   - **Sau Đợt 4 (thêm toàn bộ Cổng Ngọ Môn mới, 2 cánh tường thành, 2 hồ sen, Quảng trường lát gạch, Sân khấu 2 màn hình tròn và 6 nhà chòi mái ngói):** **`248.3 FPS`** (`200 frames / 0.805 s` — chỉ giảm `~1.7%`, giữ tốc độ dựng hình cực mượt).
 - **Bộ ảnh kết quả Đợt 4:**
   - [`img/wave4_overview_high.png`](img/wave4_overview_high.png) — Ảnh 1: Toàn cảnh góc cao từ phía Nam-Đông-Nam bao quát Cổng Ngọ Môn, 2 cánh tường thành, 2 hồ sen, Quảng trường lát gạch, Tháp Đồng Hồ, Sân khấu 2 màn hình tròn và Sun Wheel.
-  - [`img/wave4_ngomon_3angles.png`](img/wave4_ngomon_3angles.png) *(và 3 ảnh rời [`wave4_ngomon_front.png`](img/wave4_ngomon_front.png), [`wave4_ngomon_angle.png`](img/wave4_ngomon_angle.png), [`wave4_ngomon_back.png`](img/wave4_ngomon_back.png))* — Ảnh 2: Cận cảnh Cổng Ngọ Môn từ 3 góc (Chính diện mặt Nam, Góc xiên Tây-Nam 45°, Mặt Bắc nhìn từ sân trong) xác nhận 100% mái cong, cột, thân cổng và tường thành liền khối.
-  - [`img/wave4_plaza_to_sunwheel.png`](img/wave4_plaza_to_sunwheel.png) — Ảnh 3: Quảng trường trung tâm nhìn về phía Bắc hướng tới Tháp Đồng Hồ, 2 nhà chòi quảng trường, Sân khấu Sun Wheel với 2 màn hình tròn phát sáng và Vòng quay Mặt Trời.
+  - [`img/wave4_ngomon_3angles.png`](img/wave4_ngomon_3angles.png) *(và 3 ảnh rời [`wave4_ngomon_front.png`](img/wave4_ngomon_front.png), [`wave4_ngomon_angle.png`](img/wave4_ngomon_angle.png), [`wave4_ngomon_back.png`](img/wave4_ngomon_back.png))* — Ảnh 2: Cận cảnh Cổng Ngọ Môn từ 3 góc (Chính diện mặt Nam, Góc xiên Tây-Nam 45°, Mặt Bắc nhìn từ sân trong sau khi áp dụng Phương án A cho Monorail Nam).
+  - [`img/wave4_plaza_to_sunwheel.png`](img/wave4_plaza_to_sunwheel.png) — Ảnh 3: Quảng trường trung tâm nhìn về phía Bắc hướng tới Tháp Đồng Hồ, 2 nhà chòi quảng trường, Sân khấu Sun Wheel (`Z = −15.9 m`) với 2 màn hình tròn phát sáng và Vòng quay Mặt Trời.
   - [`img/wave4_topdown_overlay.png`](img/wave4_topdown_overlay.png) — Ảnh chụp trực giao từ trên xuống sau Đợt 4 chồng lên ảnh vệ tinh Wayback 2019.
+
+---
+
+### 12.6. Bảng hạng mục đã hoàn thành trong ĐỢT 5A (4 Tàu lượn nhỏ dùng chung lớp `MiniCoaster` & Dời 3 trò chơi PR #1 về khu Tây)
+
+- **Thiết kế lớp dùng chung [`src/rides/MiniCoaster.h`](../src/rides/MiniCoaster.h):**
+  - Không sửa đổi `RollerCoaster.h` (Queen Cobra).
+  - Cả 4 trò tàu lượn nhỏ (`Garuda Valley`, `Port of Sky Treasure`, `Paradise Fall`, `Highway Boat`) được khởi tạo từ **một lớp `AsiaParkRides::MiniCoaster` duy nhất** qua hàm `initWave5aMiniCoasters(gMiniCoasters)`, tái sử dụng `BezierTrack` ($C^1$ cubic Bézier spline) để dựng đường ray đôi, ống xương sống, tà-vẹt, các trụ đỡ nối đất `y = 0`, nhà ga đón khách (hoặc Tòa nhà giả núi đá Paradise Fall) và 1 đoàn tàu 3 toa chạy theo độ dài cung.
+  - Toàn bộ hình học tĩnh của mỗi `MiniCoaster` được biên dịch sẵn vào **OpenGL Display List** riêng.
+- **Dời 3 trò chơi từ PR #1 của nhóm về vị trí khu Tây (giữ nguyên 100% hình học và animation):**
+  - `Playground` (`src/rides/Playground.h`): đặt tại `PLAYGROUND_TARGET_POS (−104.9, 0.0, −24.7)`.
+  - `BumperCars` (`src/rides/BumperCars.h`): đặt tại `BUMPER_CARS_TARGET_POS (−206.5, 0.0, +108.1)`.
+  - `PirateShip` (`src/rides/PirateShip.h`): đặt tại `PIRATE_SHIP_TARGET_POS (−172.0, 0.0, −2.0)`.
+- **Điều chỉnh lối đi `PATH_WEST_SPINE` và `PATH_CENTRAL_CONNECTOR`:**
+  - Chỉnh nhánh `PATH_WEST_SPINE` đi qua `(−24.6, +112.5)` (trước Ga Monorail Nam mới) → `(−159.4, +86.5)` (giữa Ngựa gỗ và dầm Monorail) → `(−188.0, +42.0)` → **`(−195.0, −20.0)`** (hành lang giữa `Port of Sky Treasure` và `Pirate Ship`) → `(−244.0, −54.6)` (sân Đông `Sky Tower`).
+  - Đã kiểm tra bằng script hình học: **0 va chạm** giữa 4 đường ray + 37 trụ đỡ `MiniCoaster`, Tòa nhà đá Paradise Fall, 3 trò dời vị trí (`Playground`, `BumperCars`, `PirateShip`), 6 tuyến lối đi, đa giác hồ nước, dầm & trụ Monorail và các công trình hiện có.
+
+| STT | Hạng mục Đợt 5A | Hằng số trong `ParkLayout.h` | Tọa độ Engine `(X, Y, Z)` (m) | Kích thước / Chiều dài ray | Nhãn độ tin cậy |
+|:---:|:---|:---|:---:|:---:|:---|
+| 1 | **Tàu lượn Garuda Valley** (`MiniCoaster[0]`) | `GARUDA_VALLEY_CENTER` | `(−124.1, 0.0, +155.7)` | Khung `34 × 26 m`, dài ray `88.6 m` (8 trụ), 1 đoàn tàu 3 toa | `[Đã xác minh tên/vị trí; hình dạng đơn giản hóa]` |
+| 2 | **Tàu lượn Port of Sky Treasure** (`MiniCoaster[1]`) | `PORT_SKY_TREASURE_CENTER` | `(−224.0, 0.0, +22.0)` | Khung `36 × 52 m`, dài ray `126.6 m` (12 trụ), 1 đoàn tàu 3 toa | `[Đã xác minh tên/vị trí; hình dạng đơn giản hóa]` |
+| 3 | **Tòa nhà đá Paradise Fall** (ga `MiniCoaster[2]`) | `PARADISE_FALL_BLDG_POS` | `(−179.8, 0.0, −91.1)` | Khối núi đá + vòm hang + mái cổ `24 × 14 × 11.7 m` | `[Đã xác minh tên/vị trí; hình dạng đơn giản hóa]` |
+| 4 | **Đường ray số 8 Paradise Fall** (`MiniCoaster[2]`) | `PARADISE_FALL_TRACK_CENTER` | `(−199.0, 0.0, −119.9)` | Khung `34 × 24 m`, dài ray `95.0 m` (9 trụ), 1 đoàn tàu 3 toa | **`[Ước lượng từ ảnh vệ tinh; hình dạng đơn giản hóa]`** |
+| 5 | **Tàu lượn Highway Boat** (`MiniCoaster[3]`) | `HIGHWAY_BOAT_CENTER` | `(−176.0, 0.0, −214.0)` | Khung `34 × 26 m`, dài ray `92.4 m` (8 trụ), 1 đoàn tàu 3 toa | `[Đã xác minh tên/vị trí; hình dạng đơn giản hóa]` |
+| 6 | **Sân chơi trẻ em (`Playground` dời vị trí)** | `PLAYGROUND_TARGET_POS` | `(−104.9, 0.0, −24.7)` | `23.6 × 12.8 m` (xích đu, cầu trượt, bập bênh, hố cát) | `[Ước lượng từ ảnh vệ tinh — mô phỏng, chưa xác minh]` |
+| 7 | **Xe điện đụng (`BumperCars` dời vị trí)** | `BUMPER_CARS_TARGET_POS` | `(−206.5, 0.0, +108.1)` | Sân tròn đường kính `20.4 m`, 6 xe chạy quỹ đạo | `[Ước lượng từ ảnh vệ tinh — mô phỏng, chưa xác minh]` |
+| 8 | **Thuyền cướp biển (`PirateShip` dời vị trí)** | `PIRATE_SHIP_TARGET_POS` | `(−172.0, 0.0, −2.0)` | `18.0 × 13.0 × 11.0 m` (con lắc thuyền Viking) | `[Ước lượng từ ảnh vệ tinh — mô phỏng, chưa xác minh]` |
+
+- **Hiệu năng (FPS trước và sau Đợt 5A tại độ phân giải `1280 × 768`, 200 khung hình liên tiếp):**
+  - **Trước Đợt 5A (cuối Đợt 4):** `248.3 FPS` (`200 frames / 0.805 s`).
+  - **Sau Đợt 5A (thêm 4 tàu lượn `MiniCoaster` với tổng `402.6 m` đường ray ống đôi 3D, 37 trụ đỡ, 4 nhà ga/núi đá và 4 đoàn tàu 12 toa chuyển động liên tục):** **`206.8 FPS`** (`200 frames / 0.967 s`).
+- **Bộ ảnh kết quả Đợt 5A:**
+  - [`img/wave4_ngomon_back.png`](img/wave4_ngomon_back.png) — Ảnh kiểm tra mặt Bắc Cổng Ngọ Môn sau khi áp dụng Phương án A (dầm & trụ Monorail và Ga Nam nằm hoàn toàn ngoài Quảng trường lát gạch `Z ≤ 115 m` và cách lưng cổng `> 10.2 m`).
+  - [`img/wave5a_west_overview.png`](img/wave5a_west_overview.png) — Ảnh 1 Đợt 5A: Toàn cảnh khu Tây từ trên cao bao quát cả 4 tàu lượn `MiniCoaster`, 3 trò chơi dời vị trí (`BumperCars`, `PirateShip`, `Playground`), `Carousel`, `Sky Tower`, `Queen Cobra` và trục lối đi `PATH_WEST_SPINE`.
+  - [`img/wave5a_coasters_closeup.png`](img/wave5a_coasters_closeup.png) *(và 2 ảnh rời [`wave5a_coaster_port_sky.png`](img/wave5a_coaster_port_sky.png), [`wave5a_coaster_paradise_fall.png`](img/wave5a_coaster_paradise_fall.png))* — Ảnh 2 Đợt 5A: Cận cảnh các tàu lượn nhỏ (`Port of Sky Treasure` + `Pirate Ship` + lối đi `(−195, −20)`; `Paradise Fall` tòa nhà đá + vòng ray số 8 + `Highway Boat`).
+  - [`img/wave5a_topdown_overlay.png`](img/wave5a_topdown_overlay.png) — Ảnh 3 Đợt 5A: Nhìn từ trên xuống chồng trực tiếp lên ảnh vệ tinh Wayback 2019 có gắn nhãn tọa độ.
 
 ---
 

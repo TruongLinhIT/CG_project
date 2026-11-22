@@ -82,17 +82,20 @@ constexpr float        QUEEN_COBRA_ROT_Y_DEG         = -25.0f;
 
 // 2.7. Tàu điện một ray Monorail (~1.87 km, 20 điểm dọc dầm bê tông trên ảnh vệ tinh Wayback 2019)
 // [Ước lượng từ ảnh vệ tinh] ±10m
-constexpr MathCG::Vec3 MONORAIL_SOUTH_STATION_POS(-24.6f, 0.0f, 128.0f);   // Ga Nam (16.03900°N, 108.22815°E)
+// (Đã áp dụng Phương án A sau Đợt 4: dịch WP0, WP1 và Ga Nam lùi -6.2m về phía Bắc tại Z = +121.8m,
+//  WP2 về Z = +114.0m để 100% dầm/trụ và Ga Nam nằm ngoài Quảng trường lát gạch Z <= 115.0m
+//  đồng thời cách mặt Bắc Cổng Ngọ Môn > 10.2m và cách cánh tường thành phía Tây > 9.4m)
+constexpr MathCG::Vec3 MONORAIL_SOUTH_STATION_POS(-24.6f, 0.0f, 121.8f);   // Ga Nam (Phương án A: Z = +121.8m)
 constexpr MathCG::Vec3 MONORAIL_NEPAL_STATION_POS(-217.2f, 0.0f, -220.6f); // Ga Nepal (16.04215°N, 108.22635°E)
 constexpr float        MONORAIL_SOUTH_STATION_ROT_Y_DEG = -90.0f;          // Dầm chạy hướng Đông -> Tây tại Ga Nam
 constexpr float        MONORAIL_NEPAL_STATION_ROT_Y_DEG =   0.0f;          // Sảnh Ga Nepal nằm bên Đông (+X) của hành lang
-constexpr float        MONORAIL_CRUISE_SPEED_MPS        =   9.2f;          // ~1904m / 9.2 m/s = ~207s (~3.45 phút/vòng)
+constexpr float        MONORAIL_CRUISE_SPEED_MPS        =   9.2f;          // ~1885m / 9.2 m/s = ~205s (~3.42 phút/vòng)
 
 constexpr int NUM_MONORAIL_WAYPOINTS = 20;
 constexpr MathCG::Vec3 MONORAIL_WAYPOINTS[NUM_MONORAIL_WAYPOINTS] = {
-    {   16.1f, 12.0f,  128.0f }, // 0: Cầu vượt trước Cổng Ngọ Môn (16.03900, 108.22853)
-    {  -24.6f, 12.0f,  128.0f }, // 1: Ga Monorail Nam (16.03900, 108.22815)
-    {  -78.1f, 12.2f,  119.1f }, // 2: Đoạn cong Tây-Nam (16.03908, 108.22765)
+    {   16.1f, 12.0f,  121.8f }, // 0: Cầu vượt phía Bắc Cổng Ngọ Môn (Phương án A: cách cổng 11.6m, ngoài quảng trường Z<=115)
+    {  -24.6f, 12.0f,  121.8f }, // 1: Ga Monorail Nam (Phương án A: Z_station thuộc [119.2, 129.0])
+    {  -78.1f, 12.2f,  114.0f }, // 2: Đoạn cong Tây-Nam (Phương án A: chuyển tiếp mượt về trục Tây)
     { -153.0f, 12.5f,   78.2f }, // 3: Phía Bắc vòng xoay Ngựa gỗ (16.03945, 108.22695)
     { -238.6f, 12.5f,   78.2f }, // 4: Cạnh Tây-Nam khu trò chơi (16.03945, 108.22615)
     { -274.0f, 12.5f,   63.8f }, // 5: Góc cua sang hành lang phía Tây (16.03958, 108.22582)
@@ -296,19 +299,20 @@ constexpr PointXZ PATH_PAVILION_PIER[NUM_PATH_PAVILION_PIER_PTS] = {
 };
 
 // 5.4. Tuyến trục chính khu trò chơi phía Tây (rộng 5.0 m):
-// Sân trong Ngọ Môn -> Ga Monorail Nam -> Ngựa gỗ -> Sky Tower -> Ga Monorail Nepal -> Queen Cobra
+// Sân trong Ngọ Môn -> Ga Monorail Nam -> Ngựa gỗ -> hành lang Đông Port of Sky Treasure (-195, -20)
+// -> Sky Tower -> Ga Monorail Nepal -> Queen Cobra
 constexpr float PATH_WEST_SPINE_WIDTH = 5.0f;
 constexpr int   NUM_PATH_WEST_SPINE_PTS = 14;
 constexpr PointXZ PATH_WEST_SPINE[NUM_PATH_WEST_SPINE_PTS] = {
     {   16.1f,   94.8f }, // 0: Tách từ sân trong phía Bắc Cổng Ngọ Môn (16.03930, 108.22853)
-    {  -24.6f,  111.4f }, // 1: Sân trước Ga Monorail Nam (16.03915, 108.22815)
+    {  -24.6f,  112.5f }, // 1: Sân đón phía Bắc Ga Monorail Nam mới (cách mép Bắc ga Z=119.2 là 4.2m)
     {  -70.6f,  100.3f }, // 2: Lối đi hướng sang quảng trường hoa (16.03925, 108.22772)
     { -113.4f,   81.5f }, // 3: Quảng trường hoa khu Tây-Nam (16.03942, 108.22732)
-    { -159.4f,   81.5f }, // 4: Phía Bắc Đu quay Ngựa gỗ (16.03942, 108.22689)
-    { -174.4f,   33.9f }, // 5: Ngã ba trục trò chơi miền Tây (16.03985, 108.22675)
-    { -227.9f,  -32.5f }, // 6: Lối dẫn về quảng trường Sky Tower (16.04045, 108.22625)
-    { -246.1f,  -54.6f }, // 7: Quảng trường phía Đông chân tháp Sky Tower (16.04065, 108.22608)
-    { -233.3f, -109.9f }, // 8: Hành lang phía Bắc Sky Tower (16.04115, 108.22620)
+    { -159.4f,   86.5f }, // 4: Phía Bắc Đu quay Ngựa gỗ (-159.4, 102.5) và phía Nam dầm Monorail (Z=78.2)
+    { -188.0f,   42.0f }, // 5: Ngã ba trục trò chơi miền Tây (giữa Pirate Ship và Port of Sky Treasure)
+    { -195.0f,  -20.0f }, // 6: Hành lang phía Đông Port of Sky Treasure (-224, +22) dẫn lên Sky Tower
+    { -244.0f,  -54.6f }, // 7: Quảng trường phía Đông chân tháp Sky Tower (-260, -54.6)
+    { -233.3f, -109.9f }, // 8: Hành lang phía Tây đường ray số 8 Paradise Fall (-199, -119.9)
     { -227.9f, -187.4f }, // 9: Lối dẫn lên khu Nepal (16.04185, 108.22625)
     { -231.1f, -220.6f }, // 10: Quảng trường phía Tây Ga Monorail Nepal (16.04215, 108.22622)
     { -214.0f, -275.9f }, // 11: Mép Nam quảng trường ngôi sao Angkor (16.04265, 108.22638)
@@ -331,11 +335,12 @@ constexpr PointXZ PATH_LAKESIDE_WEST[NUM_PATH_LAKESIDE_WEST_PTS] = {
 
 // 5.6. Lối đi phụ nối ngang Quảng trường Sun Wheel sang trục trò chơi phía Tây (rộng 3.5 m):
 constexpr float PATH_CENTRAL_CONNECTOR_WIDTH = 3.5f;
-constexpr int   NUM_PATH_CENTRAL_CONNECTOR_PTS = 3;
+constexpr int   NUM_PATH_CENTRAL_CONNECTOR_PTS = 4;
 constexpr PointXZ PATH_CENTRAL_CONNECTOR[NUM_PATH_CENTRAL_CONNECTOR_PTS] = {
     {    0.0f,   28.4f }, // 0: Quảng trường phía Nam Sun Wheel (16.03990, 108.22838)
     {  -67.4f,   33.9f }, // 1: Điểm giữa lối nối Đông-Tây (16.03985, 108.22775)
-    { -174.4f,   33.9f }  // 2: Nhập vào trục chính phía Tây (16.03985, 108.22675)
+    { -145.0f,   33.9f }, // 2: Phía Nam Pirate Ship (-172, -2)
+    { -188.0f,   42.0f }  // 3: Nhập vào trục chính phía Tây tại ngã ba (-188, +42)
 };
 
 // ============================================================================
@@ -374,17 +379,17 @@ constexpr float        PLAZA_PAVILION_WIDTH  = 16.0f;
 constexpr float        PLAZA_PAVILION_DEPTH  =  9.0f;
 
 // 6.5. Cụm Sân khấu & Nhà ga chân Sun Wheel (hộp sân khấu + 2 khối nhà gắn 2 màn hình tròn + 2 chòi bên)
-//      Đặt tại (0.0, 0.0, -17.7) với chiều sâu 9.0 m (Z thuộc [-22.2, -13.2]) để nằm hoàn toàn
-//      ở phía Nam của 2 bệ móng bê tông chân chữ A Sun Wheel (Z thuộc [-28.2, -22.8]),
-//      đảm bảo khoảng hở an toàn 0.60 m (0% xuyên cắt chân chữ A).
-constexpr MathCG::Vec3 SUN_WHEEL_STAGE_POS(0.0f, 0.0f, -17.7f);
+//      Đặt tại (0.0, 0.0, -15.9) với chiều sâu 9.0 m (Z thuộc [-20.4, -11.4]) — đã lùi thêm 1.8 m về phía Nam
+//      để cách mép Nam của 2 bệ móng bê tông chân chữ A Sun Wheel (Z thuộc [-28.2, -22.8]) là 2.40 m
+//      và cách ống thép chân chữ A (Z = -25.5) là 5.10 m, nhìn cận thoáng và không sát chân bệ.
+constexpr MathCG::Vec3 SUN_WHEEL_STAGE_POS(0.0f, 0.0f, -15.9f);
 constexpr float        SUN_WHEEL_STAGE_TOTAL_WIDTH = 52.0f; // X thuộc [-26.0, +26.0]
-constexpr float        SUN_WHEEL_STAGE_DEPTH       =  9.0f; // Z thuộc [-22.2, -13.2]
+constexpr float        SUN_WHEEL_STAGE_DEPTH       =  9.0f; // Z thuộc [-20.4, -11.4]
 constexpr float        SUN_WHEEL_SCREEN_RADIUS     =  3.1f; // Đường kính màn hình tròn = 6.2 m
 
 // Hai chòi mái ngói hai bên cánh chân Sun Wheel (|X| thuộc [34.0, 46.0], cách bệ chân chữ A |X|<=29.7 là 4.3 m)
-constexpr MathCG::Vec3 SUN_WHEEL_SIDE_PAVILION_WEST_POS(-40.0f, 0.0f, -24.0f);
-constexpr MathCG::Vec3 SUN_WHEEL_SIDE_PAVILION_EAST_POS( 40.0f, 0.0f, -24.0f);
+constexpr MathCG::Vec3 SUN_WHEEL_SIDE_PAVILION_WEST_POS(-40.0f, 0.0f, -22.2f);
+constexpr MathCG::Vec3 SUN_WHEEL_SIDE_PAVILION_EAST_POS( 40.0f, 0.0f, -22.2f);
 constexpr float        SUN_WHEEL_SIDE_PAVILION_SIZE = 12.0f;
 
 // 6.6. Hai Chòi vọng cảnh nhỏ ven bờ Nam hồ nước (đối xứng hai bên Thủy đình (-5.4, 0, -107.7))
@@ -398,23 +403,63 @@ constexpr float        LAKE_SHORE_PAVILION_DEPTH =  8.0f;
 // ============================================================================
 
 // 7.1. Nhóm 5A - 4 Trò tàu lượn nhỏ (dùng chung lớp MiniCoaster) & 3 Trò chơi dời từ PR #1:
-//      Nhãn: [Đã xác minh tên/vị trí; hình dạng đơn giản hóa]
-//      Ghi chú đối chiếu độ lệch giữa tọa độ GPS gốc (RCDB/Commons) và tâm khung bao đã chọn:
-//       - Garuda Valley: GPS RCDB (16.038689, 108.227418) -> Engine (-102.9, +162.4) nằm ở đầu vòng ray
-//         phía Đông-Nam; tâm khung bao toàn cụm (nhà ga Tây + cổng Commons 49374160882 + vòng ray)
-//         trên ảnh vệ tinh Z19 là (-124.1, +155.7) (lệch dX = -21.2m, dZ = -6.7m, |d| = 22.2m).
-//       - Port of Sky Treasure: GPS RCDB (16.039907, 108.226363) -> Engine (-215.8, +27.6);
+//      Ghi chú nhãn & đối chiếu độ lệch giữa tọa độ GPS gốc (RCDB/Commons) và tâm khung bao đã chọn:
+//       - Garuda Valley [Đã xác minh tên/vị trí; hình dạng đơn giản hóa]:
+//         GPS RCDB (16.038689, 108.227418) -> Engine (-102.9, +162.4) nằm ở đầu vòng ray phía Đông-Nam;
+//         tâm khung bao toàn cụm (nhà ga Tây + cổng Commons 49374160882 + vòng ray) trên ảnh vệ tinh Z19
+//         là (-124.1, +155.7) (lệch dX = -21.2m, dZ = -6.7m, |d| = 22.2m).
+//       - Port of Sky Treasure [Đã xác minh tên/vị trí; hình dạng đơn giản hóa]:
+//         GPS RCDB (16.039907, 108.226363) -> Engine (-215.8, +27.6);
 //         tâm khung bao cụm nhà ga chữ T + vòng ray là (-224.0, +22.0) (dX = -8.2m, dZ = -5.6m, |d| = 9.9m).
-//       - Paradise Fall (Tòa nhà đá & Vòng ray số 8): GPS RCDB (16.040998, 108.226822) -> Engine (-166.7, -93.1)
-//         nằm tại đầu Đông cổng vào (Commons 49358210737); tâm tòa nhà đá là (-179.8, -91.1) (|d| = 13.2m)
-//         và tâm vòng ray số 8 phía Tây-Bắc tòa nhà là (-199.0, -119.9) (|d| = 41.9m).
-//       - Highway Boat: GPS RCDB (16.042034, 108.226667) -> Engine (-183.3, -207.8);
+//       - Tòa nhà đá Paradise Fall [Đã xác minh tên/vị trí; hình dạng đơn giản hóa]:
+//         GPS RCDB (16.040998, 108.226822) -> Engine (-166.7, -93.1) nằm tại đầu Đông cổng vào
+//         (Commons 49358210737); tâm tòa nhà đá là (-179.8, -91.1) (|d| = 13.2m).
+//       - Ray số 8 Paradise Fall [Ước lượng từ ảnh vệ tinh; hình dạng đơn giản hóa]:
+//         Nằm nối tiếp ở phía Tây-Bắc của Tòa nhà đá Paradise Fall với tâm tại (-199.0, -119.9)
+//         (cách ghim cổng Đông RCDB |d| = 41.9m nên gắn nhãn [Ước lượng từ ảnh vệ tinh]).
+//       - Highway Boat [Đã xác minh tên/vị trí; hình dạng đơn giản hóa]:
+//         GPS RCDB (16.042034, 108.226667) -> Engine (-183.3, -207.8);
 //         tâm khung bao toàn cụm ray là (-176.0, -214.0) (dX = +7.3m, dZ = -6.2m, |d| = 9.6m).
 constexpr MathCG::Vec3 GARUDA_VALLEY_CENTER(-124.1f, 0.0f, 155.7f);        // [Đã xác minh tên/vị trí; hình dạng đơn giản hóa] (34x26m)
-constexpr MathCG::Vec3 PORT_SKY_TREASURE_CENTER(-224.0f, 0.0f, 22.0f);     // [Đã xác minh tên/vị trí; hình dạng đơn giản hóa] (36x56m)
-constexpr MathCG::Vec3 PARADISE_FALL_BLDG_POS(-179.8f, 0.0f, -91.1f);      // [Đã xác minh tên/vị trí; hình dạng đơn giản hóa] (42x16m)
-constexpr MathCG::Vec3 PARADISE_FALL_TRACK_CENTER(-199.0f, 0.0f, -119.9f); // [Đã xác minh tên/vị trí; hình dạng đơn giản hóa] (42x22m)
-constexpr MathCG::Vec3 HIGHWAY_BOAT_CENTER(-176.0f, 0.0f, -214.0f);        // [Đã xác minh tên/vị trí; hình dạng đơn giản hóa] (42x32m)
+constexpr MathCG::Vec3 PORT_SKY_TREASURE_CENTER(-224.0f, 0.0f, 22.0f);     // [Đã xác minh tên/vị trí; hình dạng đơn giản hóa] (36x52m)
+constexpr MathCG::Vec3 PARADISE_FALL_BLDG_POS(-179.8f, 0.0f, -91.1f);      // [Đã xác minh tên/vị trí; hình dạng đơn giản hóa] (24x14m)
+constexpr MathCG::Vec3 PARADISE_FALL_TRACK_CENTER(-199.0f, 0.0f, -119.9f); // [Ước lượng từ ảnh vệ tinh; hình dạng đơn giản hóa] (34x24m)
+constexpr MathCG::Vec3 HIGHWAY_BOAT_CENTER(-176.0f, 0.0f, -214.0f);        // [Đã xác minh tên/vị trí; hình dạng đơn giản hóa] (34x26m)
+
+// Bảng 8 điểm điều khiển cục bộ (so với tâm từng tàu lượn nhỏ) cho lớp MiniCoaster dùng chung (Đợt 5A):
+constexpr int NUM_MINI_COASTER_WAYPOINTS = 8;
+
+// 1) Garuda Valley (vòng lượn bầu dục có đồi kéo phía Bắc cao 8.2m, nhà ga phía Tây)
+constexpr MathCG::Vec3 GARUDA_VALLEY_LOCAL_WPS[NUM_MINI_COASTER_WAYPOINTS] = {
+    { -14.0f, 2.6f,   0.0f }, { -14.0f, 2.8f,  -9.0f },
+    {  -3.0f, 7.8f, -11.0f }, {  11.0f, 8.2f,  -9.0f },
+    {  14.5f, 5.5f,   0.0f }, {  11.0f, 3.6f,   9.5f },
+    {   0.0f, 4.4f,  10.5f }, { -11.0f, 3.0f,   8.5f }
+};
+
+// 2) Port of Sky Treasure (vòng lượn chữ S kéo dài Bắc-Nam cao 9.2m, nhà ga mái ngói phía Tây-Nam)
+constexpr MathCG::Vec3 PORT_SKY_TREASURE_LOCAL_WPS[NUM_MINI_COASTER_WAYPOINTS] = {
+    { -13.0f, 2.8f,   0.0f }, { -14.0f, 4.5f, -18.0f },
+    {  -3.0f, 9.2f, -22.0f }, {  11.0f, 8.5f, -17.0f },
+    {  13.0f, 5.2f,  -2.0f }, {   6.0f, 6.5f,  10.0f },
+    {  12.0f, 4.0f,  20.0f }, {  -4.0f, 3.0f,  19.0f }
+};
+
+// 3) Paradise Fall (vòng ray số 8 thắt eo ở giữa, cao 8.8m, kết nối cụm Tòa nhà đá PARADISE_FALL_BLDG_POS)
+constexpr MathCG::Vec3 PARADISE_FALL_LOCAL_WPS[NUM_MINI_COASTER_WAYPOINTS] = {
+    {  14.0f, 3.0f,   4.0f }, {  15.0f, 7.5f,  -7.0f },
+    {   3.0f, 8.8f,  -9.5f }, {  -5.0f, 6.2f,  -2.5f },
+    { -15.0f, 7.2f,  -8.5f }, { -16.0f, 4.5f,   4.0f },
+    {  -5.0f, 3.2f,   8.5f }, {   4.0f, 4.2f,   2.5f }
+};
+
+// 4) Highway Boat (vòng lượn tàu thuyền khu Tây-Bắc cạnh Ga Monorail Nepal, cao 8.5m)
+constexpr MathCG::Vec3 HIGHWAY_BOAT_LOCAL_WPS[NUM_MINI_COASTER_WAYPOINTS] = {
+    { -14.0f, 2.8f,   0.0f }, { -13.0f, 7.8f, -10.0f },
+    {   0.0f, 8.5f, -11.5f }, {  13.5f, 6.5f,  -9.0f },
+    {  15.0f, 4.2f,   1.0f }, {  11.0f, 5.5f,  10.0f },
+    {  -1.0f, 3.5f,  11.0f }, { -12.0f, 2.8f,   8.5f }
+};
 
 // 3 Trò chơi có sẵn từ PR #1 của nhóm dời về đúng vị trí khu Tây (Đợt 5A) - [Ước lượng từ ảnh vệ tinh — mô phỏng, chưa xác minh]
 constexpr MathCG::Vec3 PLAYGROUND_TARGET_POS(-104.9f, 0.0f, -24.7f);       // Sân chơi trẻ em (22x14m)

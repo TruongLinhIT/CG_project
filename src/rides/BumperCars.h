@@ -13,6 +13,7 @@
 #include <cmath>
 #include <vector>
 #include "core/MathCG.h"
+#include "core/ParkLayout.h"
 #include "geometry/ParametricShapes.h"
 #include "geometry/MeshModel.h"
 
@@ -20,7 +21,7 @@ namespace AsiaParkRides {
 
 class BumperCars {
 public:
-    MathCG::Vec3 position{-45.0f, 0.0f, 25.0f};
+    MathCG::Vec3 position = ParkLayout::BUMPER_CARS_TARGET_POS;
     float arenaRadius = 10.0f;
 
     struct Car {
