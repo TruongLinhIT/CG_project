@@ -33,6 +33,10 @@
 #include "rides/NgoMonGate.h"
 #include "ui/Minimap2D.h"
 #include "ui/HUD.h"
+#include "actors/Human.h"
+#include "rides/Playground.h"
+#include "rides/BumperCars.h"
+#include "rides/PirateShip.h"
 
 // ============================================================================
 // MÁY TRẠNG THÁI MÔ PHỎNG & ĐƯỜNG ỐNG ĐỒ HỌA TOÀN CỤC
@@ -94,6 +98,10 @@ static AsiaParkRides::SkyTower   gSkyTower;
 static AsiaParkRides::Carousel   gCarousel;
 static AsiaParkRides::NgoMonGate  gNgoMonGate;
 static AsiaParkUI::Minimap2D     gMinimap;
+static AsiaParkRides::Playground  gPlayground;
+static AsiaParkRides::BumperCars  gBumperCars;
+static AsiaParkRides::PirateShip  gPirateShip;
+static std::vector<AsiaParkActors::Human> gHumans;
 
 // ============================================================================
 // CÁC MÃ ĐỊNH DANH MENU CHUỘT PHẢI GLUT
@@ -436,6 +444,10 @@ static void displayCallback() {
     gSkyTower.draw(isNightOrSunset, gState.showNormalsAndCtrl);
     gCarousel.draw(isNightOrSunset, gState.showNormalsAndCtrl);
     gNgoMonGate.draw(isNightOrSunset, gState.showNormalsAndCtrl, smooth);
+    gPlayground.draw(isNightOrSunset, gState.showNormalsAndCtrl);
+    gBumperCars.draw(isNightOrSunset, gState.showNormalsAndCtrl);
+    gPirateShip.draw(isNightOrSunset, gState.showNormalsAndCtrl);
+    for (const auto& h : gHumans) h.draw(isNightOrSunset);
 
     // 6. Vẽ các lớp phủ giao diện 2D (Luôn ở chế độ tô đặc GL_FILL)
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -559,6 +571,10 @@ static void timerCallback(int value) {
         gMinimap.update(dt);
         gState.skyTowerTime     = gSkyTower.cycleTime;
         gCurves.update(dt);
+        gPlayground.update(dt);
+        gBumperCars.update(dt);
+        gPirateShip.update(dt);
+        for (auto& h : gHumans) h.update(dt);
         gState.coasterParamT    = gCurves.queenCobraTrain.paramT;
     }
 
@@ -960,6 +976,7 @@ int main(int argc, char** argv) {
 
     // Khởi tạo hệ thống đường cong & đoàn tàu (Queen Cobra + Monorail)
     gCurves.init();
+    gHumans = AsiaParkActors::createDefaultCrowd();
 
     // Tạo menu phân cấp khi nhấp chuột phải
     createGLUTMenus();
