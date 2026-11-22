@@ -640,8 +640,9 @@ public:
     }
 
     /**
-     * @brief Mái cong truyền thống Á Đông (Mái cong Cổng Ngọ Môn)
-     *        Sinh lưới mái ngói uốn cong vểnh lên ở bốn góc bằng hàm bậc hai.
+     * @brief Mái cong truyền thống Á Đông 4 mái dốc đối xứng (4-sided Curved Asian Hipped Roof)
+     *        Đặt trực tiếp lên thân tường/xà đỡ tại cao độ y = cy, có cổ diềm dưới khép kín
+     *        và pháp tuyến mặt trên hướng chuẩn ra ngoài (+Y, CCW khi nhìn từ ngoài vào).
      */
     static PolygonMesh createCurvedAsianRoof(
         float cx, float cy, float cz,
@@ -651,33 +652,47 @@ public:
         PolygonMesh mesh("AsianCurvedRoof");
         mesh.defaultColor = tileCol;
 
-        const int uSteps = 8;
-        const int vSteps = 6;
+        const int uSteps = 10;
+        const int vSteps = 8;
 
+        // Nửa kích thước tại diềm mái đua ra (ngoài) và tại cổ tường đỡ (trong)
         float hw = (baseW + flareOut) * 0.5f;
         float hd = (baseD + flareOut) * 0.5f;
+        float innerHW = baseW * 0.5f;
+        float innerHD = baseD * 0.5f;
 
-        // Sinh lưới bề mặt mái cong với độ uốn vểnh lên về phía các góc mái
+        // 1. Sinh lưới mặt trên của mái 4 dốc có sống nóc ngang ở giữa (|rx| <= 0.36, rz = 0)
         for (int j = 0; j <= vSteps; ++j) {
-            float v = static_cast<float>(j) / vSteps; // 0 (diềm mái) -> 1 (đỉnh nóc mái)
-            float rz = (v - 0.5f) * 2.0f;             // -1 .. 1
+            float v  = static_cast<float>(j) / vSteps;
+            float rz = (v - 0.5f) * 2.0f; // -1 (Bắc) .. +1 (Nam)
 
             for (int i = 0; i <= uSteps; ++i) {
-                float u = static_cast<float>(i) / uSteps;
-                float rx = (u - 0.5f) * 2.0f;         // -1 .. 1
+                float u  = static_cast<float>(i) / uSteps;
+                float rx = (u - 0.5f) * 2.0f; // -1 (Tây) .. +1 (Đông)
 
-                // Độ uốn cong bậc hai: bốn góc mái vểnh cao lên
-                float cornerLift = (rx * rx + rz * rz) * 0.35f * height;
-                float ridgeTaper = (1.0f - v * 0.72f);
+                // Khoảng cách chuẩn hóa từ sống nóc trung tâm ra 4 cạnh diềm mái:
+                // dEdge = 0 tại sống nóc giữa, dEdge = 1 tại cả 4 mép diềm mái Đông-Tây-Nam-Bắc
+                float dx = std::max(0.0f, (std::fabs(rx) - 0.36f) / 0.64f);
+                float dz = std::fabs(rz);
+                float dEdge = std::clamp(std::max(dx, dz), 0.0f, 1.0f);
 
-                float px = cx + rx * hw * ridgeTaper;
-                float py = cy + v * height + (1.0f - v) * cornerLift;
-                float pz = cz + rz * hd * ridgeTaper;
+                // Đường cong võng truyền thống: dốc cao ở đỉnh nóc (dEdge=0) và hạ về 0 tại diềm mái (dEdge=1)
+                float s = 1.0f - dEdge;
+                float slopeH = (0.72f * s + 0.28f * s * s) * height;
+
+                // Độ vểnh nhẹ ở 4 đầu đao góc mái (|rx| -> 1 và |rz| -> 1)
+                float cornerFlare = (rx * rx) * (rz * rz) * 0.22f * height;
+
+                float px = cx + rx * hw;
+                float py = cy + slopeH + dEdge * cornerFlare;
+                float pz = cz + rz * hd;
 
                 mesh.addVertex(px, py, pz);
             }
         }
 
+        // Nối các ô tứ giác mặt trên mái theo thứ tự CCW khi nhìn từ trên xuống (+Y):
+        // v0(-X,-Z) -> v3(-X,+Z) -> v2(+X,+Z) -> v1(+X,-Z)
         for (int j = 0; j < vSteps; ++j) {
             for (int i = 0; i < uSteps; ++i) {
                 int row0 = j * (uSteps + 1);
@@ -688,9 +703,66 @@ public:
                 int v2 = row1 + i + 1;
                 int v3 = row1 + i;
 
-                mesh.addQuad(v0, v1, v2, v3, tileCol, true);
+                mesh.addQuad(v0, v3, v2, v1, tileCol, true);
             }
         }
+
+        // 2. Tạo vòng cổ diềm dưới (soffit / fascia) tại cao độ y = cy ôm khít vào thân tường/dầm bên dưới
+        //    để phần diềm mái đua ra và 4 góc đao vểnh lên luôn liền khối đặc với thân công trình!
+        MathCG::ColorRGB soffitCol(
+            std::max(0.0f, tileCol.r * 0.58f),
+            std::max(0.0f, tileCol.g * 0.55f),
+            std::max(0.0f, tileCol.b * 0.52f)
+        );
+
+        // Vòng đỉnh diềm dưới ngoài tại y = cy (ngay dưới mép mái đua) và cổ tường trong tại y = cy - 0.08f
+        int baseDropStart = static_cast<int>(mesh.vertices.size());
+        for (int j = 0; j <= vSteps; ++j) {
+            float v  = static_cast<float>(j) / vSteps;
+            float rz = (v - 0.5f) * 2.0f;
+            for (int i = 0; i <= uSteps; ++i) {
+                float u  = static_cast<float>(i) / uSteps;
+                float rx = (u - 0.5f) * 2.0f;
+                mesh.addVertex(cx + rx * hw, cy - 0.04f, cz + rz * hd);
+            }
+        }
+
+        auto topIdx = [&](int i, int j) { return j * (uSteps + 1) + i; };
+        auto botIdx = [&](int i, int j) { return baseDropStart + j * (uSteps + 1) + i; };
+
+        // Khép kín 4 cạnh diềm mái (Bắc j=0, Nam j=vSteps, Tây i=0, Đông i=uSteps) xuống y = cy - 0.04f
+        for (int i = 0; i < uSteps; ++i) {
+            // Cạnh Nam (+Z, j = vSteps): nhìn từ +Z vào
+            mesh.addQuad(botIdx(i, vSteps), botIdx(i + 1, vSteps), topIdx(i + 1, vSteps), topIdx(i, vSteps), soffitCol, true);
+            // Cạnh Bắc (-Z, j = 0): nhìn từ -Z vào
+            mesh.addQuad(botIdx(i + 1, 0), botIdx(i, 0), topIdx(i, 0), topIdx(i + 1, 0), soffitCol, true);
+        }
+        for (int j = 0; j < vSteps; ++j) {
+            // Cạnh Tây (-X, i = 0): nhìn từ -X vào
+            mesh.addQuad(botIdx(0, j), botIdx(0, j + 1), topIdx(0, j + 1), topIdx(0, j), soffitCol, true);
+            // Cạnh Đông (+X, i = uSteps): nhìn từ +X vào
+            mesh.addQuad(botIdx(uSteps, j + 1), botIdx(uSteps, j), topIdx(uSteps, j), topIdx(uSteps, j + 1), soffitCol, true);
+        }
+
+        // Mặt đáy phẳng dưới diềm mái (y = cy - 0.04f) nối vào thân tường (innerHW, innerHD)
+        int bFL = mesh.addVertex(cx - hw, cy - 0.04f, cz + hd);
+        int bFR = mesh.addVertex(cx + hw, cy - 0.04f, cz + hd);
+        int bBR = mesh.addVertex(cx + hw, cy - 0.04f, cz - hd);
+        int bBL = mesh.addVertex(cx - hw, cy - 0.04f, cz - hd);
+        mesh.addQuad(bBL, bBR, bFR, bFL, soffitCol, true);
+
+        // Cổ lót nối liền từ mặt dưới mái xuống thân tường (y = cy - 0.12f .. cy + 0.05f)
+        auto collar = createBox(cx, cy - 0.04f, cz, innerHW * 2.0f, 0.16f, innerHD * 2.0f, soffitCol);
+        mesh.append(collar);
+
+        // 3. Thanh bờ nóc hoàng lưu ly đặt khít trên sống nóc giữa (y = cy + height)
+        MathCG::ColorRGB ridgeCol(
+            std::min(1.0f, tileCol.r * 1.08f + 0.05f),
+            std::min(1.0f, tileCol.g * 1.08f + 0.05f),
+            std::min(1.0f, tileCol.b * 1.05f + 0.02f)
+        );
+        auto ridgeBeam = createBox(cx, cy + height + 0.06f, cz, hw * 0.74f, 0.22f, 0.34f, ridgeCol);
+        mesh.append(ridgeBeam);
 
         mesh.computeNormals();
         return mesh;

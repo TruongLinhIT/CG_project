@@ -19,6 +19,7 @@
 #endif
 #include <cstdio>
 #include <cstring>
+#include <chrono>
 #include <cmath>
 #include <vector>
 #include <string>
@@ -37,6 +38,7 @@
 #include "rides/SkyTower.h"
 #include "rides/Carousel.h"
 #include "rides/NgoMonGate.h"
+#include "rides/ParkArchitecture.h"
 #include "ui/Minimap2D.h"
 #include "ui/HUD.h"
 #include "actors/Human.h"
@@ -103,6 +105,7 @@ static AsiaParkRides::SunWheel   gSunWheel;
 static AsiaParkRides::SkyTower   gSkyTower;
 static AsiaParkRides::Carousel   gCarousel;
 static AsiaParkRides::NgoMonGate  gNgoMonGate;
+static AsiaParkRides::ParkArchitecture gParkArch;
 static AsiaParkUI::Minimap2D     gMinimap;
 static AsiaParkRides::Playground  gPlayground;
 static AsiaParkRides::BumperCars  gBumperCars;
@@ -610,14 +613,16 @@ static void displayCallback() {
     }
 
     // 5. Vẽ cảnh 3D chính
+    bool isNightOrSunset = (gLighting.timeOfDay != TimeOfDay::DAY);
+    bool smooth = (gLighting.shadingModel == ShadingModel::GOURAUD_SMOOTH);
+
     drawParkGroundAndLake();
+    gParkArch.draw(isNightOrSunset, gState.showNormalsAndCtrl, smooth);
     drawLakesidePavilionMesh();
     drawHierarchicalSunWheelPreview();
     gCurves.draw(gState.showNormalsAndCtrl, gLighting.lightingEnabled, gLighting.timeOfDay);
 
     // Các trò chơi & công trình kiến trúc biểu tượng
-    bool isNightOrSunset = (gLighting.timeOfDay != TimeOfDay::DAY);
-    bool smooth = (gLighting.shadingModel == ShadingModel::GOURAUD_SMOOTH);
     gSkyTower.draw(isNightOrSunset, gState.showNormalsAndCtrl);
     gCarousel.draw(isNightOrSunset, gState.showNormalsAndCtrl);
     gNgoMonGate.draw(isNightOrSunset, gState.showNormalsAndCtrl, smooth);
@@ -1240,6 +1245,7 @@ static bool renderHeadlessTopDownPPM(const char* outPpmPath) {
     // 4. Vẽ toàn bộ cảnh 3D
     gHumans = AsiaParkActors::createDefaultCrowd();
     drawParkGroundAndLake();
+    gParkArch.draw(false, false, true);
     drawLakesidePavilionMesh();
     drawHierarchicalSunWheelPreview();
     gCurves.draw(false, gLighting.lightingEnabled, gLighting.timeOfDay);
@@ -1400,10 +1406,11 @@ static bool renderHeadlessPerspectiveShots() {
         }
 
         drawParkGroundAndLake();
+        bool isNightOrSunset = (gLighting.timeOfDay != TimeOfDay::DAY);
+        gParkArch.draw(isNightOrSunset, false, true);
         drawLakesidePavilionMesh();
         drawHierarchicalSunWheelPreview();
         gCurves.draw(false, gLighting.lightingEnabled, gLighting.timeOfDay);
-        bool isNightOrSunset = (gLighting.timeOfDay != TimeOfDay::DAY);
         gSkyTower.draw(isNightOrSunset, false);
         gCarousel.draw(isNightOrSunset, false);
         gNgoMonGate.draw(isNightOrSunset, false, true);
@@ -1416,6 +1423,135 @@ static bool renderHeadlessPerspectiveShots() {
         glFinish();
         if (!saveFramebufferPPM(sh.outPath, capW, capH)) return false;
     }
+
+    // Chụp bộ ảnh kiểm tra Đợt 4 (Toàn cảnh, 3 góc cận Cổng Ngọ Môn, Quảng trường nhìn về Sun Wheel)
+    const ShotSpec wave4Shots[5] = {
+        // 1. Toàn cảnh góc cao từ phía Nam-Đông-Nam nhìn vào Cổng Ngọ Môn 2 cánh tường thành, Quảng trường & Sun Wheel
+        {
+            "/tmp/w4_overview.ppm",
+            MathCG::Vec3( 115.0f, 165.0f, 295.0f),
+            MathCG::Vec3(   5.0f,  22.0f,  15.0f),
+            50.0f,
+            TimeOfDay::SUNSET
+        },
+        // 2. Cận Cổng Ngọ Môn - Góc 1 (Chính diện phía Nam thấy 2 hồ sen, bậc thềm, 3 vòm cổng, 2 cánh tường thành răng cưa & Lầu Ngũ Phụng)
+        {
+            "/tmp/w4_gate_front.ppm",
+            MathCG::Vec3(  16.1f,  18.0f, 192.0f),
+            MathCG::Vec3(  16.1f,   8.5f, 139.1f),
+            48.0f,
+            TimeOfDay::SUNSET
+        },
+        // 3. Cận Cổng Ngọ Môn - Góc 2 (Góc xiên Tây-Nam 45 độ kiểm tra độ liền khối giữa mái cong, cột, thân tường & cánh tường thành)
+        {
+            "/tmp/w4_gate_angle.ppm",
+            MathCG::Vec3( -26.0f,  19.0f, 174.0f),
+            MathCG::Vec3(  16.1f,   9.0f, 139.1f),
+            46.0f,
+            TimeOfDay::DAY
+        },
+        // 4. Cận Cổng Ngọ Môn - Góc 3 (Mặt Bắc / Sân trong nhìn ngược về cổng và hai cánh tường thành)
+        {
+            "/tmp/w4_gate_back.ppm",
+            MathCG::Vec3(  38.0f,  17.0f, 102.0f),
+            MathCG::Vec3(  16.1f,   8.5f, 139.1f),
+            48.0f,
+            TimeOfDay::DAY
+        },
+        // 5. Quảng trường lát gạch nhìn về phía Bắc (thấy 2 chòi quảng trường, Tháp Đồng Hồ, Sân khấu chân Sun Wheel + 2 màn hình tròn & Vòng quay)
+        {
+            "/tmp/w4_plaza_to_sw.ppm",
+            MathCG::Vec3( -14.0f,  23.0f,  88.0f),
+            MathCG::Vec3(   0.0f,  30.0f, -35.0f),
+            54.0f,
+            TimeOfDay::SUNSET
+        }
+    };
+
+    for (const auto& sh : wave4Shots) {
+        glViewport(0, 0, capW, capH);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        glFrontFace(GL_CCW);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+        gLighting.timeOfDay = sh.tod;
+        gLighting.applyClearColor();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        gluPerspective(sh.fovY, static_cast<double>(capW) / capH, 1.0, 2400.0);
+
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        gluLookAt(
+            sh.eye.x,    sh.eye.y,    sh.eye.z,
+            sh.center.x, sh.center.y, sh.center.z,
+            0.0,         1.0,         0.0
+        );
+
+        TrackFrame queenFrame = gCurves.getQueenCobraCameraFrame();
+        gLighting.applyLights(gState.sunWheelCenter);
+        gLighting.applyCoasterHeadlight(
+            queenFrame.position + queenFrame.up * 0.8f + queenFrame.tangent * 1.5f,
+            queenFrame.tangent
+        );
+
+        bool isNightOrSunset = (gLighting.timeOfDay != TimeOfDay::DAY);
+        drawParkGroundAndLake();
+        gParkArch.draw(isNightOrSunset, false, true);
+        drawLakesidePavilionMesh();
+        drawHierarchicalSunWheelPreview();
+        gCurves.draw(false, gLighting.lightingEnabled, gLighting.timeOfDay);
+        gSkyTower.draw(isNightOrSunset, false);
+        gCarousel.draw(isNightOrSunset, false);
+        gNgoMonGate.draw(isNightOrSunset, false, true);
+        gPlayground.draw(isNightOrSunset, false);
+        gBumperCars.draw(isNightOrSunset, false);
+        gPirateShip.draw(isNightOrSunset, false);
+        for (const auto& h : gHumans) h.draw(isNightOrSunset);
+
+        glFlush();
+        glFinish();
+        if (!saveFramebufferPPM(sh.outPath, capW, capH)) return false;
+    }
+
+    // Đo benchmark FPS thuần trong vòng lặp OpenGL 1280x768 (200 khung hình liên tiếp)
+    const int benchW = 1280, benchH = 768, benchFrames = 200;
+    glViewport(0, 0, benchW, benchH);
+    gLighting.timeOfDay = TimeOfDay::SUNSET;
+    auto tStart = std::chrono::high_resolution_clock::now();
+    for (int f = 0; f < benchFrames; ++f) {
+        gSunWheel.update(1.0f / 60.0f);
+        gCurves.update(1.0f / 60.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        gluPerspective(50.0, static_cast<double>(benchW) / benchH, 1.0, 2200.0);
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        gluLookAt(110.0, 150.0, 260.0, 0.0, 25.0, -20.0, 0.0, 1.0, 0.0);
+
+        drawParkGroundAndLake();
+        gParkArch.draw(true, false, true);
+        drawLakesidePavilionMesh();
+        drawHierarchicalSunWheelPreview();
+        gCurves.draw(false, true, gLighting.timeOfDay);
+        gSkyTower.draw(true, false);
+        gCarousel.draw(true, false);
+        gNgoMonGate.draw(true, false, true);
+        gPlayground.draw(true, false);
+        gBumperCars.draw(true, false);
+        gPirateShip.draw(true, false);
+        for (const auto& h : gHumans) h.draw(true);
+    }
+    glFinish();
+    auto tEnd = std::chrono::high_resolution_clock::now();
+    double elapsedSec = std::chrono::duration<double>(tEnd - tStart).count();
+    std::printf("BENCHMARK_FPS_1280x768: %.1f FPS (%d frames in %.3f s)\n",
+                benchFrames / std::max(1e-6, elapsedSec), benchFrames, elapsedSec);
 
     eglMakeCurrent(dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     eglDestroyContext(dpy, ctx);

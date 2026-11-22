@@ -338,6 +338,103 @@ constexpr PointXZ PATH_CENTRAL_CONNECTOR[NUM_PATH_CENTRAL_CONNECTOR_PTS] = {
     { -174.4f,   33.9f }  // 2: Nhập vào trục chính phía Tây (16.03985, 108.22675)
 };
 
+// ============================================================================
+// 6. CÁC CÔNG TRÌNH KIẾN TRÚC ĐỢT 4: CỔNG NGỌ MÔN 2 CÁNH TƯỜNG THÀNH,
+//    HỒ SEN, SÂN TRƯỚC, QUẢNG TRƯỜNG, SÂN KHẤU SUN WHEEL & CÁC CHÒI MÁI NGÓI
+//    [Ước lượng từ ảnh vệ tinh Wayback 2019 & ảnh toàn cảnh ban đêm]
+// ============================================================================
+
+// 6.1. Hai cánh tường thành có răng cưa kéo dài hai bên Cổng Ngọ Môn (+16.1, 0, +139.1, scale 0.76)
+//      Mỗi cánh dài 58.0 m trong hệ tọa độ cục bộ cổng (~44.1 m sau scale -> tổng bề ngang toàn cụm ~123.1 m)
+constexpr float NGO_MON_WING_SPAN_LOCAL      = 58.0f;
+constexpr float NGO_MON_WING_HEIGHT_LOCAL    =  6.4f;
+constexpr float NGO_MON_WING_DEPTH_LOCAL     =  4.2f;
+constexpr float NGO_MON_SIDE_ARCH_X_LOCAL    = 42.0f; // Vị trí cổng vòm phụ mỗi cánh tường thành
+
+// 6.2. Hai Hồ sen vuông phía Nam Cổng Ngọ Môn & Sân trước phía Bắc cổng
+constexpr MathCG::Vec3 LOTUS_POND_WEST_POS(-18.0f, 0.0f, 155.0f);
+constexpr MathCG::Vec3 LOTUS_POND_EAST_POS( 50.0f, 0.0f, 155.0f);
+constexpr float        LOTUS_POND_WIDTH      = 26.0f;
+constexpr float        LOTUS_POND_DEPTH      = 14.0f;
+
+constexpr MathCG::Vec3 GATE_FORECOURT_POS(16.1f, 0.0f, 124.0f);
+constexpr float        GATE_FORECOURT_WIDTH  = 46.0f;
+constexpr float        GATE_FORECOURT_DEPTH  = 18.0f;
+
+// 6.3. Quảng trường Trung tâm lát gạch (từ sân trước Ngọ Môn tới chân sân khấu Sun Wheel)
+constexpr MathCG::Vec3 CENTRAL_PLAZA_CENTER(16.1f, 0.0f, 56.0f);
+constexpr float        CENTRAL_PLAZA_WIDTH   = 86.0f;  // X thuộc [-26.9, +59.1]
+constexpr float        CENTRAL_PLAZA_DEPTH   = 118.0f; // Z thuộc [-3.0, +115.0]
+constexpr float        CENTRAL_PLAZA_Y       = 0.028f; // Nâng 2.8 cm trên nền cỏ tránh Z-fighting
+
+// 6.4. Hai cụm Chòi mái ngói Á Đông đối xứng hai bên Quảng trường Trung tâm
+constexpr MathCG::Vec3 PLAZA_PAVILION_WEST_POS(-24.0f, 0.0f, 65.0f);
+constexpr MathCG::Vec3 PLAZA_PAVILION_EAST_POS( 48.0f, 0.0f, 65.0f);
+constexpr float        PLAZA_PAVILION_WIDTH  = 16.0f;
+constexpr float        PLAZA_PAVILION_DEPTH  =  9.0f;
+
+// 6.5. Cụm Sân khấu & Nhà ga chân Sun Wheel (hộp sân khấu + 2 khối nhà gắn 2 màn hình tròn + 2 chòi bên)
+//      Đặt tại (0.0, 0.0, -17.7) với chiều sâu 9.0 m (Z thuộc [-22.2, -13.2]) để nằm hoàn toàn
+//      ở phía Nam của 2 bệ móng bê tông chân chữ A Sun Wheel (Z thuộc [-28.2, -22.8]),
+//      đảm bảo khoảng hở an toàn 0.60 m (0% xuyên cắt chân chữ A).
+constexpr MathCG::Vec3 SUN_WHEEL_STAGE_POS(0.0f, 0.0f, -17.7f);
+constexpr float        SUN_WHEEL_STAGE_TOTAL_WIDTH = 52.0f; // X thuộc [-26.0, +26.0]
+constexpr float        SUN_WHEEL_STAGE_DEPTH       =  9.0f; // Z thuộc [-22.2, -13.2]
+constexpr float        SUN_WHEEL_SCREEN_RADIUS     =  3.1f; // Đường kính màn hình tròn = 6.2 m
+
+// Hai chòi mái ngói hai bên cánh chân Sun Wheel (|X| thuộc [34.0, 46.0], cách bệ chân chữ A |X|<=29.7 là 4.3 m)
+constexpr MathCG::Vec3 SUN_WHEEL_SIDE_PAVILION_WEST_POS(-40.0f, 0.0f, -24.0f);
+constexpr MathCG::Vec3 SUN_WHEEL_SIDE_PAVILION_EAST_POS( 40.0f, 0.0f, -24.0f);
+constexpr float        SUN_WHEEL_SIDE_PAVILION_SIZE = 12.0f;
+
+// 6.6. Hai Chòi vọng cảnh nhỏ ven bờ Nam hồ nước (đối xứng hai bên Thủy đình (-5.4, 0, -107.7))
+constexpr MathCG::Vec3 LAKE_SHORE_PAVILION_WEST_POS(-49.2f, 0.0f, -88.0f);
+constexpr MathCG::Vec3 LAKE_SHORE_PAVILION_EAST_POS( 40.7f, 0.0f, -91.1f);
+constexpr float        LAKE_SHORE_PAVILION_WIDTH = 10.0f;
+constexpr float        LAKE_SHORE_PAVILION_DEPTH =  8.0f;
+
+// ============================================================================
+// 7. DANH MỤC HẰNG SỐ ĐÃ DUYỆT CHO ĐỢT 5A & 5B (KHU TÂY & NAM HỒ; NỬA ĐÔNG TRỐNG)
+// ============================================================================
+
+// 7.1. Nhóm 5A - 4 Trò tàu lượn nhỏ (dùng chung lớp MiniCoaster) & 3 Trò chơi dời từ PR #1:
+//      Nhãn: [Đã xác minh tên/vị trí; hình dạng đơn giản hóa]
+//      Ghi chú đối chiếu độ lệch giữa tọa độ GPS gốc (RCDB/Commons) và tâm khung bao đã chọn:
+//       - Garuda Valley: GPS RCDB (16.038689, 108.227418) -> Engine (-102.9, +162.4) nằm ở đầu vòng ray
+//         phía Đông-Nam; tâm khung bao toàn cụm (nhà ga Tây + cổng Commons 49374160882 + vòng ray)
+//         trên ảnh vệ tinh Z19 là (-124.1, +155.7) (lệch dX = -21.2m, dZ = -6.7m, |d| = 22.2m).
+//       - Port of Sky Treasure: GPS RCDB (16.039907, 108.226363) -> Engine (-215.8, +27.6);
+//         tâm khung bao cụm nhà ga chữ T + vòng ray là (-224.0, +22.0) (dX = -8.2m, dZ = -5.6m, |d| = 9.9m).
+//       - Paradise Fall (Tòa nhà đá & Vòng ray số 8): GPS RCDB (16.040998, 108.226822) -> Engine (-166.7, -93.1)
+//         nằm tại đầu Đông cổng vào (Commons 49358210737); tâm tòa nhà đá là (-179.8, -91.1) (|d| = 13.2m)
+//         và tâm vòng ray số 8 phía Tây-Bắc tòa nhà là (-199.0, -119.9) (|d| = 41.9m).
+//       - Highway Boat: GPS RCDB (16.042034, 108.226667) -> Engine (-183.3, -207.8);
+//         tâm khung bao toàn cụm ray là (-176.0, -214.0) (dX = +7.3m, dZ = -6.2m, |d| = 9.6m).
+constexpr MathCG::Vec3 GARUDA_VALLEY_CENTER(-124.1f, 0.0f, 155.7f);        // [Đã xác minh tên/vị trí; hình dạng đơn giản hóa] (34x26m)
+constexpr MathCG::Vec3 PORT_SKY_TREASURE_CENTER(-224.0f, 0.0f, 22.0f);     // [Đã xác minh tên/vị trí; hình dạng đơn giản hóa] (36x56m)
+constexpr MathCG::Vec3 PARADISE_FALL_BLDG_POS(-179.8f, 0.0f, -91.1f);      // [Đã xác minh tên/vị trí; hình dạng đơn giản hóa] (42x16m)
+constexpr MathCG::Vec3 PARADISE_FALL_TRACK_CENTER(-199.0f, 0.0f, -119.9f); // [Đã xác minh tên/vị trí; hình dạng đơn giản hóa] (42x22m)
+constexpr MathCG::Vec3 HIGHWAY_BOAT_CENTER(-176.0f, 0.0f, -214.0f);        // [Đã xác minh tên/vị trí; hình dạng đơn giản hóa] (42x32m)
+
+// 3 Trò chơi có sẵn từ PR #1 của nhóm dời về đúng vị trí khu Tây (Đợt 5A) - [Ước lượng từ ảnh vệ tinh — mô phỏng, chưa xác minh]
+constexpr MathCG::Vec3 PLAYGROUND_TARGET_POS(-104.9f, 0.0f, -24.7f);       // Sân chơi trẻ em (22x14m)
+constexpr MathCG::Vec3 BUMPER_CARS_TARGET_POS(-206.5f, 0.0f, 108.1f);      // Sân xe va chạm khu Tây-Nam (22x14m)
+constexpr MathCG::Vec3 PIRATE_SHIP_TARGET_POS(-172.0f, 0.0f, -2.0f);       // Thuyền cướp biển gần Port of Sky Treasure (18x12m)
+
+// 7.2. Nhóm 5B - Các khối nhà tĩnh, đu quay tròn & Quảng trường Angkor:
+//      Nhãn: [Ước lượng từ ảnh vệ tinh — mô phỏng, chưa xác minh]
+constexpr MathCG::Vec3 STRIPED_STALLS_POS(-52.0f, 0.0f, 28.0f);            // Dãy gian hàng mái sọc (16x38m)
+constexpr MathCG::Vec3 BLUE_ROOF_HALL_NORTH_POS(-113.4f, 0.0f, 55.0f);     // Nhà mái xanh Bắc sân bông hoa (28x12m)
+constexpr MathCG::Vec3 BLUE_ROOF_HALL_SOUTH_POS(-102.7f, 0.0f, 102.5f);    // Nhà mái xanh Nam sân bông hoa (26x12m)
+constexpr MathCG::Vec3 ROUND_SWING_RIDE_1_POS(-132.7f, 0.0f, 12.9f);       // Đu quay tròn 1 mái cam-trắng (ĐK 17m)
+constexpr MathCG::Vec3 ROUND_SPIN_RIDE_2_POS(-94.2f, 0.0f, 17.3f);         // Đu quay tròn 2 đĩa tròn nhỏ (ĐK 13m)
+constexpr MathCG::Vec3 RED_ROOF_LAKESIDE_HALL_POS(-94.2f, 0.0f, -71.2f);   // Nhà ngói đỏ lớn ven hồ (24x22m)
+constexpr MathCG::Vec3 CENTRAL_ROTUNDA_RIDE_POS(-141.3f, 0.0f, -137.6f);   // Công trình tròn có hành lang khu giữa (ĐK 18m)
+constexpr MathCG::Vec3 ROUND_SPIN_RIDE_3_POS(-143.4f, 0.0f, -179.6f);      // Đu quay tròn 3 khu giữa (ĐK 15m)
+constexpr MathCG::Vec3 WEST_CANOPY_THEATER_POS(-254.0f, 0.0f, -128.7f);    // Nhà mái xanh-trắng khu Tây (24x22m)
+constexpr MathCG::Vec3 ANGKOR_LAKESIDE_HALL_POS(-114.0f, 0.0f, -246.0f);   // Nhà mái xanh khu Angkor ven hồ (24x18m)
+constexpr MathCG::Vec3 ANGKOR_STAR_PLAZA_POS(-188.3f, 0.0f, -287.0f);      // Quảng trường Ngôi sao & 4 tháp Angkor (28x28m)
+
 } // namespace ParkLayout
 
 #endif // PARK_LAYOUT_H
