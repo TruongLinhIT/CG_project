@@ -328,19 +328,20 @@ constexpr PointXZ PATH_LAKESIDE_WEST[NUM_PATH_LAKESIDE_WEST_PTS] = {
     {  -63.5f,  -66.8f }, // 0: Đầu Tây bờ kè Nam hồ (16.04076, 108.22779)
     {  -75.5f, -132.1f }, // 1: Bờ Tây hồ đoạn Nam (16.04135, 108.22767)
     {  -91.5f, -198.5f }, // 2: Bờ Tây hồ đoạn giữa (16.04195, 108.22752)
-    { -142.0f, -268.0f }, // 3: Bờ Tây hồ đoạn Bắc (16.04258, 108.22705)
-    { -177.6f, -290.3f }, // 4: Mép Đông quảng trường Angkor (16.04278, 108.22672)
+    { -124.0f, -252.0f }, // 3: Bờ Tây hồ đoạn Bắc (bám sát bờ kè hồ phía Đông nhà mái xanh Angkor #18)
+    { -160.0f, -292.0f }, // 4: Mép Đông-Bắc quảng trường Angkor (16.04278, 108.22672)
     { -214.0f, -275.9f }  // 5: Nhập vào trục chính phía Tây tại Angkor (16.04265, 108.22638)
 };
 
 // 5.6. Lối đi phụ nối ngang Quảng trường Sun Wheel sang trục trò chơi phía Tây (rộng 3.5 m):
 constexpr float PATH_CENTRAL_CONNECTOR_WIDTH = 3.5f;
-constexpr int   NUM_PATH_CENTRAL_CONNECTOR_PTS = 4;
+constexpr int   NUM_PATH_CENTRAL_CONNECTOR_PTS = 5;
 constexpr PointXZ PATH_CENTRAL_CONNECTOR[NUM_PATH_CENTRAL_CONNECTOR_PTS] = {
     {    0.0f,   28.4f }, // 0: Quảng trường phía Nam Sun Wheel (16.03990, 108.22838)
-    {  -67.4f,   33.9f }, // 1: Điểm giữa lối nối Đông-Tây (16.03985, 108.22775)
-    { -145.0f,   33.9f }, // 2: Phía Nam Pirate Ship (-172, -2)
-    { -188.0f,   42.0f }  // 3: Nhập vào trục chính phía Tây tại ngã ba (-188, +42)
+    {  -35.0f,   36.0f }, // 1: Vòng qua phía Nam Dãy gian hàng mái sọc #6 (-50, +12)
+    {  -72.0f,   36.0f }, // 2: Giữa Đu quay tròn #10 (-94.2, +17.3) và Nhà mái xanh Bắc #7 (-113.4, +55.0)
+    { -145.0f,   33.9f }, // 3: Phía Nam Pirate Ship (-172, -2) và Đu quay tròn #9 (-132.7, +12.9)
+    { -188.0f,   42.0f }  // 4: Nhập vào trục chính phía Tây tại ngã ba (-188, +42)
 };
 
 // ============================================================================
@@ -467,18 +468,20 @@ constexpr MathCG::Vec3 BUMPER_CARS_TARGET_POS(-206.5f, 0.0f, 108.1f);      // S�
 constexpr MathCG::Vec3 PIRATE_SHIP_TARGET_POS(-172.0f, 0.0f, -2.0f);       // Thuyền cướp biển gần Port of Sky Treasure (18x12m)
 
 // 7.2. Nhóm 5B - Các khối nhà tĩnh, đu quay tròn & Quảng trường Angkor:
-//      Nhãn: [Ước lượng từ ảnh vệ tinh — mô phỏng, chưa xác minh]
-constexpr MathCG::Vec3 STRIPED_STALLS_POS(-52.0f, 0.0f, 28.0f);            // Dãy gian hàng mái sọc (16x38m)
-constexpr MathCG::Vec3 BLUE_ROOF_HALL_NORTH_POS(-113.4f, 0.0f, 55.0f);     // Nhà mái xanh Bắc sân bông hoa (28x12m)
-constexpr MathCG::Vec3 BLUE_ROOF_HALL_SOUTH_POS(-102.7f, 0.0f, 102.5f);    // Nhà mái xanh Nam sân bông hoa (26x12m)
-constexpr MathCG::Vec3 ROUND_SWING_RIDE_1_POS(-132.7f, 0.0f, 12.9f);       // Đu quay tròn 1 mái cam-trắng (ĐK 17m)
-constexpr MathCG::Vec3 ROUND_SPIN_RIDE_2_POS(-94.2f, 0.0f, 17.3f);         // Đu quay tròn 2 đĩa tròn nhỏ (ĐK 13m)
-constexpr MathCG::Vec3 RED_ROOF_LAKESIDE_HALL_POS(-94.2f, 0.0f, -71.2f);   // Nhà ngói đỏ lớn ven hồ (24x22m)
-constexpr MathCG::Vec3 CENTRAL_ROTUNDA_RIDE_POS(-141.3f, 0.0f, -137.6f);   // Công trình tròn có hành lang khu giữa (ĐK 18m)
-constexpr MathCG::Vec3 ROUND_SPIN_RIDE_3_POS(-143.4f, 0.0f, -179.6f);      // Đu quay tròn 3 khu giữa (ĐK 15m)
-constexpr MathCG::Vec3 WEST_CANOPY_THEATER_POS(-254.0f, 0.0f, -128.7f);    // Nhà mái xanh-trắng khu Tây (24x22m)
-constexpr MathCG::Vec3 ANGKOR_LAKESIDE_HALL_POS(-114.0f, 0.0f, -246.0f);   // Nhà mái xanh khu Angkor ven hồ (24x18m)
-constexpr MathCG::Vec3 ANGKOR_STAR_PLAZA_POS(-188.3f, 0.0f, -287.0f);      // Quảng trường Ngôi sao & 4 tháp Angkor (28x28m)
+//      Nhãn bắt buộc cho toàn bộ nhóm 5B: [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
+//      Đã kiểm tra hình học: 0 va chạm với 6 tuyến lối đi, đa giác hồ nước, dầm & trụ Monorail và các trò Đợt 1-5A.
+constexpr MathCG::Vec3 STRIPED_STALLS_POS(-50.0f, 0.0f, 12.0f);             // #6:  Dãy 3 hàng gian hàng mái sọc đỏ-trắng (16x32m) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
+constexpr MathCG::Vec3 FLOWER_PLAZA_CENTER(-108.0f, 0.0f, 76.0f);           //      Sân lát hình bông hoa giữa 2 nhà mái xanh #7 & #8 (ĐK 22m) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
+constexpr MathCG::Vec3 BLUE_ROOF_HALL_NORTH_POS(-113.4f, 0.0f, 55.0f);      // #7:  Nhà mái ngói xanh Bắc sân bông hoa (26x12m, xoay +12°) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
+constexpr MathCG::Vec3 BLUE_ROOF_HALL_SOUTH_POS(-102.7f, 0.0f, 118.0f);     // #8:  Nhà mái ngói xanh Nam sân bông hoa (22x11m, xoay -15°, phía Nam dầm Monorail) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
+constexpr MathCG::Vec3 ROUND_SWING_RIDE_1_POS(-132.7f, 0.0f, 12.9f);        // #9:  Đu quay tròn 1 mái cam-trắng (ĐK 17m, 16 ghế) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
+constexpr MathCG::Vec3 ROUND_SPIN_RIDE_2_POS(-94.2f, 0.0f, 17.3f);          // #10: Đu quay tròn 2 đĩa tròn nhỏ (ĐK 13m, 12 ghế) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
+constexpr MathCG::Vec3 RED_ROOF_LAKESIDE_HALL_POS(-94.2f, 0.0f, -71.2f);    // #12: Nhà ngói đỏ lớn ven hồ (22x18m, mái cong 2 tầng) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
+constexpr MathCG::Vec3 CENTRAL_ROTUNDA_RIDE_POS(-141.3f, 0.0f, -137.6f);    // #13: Công trình tròn có hành lang cột khu giữa (ĐK 18m, 16 ghế) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
+constexpr MathCG::Vec3 ROUND_SPIN_RIDE_3_POS(-143.4f, 0.0f, -179.6f);       // #14: Đu quay tròn 3 khu giữa (ĐK 15m, 14 ghế) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
+constexpr MathCG::Vec3 WEST_CANOPY_THEATER_POS(-256.0f, 0.0f, -128.7f);     // #15: Nhà mái xanh-trắng khu Tây (20x20m, mái cong vòm rộng) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
+constexpr MathCG::Vec3 ANGKOR_LAKESIDE_HALL_POS(-138.0f, 0.0f, -242.0f);    // #18: Nhà mái xanh khu Angkor ven hồ (20x14m, xoay -22°) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
+constexpr MathCG::Vec3 ANGKOR_STAR_PLAZA_POS(-185.0f, 0.0f, -254.0f);       // #19: Quảng trường Ngôi sao & 4 tháp chòi nhọn Angkor (24x24m) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
 
 } // namespace ParkLayout
 

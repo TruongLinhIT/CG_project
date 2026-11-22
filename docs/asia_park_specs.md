@@ -389,10 +389,52 @@ Theo yêu cầu điều chỉnh số 1 & 2, cả 5 hạng mục dưới đây đ
   - **Trước Đợt 5A (cuối Đợt 4):** `248.3 FPS` (`200 frames / 0.805 s`).
   - **Sau Đợt 5A (thêm 4 tàu lượn `MiniCoaster` với tổng `402.6 m` đường ray ống đôi 3D, 37 trụ đỡ, 4 nhà ga/núi đá và 4 đoàn tàu 12 toa chuyển động liên tục):** **`206.8 FPS`** (`200 frames / 0.967 s`).
 - **Bộ ảnh kết quả Đợt 5A:**
-  - [`img/wave4_ngomon_back.png`](img/wave4_ngomon_back.png) — Ảnh kiểm tra mặt Bắc Cổng Ngọ Môn sau khi áp dụng Phương án A (dầm & trụ Monorail và Ga Nam nằm hoàn toàn ngoài Quảng trường lát gạch `Z ≤ 115 m` và cách lưng cổng `> 10.2 m`).
+  - [`img/wave4_ngomon_back.png`](img/wave4_ngomon_back.png) — Ảnh kiểm tra mặt Bắc Cổng Ngọ Môn sau khi áp dụng Phương án A (dầm & trụ Monorail và Ga Nam nằm hoàn toàn ngoài Quảng trường lát gạch `Z ≤ 115 m`, cách lưng cổng `> 10.2 m`, không che Cổng Ngọ Môn).
   - [`img/wave5a_west_overview.png`](img/wave5a_west_overview.png) — Ảnh 1 Đợt 5A: Toàn cảnh khu Tây từ trên cao bao quát cả 4 tàu lượn `MiniCoaster`, 3 trò chơi dời vị trí (`BumperCars`, `PirateShip`, `Playground`), `Carousel`, `Sky Tower`, `Queen Cobra` và trục lối đi `PATH_WEST_SPINE`.
-  - [`img/wave5a_coasters_closeup.png`](img/wave5a_coasters_closeup.png) *(và 2 ảnh rời [`wave5a_coaster_port_sky.png`](img/wave5a_coaster_port_sky.png), [`wave5a_coaster_paradise_fall.png`](img/wave5a_coaster_paradise_fall.png))* — Ảnh 2 Đợt 5A: Cận cảnh các tàu lượn nhỏ (`Port of Sky Treasure` + `Pirate Ship` + lối đi `(−195, −20)`; `Paradise Fall` tòa nhà đá + vòng ray số 8 + `Highway Boat`).
+  - [`img/wave5a_coasters_closeup.png`](img/wave5a_coasters_closeup.png) *(và 2 ảnh rời [`wave5a_coaster_port_sky.png`](img/wave5a_coaster_port_sky.png), [`wave5a_coaster_paradise_fall.png`](img/wave5a_coaster_paradise_fall.png))* — Ảnh 2 Đợt 5A: Cận cảnh các tàu lượn nhỏ (`Port of Sky Treasure` + `Pirate Ship` + lối đi `(−195, −20)`; `Paradise Fall` núi đá nhiều tầng + vòng ray số 8 + `Highway Boat`).
   - [`img/wave5a_topdown_overlay.png`](img/wave5a_topdown_overlay.png) — Ảnh 3 Đợt 5A: Nhìn từ trên xuống chồng trực tiếp lên ảnh vệ tinh Wayback 2019 có gắn nhãn tọa độ.
+
+---
+
+### 12.7. Bảng hạng mục đã hoàn thành trong ĐỢT 5B (Nhà mái ngói tham số hóa, Đu quay tròn tham số hóa, Dãy quầy mái sọc, Quảng trường Ngôi sao Angkor & Nâng cấp Núi đá Paradise Fall)
+
+1. **Nâng cấp Tòa nhà Paradise Fall (`PARADISE_FALL_BLDG_POS = (−179.8, 0.0, −91.1)`) thành Núi đá nhiều tầng gồ ghề (`drawStoneMountainBuilding` trong `src/rides/MiniCoaster.h`):**
+   - Thay thế 2 khối hộp phẳng bằng **tổ hợp 10 khối vách đá chồng 3 tầng** với kích thước, góc xoay (`−21°..+24°`) và độ nghiêng (`±3°..±7°`) khác nhau, kết hợp **3 chỏm núi nhọn** trên đỉnh (`y` lên tới `~13.4 m`), màu đá nâu-xám nhiều sắc độ, kèm **2 hang đá & cổng vòm** (`createArchVault`) ở mặt Đông và mặt Tây-Bắc.
+2. **Đánh giá kích thước & độ mảnh của `Playground`, `PirateShip`, `BumperCars` (PR #1 của thành viên nhóm — giữ nguyên 100% hình học & không tự sửa):**
+   - **`Playground` (`src/rides/Playground.h`, tâm `(−104.9, 0, −24.7)`):** Khung bao tổng `23.6 × 12.8 m`, cao `5.0 m` là hợp lý về mặt diện tích đất (`1 unit = 1 m`), nhưng **các thanh khung rất mảnh** (chân xích đu `0.12 × 0.12 m`, dây treo `0.04 m`, trụ bập bênh `0.15 m`) và **không có tấm nền sân chơi lót dưới mặt đất**, nên khi nhìn từ camera toàn cảnh độ cao `170 m` chỉ thấy rõ ô cát vàng `5 × 5 m`.
+   - **`PirateShip` (`src/rides/PirateShip.h`, tâm `(−172.0, 0, −2.0)`):** Thân thuyền dài `16 m`, khung chữ A rộng `18 m × cao 11 m` đúng tỷ lệ thật `1:1`, nhưng **4 chân trụ chữ A chỉ dày `0.30 × 0.30 m`**, cần treo mảnh (`R = 0.15 m`), thân thuyền màu nâu sẫm đặt trực tiếp trên nền cỏ xanh đậm (không có bệ sàn nhà ga) nên nhìn từ xa khá mảnh và độ tương phản thấp.
+   - **`BumperCars` (`src/rides/BumperCars.h`, tâm `(−206.5, 0, +108.1)`):** Sân tròn đường kính `20.4 m` có 6 xe chạy rõ ràng khi nhìn từ trên xuống, nhưng chỉ cao `0.90 m` (**không có mái vòm nhà che** như sân xe điện đụng thực tế cao `~5–6 m`) nên nhìn nghiêng trông mỏng như một đĩa phẳng.
+3. **Các hàm tham số hóa dùng chung trong [`src/rides/ParkArchitecture.h`](../src/rides/ParkArchitecture.h) (Đợt 5B):**
+   - **MỘT hàm vẽ nhà mái ngói tham số hóa `appendTileRoofedHall(target, pos, w, d, wallH, rotYDeg, roofCol, roofStyle)`:** dựng bệ đá bậc tam cấp, thân tường đặc, hàng cột hiên, cổ diềm, mái ngói cong 4 mặt hai tầng liền khối (`createCurvedAsianRoof`) và sảnh hiên đón khách. Dùng chung cho 4 nhà mái ngói xanh/teal (`#7`, `#8`, `#15`, `#18`) và nhà mái ngói đỏ lớn ven hồ (`#12`).
+   - **MỘT hàm vẽ đu quay tròn có animation quay tham số hóa `drawSpinningRoundRide(listIdx, pos, radius, height, primaryCol, secondaryCol, numSeats, spinDeg, hasOuterColonnade)`:** dựng bệ tròn, trụ tâm, tán mái nón 16 múi sọc màu quay quanh trục Y và dàn ghế treo nghiêng ly tâm (`12..16` ghế). Dùng chung cho `#9`, `#10`, `#14` và biến thể có vòng cột hành lang bao quanh `#13`.
+   - **Dãy gian hàng mái sọc (`#6` — `appendStripedStallsComplex`):** 3 dãy quầy nhỏ song song Bắc–Nam (mỗi dãy 6 gian) có mái sọc đỏ – trắng xen kẽ trên nền sân `16 × 32 m`.
+   - **Quảng trường Ngôi sao & 4 tháp chòi Angkor (`#19` — `appendAngkorStarPlazaTowers` + `drawTiledCentralPlaza`):** nền đá vuông `24 × 24 m` lát **ngôi sao 8 cánh** vàng-đỏ ở tâm, đài tháp trung tâm và **4 tháp chòi nhọn kiểu Prang Angkor** ở 4 góc (kèm sân lát hình **bông hoa 8 cánh** tại `FLOWER_PLAZA_CENTER (−108.0, 0, +76.0)` giữa 2 nhà mái xanh `#7` và `#8`).
+   - **Toàn bộ 11 hạng mục Đợt 5B đều gắn nhãn `[Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]`** và đã kiểm tra bằng script hình học (**0 va chạm** với 6 tuyến lối đi, mặt hồ, dầm/trụ Monorail và các công trình Đợt 1–5A).
+
+| Mã | Hạng mục Đợt 5B (`[Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]`) | Hằng số trong `ParkLayout.h` | Tọa độ Engine `(X, Y, Z)` (m) | Kích thước / Thông số | Hàm dựng trong `ParkArchitecture.h` |
+|:--:|:---|:---|:---:|:---:|:---|
+| `#6` | **Dãy 3 hàng gian hàng mái sọc đỏ-trắng** | `STRIPED_STALLS_POS` | `(−50.0, 0.0, +12.0)` | `16 × 32 × 3.3 m` (3 dãy × 6 quầy) | `appendStripedStallsComplex` |
+| `#7` | **Nhà mái ngói xanh Bắc sân bông hoa** | `BLUE_ROOF_HALL_NORTH_POS` | `(−113.4, 0.0, +55.0)` | `26 × 12 × 8.8 m`, xoay `+12°`, mái xanh teal 2 tầng | `appendTileRoofedHall(..., style=0)` |
+| `#8` | **Nhà mái ngói xanh Nam sân bông hoa** | `BLUE_ROOF_HALL_SOUTH_POS` | `(−102.7, 0.0, +118.0)` | `22 × 11 × 8.6 m`, xoay `−15°`, mái xanh teal 2 tầng | `appendTileRoofedHall(..., style=0)` |
+| — | **Sân lát hình Bông hoa 8 cánh** | `FLOWER_PLAZA_CENTER` | `(−108.0, 0.044, +76.0)` | Đường kính `21.6 m`, hoa văn 8 cánh vàng | `drawTiledCentralPlaza` |
+| `#9` | **Đu quay tròn 1 (mái sọc cam-trắng)** | `ROUND_SWING_RIDE_1_POS` | `(−132.7, 0.0, +12.9)` | Đường kính `17.0 m` (`R = 8.5 m`), cao `8.2 m`, `16` ghế quay | `drawSpinningRoundRide(..., col=false)` |
+| `#10` | **Đu quay tròn 2 (mái sọc xanh-vàng)** | `ROUND_SPIN_RIDE_2_POS` | `(−94.2, 0.0, +17.3)` | Đường kính `13.0 m` (`R = 6.5 m`), cao `6.4 m`, `12` ghế quay | `drawSpinningRoundRide(..., col=false)` |
+| `#12` | **Nhà ngói đỏ lớn ven hồ** | `RED_ROOF_LAKESIDE_HALL_POS` | `(−94.2, 0.0, −71.2)` | `22 × 18 × 9.0 m`, mái ngói đỏ 2 tầng | `appendTileRoofedHall(..., style=0)` |
+| `#13` | **Công trình tròn có hành lang cột khu giữa** | `CENTRAL_ROTUNDA_RIDE_POS` | `(−141.3, 0.0, −137.6)` | Đường kính `18.0 m` (`R = 9.0 m`), cao `8.8 m`, hành lang 12 cột + `16` ghế quay | `drawSpinningRoundRide(..., col=true)` |
+| `#14` | **Đu quay tròn 3 khu giữa (mái ngọc-vàng)** | `ROUND_SPIN_RIDE_3_POS` | `(−143.4, 0.0, −179.6)` | Đường kính `15.0 m` (`R = 7.5 m`), cao `7.4 m`, `14` ghế quay | `drawSpinningRoundRide(..., col=false)` |
+| `#15` | **Nhà mái xanh-trắng khu Tây** | `WEST_CANOPY_THEATER_POS` | `(−256.0, 0.0, −128.7)` | `20 × 20 × 9.2 m`, tường trắng, mái cong vòm rộng xanh teal | `appendTileRoofedHall(..., style=1)` |
+| `#18` | **Nhà mái ngói xanh khu Angkor ven hồ** | `ANGKOR_LAKESIDE_HALL_POS` | `(−138.0, 0.0, −242.0)` | `20 × 14 × 8.8 m`, xoay `−22°`, mái xanh teal 2 tầng | `appendTileRoofedHall(..., style=0)` |
+| `#19` | **Quảng trường Ngôi sao & 4 tháp chòi Angkor** | `ANGKOR_STAR_PLAZA_POS` | `(−185.0, 0.0, −254.0)` | Sân `24 × 24 m` lát sao 8 cánh + 4 tháp nhọn góc & tháp tâm | `appendAngkorStarPlazaTowers` |
+
+- **Hiệu năng (FPS trước và sau Đợt 5B ở `1280 × 768`, 200 khung hình liên tiếp):**
+  - **Trước Đợt 5B (cuối Đợt 5A):** `206.8 FPS` (`200 frames / 0.967 s`).
+  - **Sau Đợt 5B (thêm toàn bộ 11 cụm công trình tĩnh & 4 đu quay tròn có animation quay, dùng Display List cho cả khối kiến trúc tĩnh và cụm tán quay):** **`155.3 FPS`** (`200 frames / 1.288 s` — đảm bảo yêu cầu `> 150 FPS`).
+- **Bộ ảnh kết quả Đợt 5B:**
+  - [`img/wave5b_west_overview.png`](img/wave5b_west_overview.png) — Ảnh 1 Đợt 5B: Toàn cảnh khu Tây từ trên cao bao quát toàn bộ các công trình Đợt 5A + 5B.
+  - [`img/wave5b_blue_roof_halls.png`](img/wave5b_blue_roof_halls.png) — Ảnh 2 Đợt 5B: Cận cảnh cụm nhà mái ngói xanh (`#7`, `#8`) quanh sân bông hoa 8 cánh và dãy 3 hàng quầy mái sọc đỏ-trắng (`#6`).
+  - [`img/wave5b_round_rides.png`](img/wave5b_round_rides.png) — Ảnh 3 Đợt 5B: Cận cảnh khu đu quay tròn (`#9`, `#10`, `#13`, `#14`), nhà ngói đỏ lớn ven hồ (`#12`) và Tòa nhà núi đá gồ ghề nhiều tầng của `Paradise Fall`.
+  - [`img/wave5b_topdown_overlay.png`](img/wave5b_topdown_overlay.png) — Ảnh chụp trực giao từ trên xuống sau Đợt 5B chồng trực tiếp lên ảnh vệ tinh Wayback 2019.
+  - [`img/wave4_ngomon_back.png`](img/wave4_ngomon_back.png) — Ảnh chụp Cổng Ngọ Môn nhìn từ phía Bắc xác nhận dầm Monorail đã lùi về `Z = +121.8 m` (cách mặt Bắc cổng `11.6 m`) và không còn che khuất Cổng Ngọ Môn.
 
 ---
 

@@ -762,6 +762,7 @@ static void timerCallback(int value) {
         gMinimap.update(dt);
         gState.skyTowerTime     = gSkyTower.cycleTime;
         gCurves.update(dt);
+        gParkArch.update(dt);
         gPlayground.update(dt);
         gBumperCars.update(dt);
         gPirateShip.update(dt);
@@ -1434,8 +1435,8 @@ static bool renderHeadlessPerspectiveShots() {
         if (!saveFramebufferPPM(sh.outPath, capW, capH)) return false;
     }
 
-    // Chụp bộ ảnh kiểm tra Đợt 4 & Đợt 5A (Cổng Ngọ Môn nhìn từ Bắc sau Phương án A, Toàn cảnh khu Tây, Cận 2 tàu lượn nhỏ)
-    const ShotSpec wave4And5aShots[8] = {
+    // Chụp bộ ảnh kiểm tra Đợt 4, Đợt 5A & Đợt 5B
+    const ShotSpec wave4And5Shots[11] = {
         // 1. Toàn cảnh góc cao Đợt 4
         {
             "/tmp/w4_overview.ppm",
@@ -1460,12 +1461,12 @@ static bool renderHeadlessPerspectiveShots() {
             46.0f,
             TimeOfDay::DAY
         },
-        // 4. Cận Cổng Ngọ Môn - Góc 3 (Mặt Bắc / Quảng trường nhìn ngược về cổng, dầm Monorail & Ga Nam sau Phương án A)
+        // 4. Cận Cổng Ngọ Môn - Góc 3 (Nhìn từ phía Bắc xuống cổng: thấy rõ khoảng cách 11.6m giữa dầm Monorail Z=121.8m và mặt Bắc cổng Z=133.4m, cổng không bị che)
         {
             "/tmp/w4_gate_back.ppm",
-            MathCG::Vec3(  28.0f,  24.0f,  86.0f),
-            MathCG::Vec3(   2.0f,   8.5f, 136.0f),
-            52.0f,
+            MathCG::Vec3(  22.0f,  44.0f,  82.0f),
+            MathCG::Vec3(   8.0f,   7.5f, 139.1f),
+            50.0f,
             TimeOfDay::DAY
         },
         // 5. Quảng trường lát gạch nhìn về phía Bắc (Sân khấu chân Sun Wheel đã lùi về Z = -15.9m)
@@ -1476,7 +1477,7 @@ static bool renderHeadlessPerspectiveShots() {
             54.0f,
             TimeOfDay::SUNSET
         },
-        // 6. ĐỢT 5A - Ảnh 1: Toàn cảnh khu Tây từ trên cao (bao quát cả 4 tàu lượn MiniCoaster + 3 trò dời vị trí + lối đi WEST_SPINE)
+        // 6. ĐỢT 5A - Ảnh 1: Toàn cảnh khu Tây từ trên cao
         {
             "/tmp/w5a_west_overview.ppm",
             MathCG::Vec3(-335.0f, 175.0f,  195.0f),
@@ -1484,7 +1485,7 @@ static bool renderHeadlessPerspectiveShots() {
             54.0f,
             TimeOfDay::DAY
         },
-        // 7. ĐỢT 5A - Ảnh 2a: Cận cảnh tàu lượn Port of Sky Treasure (-224, 0, +22) & Thuyền cướp biển Pirate Ship (-172, 0, -2) cùng lối đi (-195, -20)
+        // 7. ĐỢT 5A - Ảnh 2a: Cận cảnh tàu lượn Port of Sky Treasure & Pirate Ship
         {
             "/tmp/w5a_coaster_port_sky.ppm",
             MathCG::Vec3(-170.0f,  28.0f,   72.0f),
@@ -1492,17 +1493,41 @@ static bool renderHeadlessPerspectiveShots() {
             50.0f,
             TimeOfDay::DAY
         },
-        // 8. ĐỢT 5A - Ảnh 2b: Cận cảnh tàu lượn Paradise Fall (vòng ray số 8 tại -199, -119.9 + Tòa nhà đá tại -179.8, -91.1) & Highway Boat (-176, -214)
+        // 8. ĐỢT 5A - Ảnh 2b: Cận cảnh tàu lượn Paradise Fall (Tòa nhà núi đá nhiều tầng mới + vòng ray số 8) & Highway Boat
         {
             "/tmp/w5a_coaster_paradise_fall.ppm",
             MathCG::Vec3(-142.0f,  32.0f,  -62.0f),
             MathCG::Vec3(-194.0f,   5.5f, -124.0f),
             50.0f,
             TimeOfDay::DAY
+        },
+        // 9. ĐỢT 5B - Ảnh 1: Toàn cảnh khu Tây từ trên cao (bao quát toàn bộ Đợt 5a + 5b: nhà mái xanh, nhà mái đỏ, 3 dãy quầy mái sọc, 4 đu quay tròn, quảng trường Angkor, núi đá Paradise Fall)
+        {
+            "/tmp/w5b_west_overview.ppm",
+            MathCG::Vec3(-325.0f, 170.0f,  190.0f),
+            MathCG::Vec3(-160.0f,  10.0f,  -55.0f),
+            54.0f,
+            TimeOfDay::DAY
+        },
+        // 10. ĐỢT 5B - Ảnh 2: Cận cảnh cụm Nhà mái ngói xanh (#7 & #8) quanh sân bông hoa (-113.4, +81.5) & Dãy 3 hàng gian hàng mái sọc đỏ trắng (#6)
+        {
+            "/tmp/w5b_blue_roof_halls.ppm",
+            MathCG::Vec3( -52.0f,  38.0f,  135.0f),
+            MathCG::Vec3(-108.0f,   5.0f,   68.0f),
+            52.0f,
+            TimeOfDay::DAY
+        },
+        // 11. ĐỢT 5B - Ảnh 3: Cận cảnh khu Đu quay tròn (#9, #10, #13, #14), Nhà ngói đỏ ven hồ (#12) & Núi đá Paradise Fall
+        {
+            "/tmp/w5b_round_rides.ppm",
+            MathCG::Vec3( -62.0f,  46.0f,   45.0f),
+            MathCG::Vec3(-138.0f,   6.0f,  -75.0f),
+            52.0f,
+            TimeOfDay::DAY
         }
     };
 
-    for (const auto& sh : wave4And5aShots) {
+    for (const auto& sh : wave4And5Shots) {
         glViewport(0, 0, capW, capH);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
@@ -1561,6 +1586,7 @@ static bool renderHeadlessPerspectiveShots() {
     for (int f = 0; f < benchFrames; ++f) {
         gSunWheel.update(1.0f / 60.0f);
         gCurves.update(1.0f / 60.0f);
+        gParkArch.update(1.0f / 60.0f);
         for (auto& mc : gMiniCoasters) mc.update(1.0f / 60.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glMatrixMode(GL_PROJECTION);

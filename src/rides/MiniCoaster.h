@@ -229,69 +229,102 @@ private:
     }
 
     void drawStoneMountainBuilding(bool showNormals, bool smoothShading) const {
-        // Tòa nhà đá Paradise Fall tại PARADISE_FALL_BLDG_POS (-179.8, 0, -91.1), kích thước 24 x 14 m
+        // Tòa nhà giả núi đá Paradise Fall tại PARADISE_FALL_BLDG_POS (-179.8, 0, -91.1)
+        // Tổ hợp nhiều khối đá nâu-xám chồng nhiều tầng, bờ vách gồ ghề với góc xoay/độ nghiêng khác nhau,
+        // có hang đá & cổng vòm ở mặt Đông và mặt Tây-Bắc (100% liền khối).
         const MathCG::Vec3& p = cfg.stationWorldPos;
-        const float w = cfg.stationWidth;
-        const float d = cfg.stationDepth;
+        const float w = cfg.stationWidth; // 24.0 m
+        const float d = cfg.stationDepth; // 14.0 m
+
+        const MathCG::ColorRGB stoneDark  (0.38f, 0.34f, 0.29f);
+        const MathCG::ColorRGB stoneMid   (0.47f, 0.42f, 0.36f);
+        const MathCG::ColorRGB stoneWarm  (0.54f, 0.48f, 0.40f);
+        const MathCG::ColorRGB stoneLight (0.60f, 0.54f, 0.45f);
+        const MathCG::ColorRGB caveDark   (0.12f, 0.11f, 0.10f);
 
         glPushMatrix();
         glTranslatef(p.x, p.y, p.z);
 
-        // Khối đá nền tầng 1
-        auto tier1 = Geometry::PolygonMesh::createBox(
-            0.0f, 2.8f, 0.0f,
-            w, 5.6f, d,
-            MathCG::ColorRGB(0.48f, 0.46f, 0.43f)
-        );
-        tier1.draw(smoothShading, showNormals);
+        // 1. Tầng bệ đá gốc rộng bám đất (y = 0 .. 3.4m) + các mỏm đá chân núi nhô lệch góc
+        auto baseCore = Geometry::PolygonMesh::createBox(0.0f, 1.7f, 0.0f, w, 3.4f, d, stoneDark);
+        baseCore.draw(smoothShading, showNormals);
 
-        // Hai khối vách đá gồ ghề hai bên tạo dáng núi đá nhân tạo liền khối
-        auto rockWest = Geometry::PolygonMesh::createBox(
-            -w * 0.28f, 4.4f, -0.6f,
-            w * 0.42f, 8.8f, d * 0.82f,
-            MathCG::ColorRGB(0.55f, 0.52f, 0.47f)
-        );
-        rockWest.draw(smoothShading, showNormals);
+        struct RockBlockSpec {
+            float tx, ty, tz;
+            float rotY, tiltX, tiltZ;
+            float sx, sy, sz;
+            MathCG::ColorRGB col;
+        };
 
-        auto rockEast = Geometry::PolygonMesh::createBox(
-            w * 0.22f, 3.9f, 0.5f,
-            w * 0.46f, 7.8f, d * 0.78f,
-            MathCG::ColorRGB(0.52f, 0.49f, 0.44f)
-        );
-        rockEast.draw(smoothShading, showNormals);
+        // 10 khối đá nhiều tầng chồng lên nhau với kích thước, góc xoay và độ nghiêng khác nhau tạo vách núi gồ ghề
+        const RockBlockSpec blocks[10] = {
+            // Tầng 1 - các vách đá sườn núi xung quanh
+            { -6.5f, 2.4f, -2.2f, -14.0f,  4.0f, -5.0f,  9.5f, 4.8f,  9.2f, stoneMid   },
+            {  5.2f, 2.3f,  1.8f,  18.0f, -3.0f,  4.0f, 10.2f, 4.6f,  8.6f, stoneWarm  },
+            { -1.2f, 2.6f,  3.2f,  -9.0f,  5.0f,  2.0f, 11.0f, 5.2f,  6.8f, stoneDark  },
+            {  1.8f, 2.5f, -3.0f,  22.0f, -4.0f, -3.0f, 10.5f, 5.0f,  7.2f, stoneMid   },
+            // Tầng 2 - các khối đá giữa núi
+            { -4.8f, 5.0f, -0.8f,  16.0f, -6.0f,  5.0f,  8.8f, 4.6f,  7.6f, stoneWarm  },
+            {  3.6f, 4.8f, -0.5f, -21.0f,  5.0f, -6.0f,  8.4f, 4.4f,  7.4f, stoneLight },
+            { -0.6f, 5.4f,  1.4f,   8.0f,  4.0f,  4.0f,  9.2f, 4.8f,  6.4f, stoneMid   },
+            // Tầng 3 - các mỏm đỉnh núi cao (y lên tới ~10.8m)
+            { -3.2f, 7.6f, -1.2f, -19.0f,  7.0f, -5.0f,  6.4f, 4.2f,  5.6f, stoneLight },
+            {  2.4f, 7.2f,  0.8f,  24.0f, -5.0f,  6.0f,  5.8f, 3.8f,  5.2f, stoneWarm  },
+            { -0.4f, 8.6f, -0.2f,  11.0f,  3.0f, -4.0f,  5.0f, 3.6f,  4.6f, stoneMid   }
+        };
 
-        // Đỉnh tháp đá trung tâm & mái ngói cổ trên đỉnh nhà ga Paradise Fall
-        auto towerTop = Geometry::PolygonMesh::createBox(
-            -1.5f, 7.2f, 0.0f,
-            w * 0.45f, 4.2f, d * 0.58f,
-            MathCG::ColorRGB(0.60f, 0.56f, 0.50f)
-        );
-        towerTop.draw(smoothShading, showNormals);
+        for (const auto& b : blocks) {
+            glPushMatrix();
+            glTranslatef(b.tx, b.ty, b.tz);
+            glRotatef(b.rotY,  0.0f, 1.0f, 0.0f);
+            glRotatef(b.tiltX, 1.0f, 0.0f, 0.0f);
+            glRotatef(b.tiltZ, 0.0f, 0.0f, 1.0f);
+            auto m = Geometry::PolygonMesh::createBox(0.0f, 0.0f, 0.0f, b.sx, b.sy, b.sz, b.col);
+            m.draw(smoothShading, showNormals);
+            glPopMatrix();
+        }
 
-        auto roof = Geometry::PolygonMesh::createCurvedAsianRoof(
-            -1.5f, 9.3f, 0.0f,
-            w * 0.54f, d * 0.68f, 2.4f,
-            0.35f,
-            cfg.stationRoofColor
-        );
-        roof.draw(smoothShading, showNormals);
+        // 3 chỏm đá nhọn (createPyramid) trên đỉnh núi tạo đường viền núi đá tự nhiên
+        const float peaks[3][6] = {
+            { -3.4f, 9.2f, -1.2f,  4.8f, 4.4f, 3.2f },
+            {  2.5f, 8.7f,  0.8f,  4.4f, 4.2f, 2.8f },
+            { -0.4f,10.0f, -0.2f,  4.2f, 4.0f, 3.4f }
+        };
+        for (int i = 0; i < 3; ++i) {
+            auto pk = Geometry::PolygonMesh::createPyramid(
+                peaks[i][0], peaks[i][1], peaks[i][2],
+                peaks[i][3], peaks[i][4], peaks[i][5],
+                (i == 1) ? stoneWarm : stoneLight
+            );
+            pk.draw(smoothShading, showNormals);
+        }
 
-        // Cổng vòm hang đá phía Đông (nối hướng từ lối đi chính vào tòa nhà đá)
-        auto portalRecess = Geometry::PolygonMesh::createBox(
-            w * 0.48f, 1.4f, 0.0f,
-            0.9f, 2.8f, 3.4f,
-            MathCG::ColorRGB(0.14f, 0.13f, 0.12f)
-        );
-        portalRecess.draw(smoothShading, showNormals);
+        // 2. Hang đá & Cổng vòm chính ở mặt Đông (nhìn ra trục lối đi)
+        auto caveEastBox = Geometry::PolygonMesh::createBox(w * 0.46f, 1.6f, 0.0f, 1.8f, 3.2f, 3.8f, caveDark);
+        caveEastBox.draw(smoothShading, showNormals);
 
-        auto portalEast = Geometry::PolygonMesh::createArchVault(
-            0.0f, 0.0f, w * 0.45f, w * 0.53f,
-            1.7f, 2.6f, 12,
-            MathCG::ColorRGB(0.38f, 0.36f, 0.33f)
+        auto archEast = Geometry::PolygonMesh::createArchVault(
+            0.0f, 0.0f, w * 0.40f, w * 0.54f,
+            1.85f, 2.95f, 12,
+            stoneWarm
         );
         glPushMatrix();
         glRotatef(90.0f, 0.0f, 1.0f, 0.0f);
-        portalEast.draw(smoothShading, showNormals);
+        archEast.draw(smoothShading, showNormals);
+        glPopMatrix();
+
+        // 3. Hang đá & Cổng vòm phụ ở mặt Tây-Bắc (hướng thẳng sang vòng ray số 8 Paradise Fall)
+        auto caveWestBox = Geometry::PolygonMesh::createBox(-w * 0.46f, 1.5f, -1.2f, 1.8f, 3.0f, 3.4f, caveDark);
+        caveWestBox.draw(smoothShading, showNormals);
+
+        auto archWest = Geometry::PolygonMesh::createArchVault(
+            1.2f, 0.0f, -w * 0.54f, -w * 0.40f,
+            1.65f, 2.65f, 12,
+            stoneMid
+        );
+        glPushMatrix();
+        glRotatef(90.0f, 0.0f, 1.0f, 0.0f);
+        archWest.draw(smoothShading, showNormals);
         glPopMatrix();
 
         glPopMatrix();
