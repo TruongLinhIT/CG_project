@@ -32,6 +32,7 @@
 #include <string>
 #include <vector>
 #include "core/MathCG.h"
+#include "core/ParkLayout.h"
 #include "core/Lighting.h"
 #include "geometry/ParametricShapes.h"
 #include "geometry/MeshModel.h"
@@ -40,20 +41,28 @@ namespace AsiaParkRides {
 
 class SunWheel {
 public:
-    MathCG::Vec3 center           = MathCG::Vec3(0.0f, 65.0f, -38.0f);
-    float        radius           = 50.0f;  // R = 50m (Đường kính 100m)
+    MathCG::Vec3 center           = ParkLayout::SUN_WHEEL_CENTER;
+    float        radius           = ParkLayout::SUN_WHEEL_RADIUS; // R = 50m (Đường kính 100m)
     int          numSpokes        = 32;     // 32 nan hoa chịu lực hướng tâm
     int          numCabins        = 64;     // 64 cabin chở khách (cách đều 5.625 độ)
-    float        rotationSpeed    = 12.0f;  // Tốc độ quay tính bằng độ/giây
+    float        rotationSpeed    = ParkLayout::SUN_WHEEL_REAL_SPEED_DEG; // Tốc độ thực tế 0.4 độ/giây (15 phút/vòng)
+    bool         fastDemoMode     = false;  // Chế độ tua nhanh trình diễn x5 (2.0 độ/giây) bật/tắt bằng phím V
     float        currentAngleDeg  = 0.0f;   // Góc quay hiện tại của vòng quay alpha
 
     SunWheel() = default;
 
     /**
+     * @brief Lấy tốc độ góc hiệu dụng hiện tại (0.4 độ/s thực tế hoặc 2.0 độ/s khi bật x5)
+     */
+    float getEffectiveSpeedDeg() const {
+        return rotationSpeed * (fastDemoMode ? ParkLayout::SUN_WHEEL_DEMO_FAST_MULT : 1.0f);
+    }
+
+    /**
      * @brief Cập nhật bộ đếm thời gian mô phỏng
      */
     void update(float dt) {
-        currentAngleDeg = std::fmod(currentAngleDeg + rotationSpeed * dt, 360.0f);
+        currentAngleDeg = std::fmod(currentAngleDeg + getEffectiveSpeedDeg() * dt, 360.0f);
     }
 
     /**

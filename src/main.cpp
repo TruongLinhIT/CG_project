@@ -13,7 +13,12 @@
  */
 
 #include <GL/freeglut.h>
+#ifndef _WIN32
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#endif
 #include <cstdio>
+#include <cstring>
 #include <cmath>
 #include <vector>
 #include <string>
@@ -21,6 +26,7 @@
 #include <cctype>
 
 #include "core/MathCG.h"
+#include "core/ParkLayout.h"
 #include "core/Camera.h"
 #include "core/Lighting.h"
 #include "curves/BezierTrack.h"
@@ -66,9 +72,9 @@ struct SimulationState {
 
     // Thông số thực tế của Vòng quay Sun Wheel (Công viên Châu Á - Đà Nẵng):
     // Đường kính = 100m (R = 50m), Độ cao tâm = 65m (Tổng chiều cao = 115m),
-    // 32 nan hoa hướng tâm, 64 cabin (góc lệch delta = 5.625 độ)
-    MathCG::Vec3 sunWheelCenter = MathCG::Vec3(0.0f, 65.0f, -38.0f);
-    float        sunWheelRadius = 50.0f;
+    // 32 nan hoa hướng tâm, 64 cabin (góc lệch delta = 5.625 độ), tốc độ thực 0.4 độ/s
+    MathCG::Vec3 sunWheelCenter = ParkLayout::SUN_WHEEL_CENTER;
+    float        sunWheelRadius = ParkLayout::SUN_WHEEL_RADIUS;
     int          numSpokes      = 32;
     int          numCabins      = 64;
 
@@ -135,6 +141,7 @@ enum MenuOption {
     MENU_ANIM_TOGGLE = 50,
     MENU_ANIM_FASTER,
     MENU_ANIM_SLOWER,
+    MENU_TOGGLE_SUNWHEEL_FAST,
     MENU_TOGGLE_HUD,
     MENU_TOGGLE_MINIMAP,
     MENU_EXIT = 99
@@ -269,70 +276,240 @@ static void drawLakesidePavilionMesh() {
     }
 
     glPushMatrix();
-    glTranslatef(0.0f, 0.0f, 28.0f); // Đài ngắm cảnh phía Nam hướng ra mặt hồ
+    glTranslatef(
+        ParkLayout::LAKESIDE_PAVILION_POS.x,
+        ParkLayout::LAKESIDE_PAVILION_POS.y,
+        ParkLayout::LAKESIDE_PAVILION_POS.z
+    ); // Thủy đình thực tế trên mặt hồ phía Bắc Sun Wheel (-5.4, 0.0, -107.7)
     bool smooth = (gLighting.shadingModel == ShadingModel::GOURAUD_SMOOTH);
     pavilionMesh.draw(smooth, gState.showNormalsAndCtrl);
     glPopMatrix();
 }
 
 /**
- * @brief Vẽ mặt đất công viên & Hồ nước phản xạ bán trong suốt tại mặt phẳng y = 0
+ * @brief Vẽ một tuyến dải phẳng (quad-strip) sát mặt đất cho đường giao thông hoặc lối đi bộ
+ *        Nâng cao độ y thêm vài cm để khử hiện tượng Z-fighting với mặt phẳng nền.
+ */
+static void drawFlatPolylineStrip(
+    const ParkLayout::PointXZ* pts,
+    int count,
+    float width,
+    float y,
+    float r, float g, float b
+) {
+    if (!pts || count < 2) return;
+    const float halfW = width * 0.5f;
+
+    glColor3f(r, g, b);
+    glNormal3f(0.0f, 1.0f, 0.0f);
+
+    for (int i = 0; i < count - 1; ++i) {
+        float dx = pts[i + 1].x - pts[i].x;
+        float dz = pts[i + 1].z - pts[i].z;
+        float len = std::sqrt(dx * dx + dz * dz);
+        if (len < 1e-4f) continue;
+
+        // Vector pháp tuyến ngang (-dz, dx) trong mặt phẳng XZ để mở rộng bề ngang dải
+        float nx = (-dz / len) * halfW;
+        float nz = ( dx / len) * halfW;
+
+        glBegin(GL_QUADS);
+        glVertex3f(pts[i].x     - nx, y, pts[i].z     - nz);
+        glVertex3f(pts[i].x     + nx, y, pts[i].z     + nz);
+        glVertex3f(pts[i + 1].x + nx, y, pts[i + 1].z + nz);
+        glVertex3f(pts[i + 1].x - nx, y, pts[i + 1].z - nz);
+        glEnd();
+    }
+
+    // Vẽ đĩa tròn nối khớp mượt tại các đỉnh gấp khúc để dải lối đi không bị hở góc
+    const int jointSlices = 10;
+    for (int i = 0; i < count; ++i) {
+        glBegin(GL_TRIANGLE_FAN);
+        glVertex3f(pts[i].x, y, pts[i].z);
+        for (int s = 0; s <= jointSlices; ++s) {
+            float ang = (static_cast<float>(s) / jointSlices) * MathCG::TWO_PI;
+            glVertex3f(
+                pts[i].x + halfW * std::cos(ang),
+                y,
+                pts[i].z - halfW * std::sin(ang)
+            );
+        }
+        glEnd();
+    }
+}
+
+/**
+ * @brief Vẽ mặt đất công viên, ranh giới ~36.1 ha, đường bao quanh, Sông Hàn,
+ *        Hồ nước phản xạ bán trong suốt phía Bắc Sun Wheel (y = 0) & Hệ thống lối đi nội bộ
  */
 static void drawParkGroundAndLake() {
-    // Thảm cỏ công viên phía ngoài (để trống vùng hồ trung tâm [-58..58, -62..16] cho ảnh phản xạ của Sun Wheel cao 115m)
-    glColor3f(0.16f, 0.36f, 0.18f);
+    // 1. Nền đất tổng thể bên ngoài công viên (màu đất đô thị sẫm tại y = -0.10m)
+    glColor3f(0.11f, 0.16f, 0.12f);
     glNormal3f(0.0f, 1.0f, 0.0f);
     glBegin(GL_QUADS);
-    // Dải đất phía Bắc
-    glVertex3f(-140.0f, -0.05f, -140.0f);
-    glVertex3f(-140.0f, -0.05f,  -62.0f);
-    glVertex3f( 140.0f, -0.05f,  -62.0f);
-    glVertex3f( 140.0f, -0.05f, -140.0f);
-    // Dải đất phía Nam
-    glVertex3f(-140.0f, -0.05f,   16.0f);
-    glVertex3f(-140.0f, -0.05f,  140.0f);
-    glVertex3f( 140.0f, -0.05f,  140.0f);
-    glVertex3f( 140.0f, -0.05f,   16.0f);
-    // Dải đất phía Tây
-    glVertex3f(-140.0f, -0.05f,  -62.0f);
-    glVertex3f(-140.0f, -0.05f,   16.0f);
-    glVertex3f( -58.0f, -0.05f,   16.0f);
-    glVertex3f( -58.0f, -0.05f,  -62.0f);
-    // Dải đất phía Đông
-    glVertex3f(  58.0f, -0.05f,  -62.0f);
-    glVertex3f(  58.0f, -0.05f,   16.0f);
-    glVertex3f( 140.0f, -0.05f,   16.0f);
-    glVertex3f( 140.0f, -0.05f,  -62.0f);
+    glVertex3f(-620.0f, -0.10f, -560.0f);
+    glVertex3f(-620.0f, -0.10f,  320.0f);
+    glVertex3f( 640.0f, -0.10f,  320.0f);
+    glVertex3f( 640.0f, -0.10f, -560.0f);
     glEnd();
 
-    // Hồ nước trung tâm bán trong suốt tại y = 0 (GL_BLEND)
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glColor4f(0.08f, 0.28f, 0.48f, 0.62f);
+    // 2. Mặt phẳng cỏ công viên một màu mở rộng theo ranh giới thực tế (~36.1 ha, kể cả nửa Đông là nền cỏ đơn giản)
+    //    Chia đa giác PARK_BOUNDARY_POLY thành hai quạt tam giác lồi (Nửa Tây & Nửa Đông) với thứ tự đỉnh CCW chuẩn
+    //    để không bị khử mặt sau (GL_CULL_FACE) và không tràn qua vùng eo lõm của hồ nước phía Bắc Sun Wheel.
+    glColor3f(0.16f, 0.36f, 0.18f);
+    glNormal3f(0.0f, 1.0f, 0.0f);
+
+    // 2.1. Quạt tam giác Nửa Tây (tâm tại (-220, -0.04, -180), đi ngược từ đỉnh 8 -> 0 -> 15)
+    glBegin(GL_TRIANGLE_FAN);
+    glVertex3f(-220.0f, -0.04f, -180.0f);
+    for (int i = 8; i >= 0; --i) {
+        glVertex3f(ParkLayout::PARK_BOUNDARY_POLY[i].x, -0.04f, ParkLayout::PARK_BOUNDARY_POLY[i].z);
+    }
+    glVertex3f(ParkLayout::PARK_BOUNDARY_POLY[15].x, -0.04f, ParkLayout::PARK_BOUNDARY_POLY[15].z);
+    glEnd();
+
+    // 2.2. Quạt tam giác Nửa Đông (nền cỏ đơn giản, tâm tại (200, -0.04, -100), đi ngược từ đỉnh 15 -> 9)
+    glBegin(GL_TRIANGLE_FAN);
+    glVertex3f(200.0f, -0.04f, -100.0f);
+    for (int i = 15; i >= 9; --i) {
+        glVertex3f(ParkLayout::PARK_BOUNDARY_POLY[i].x, -0.04f, ParkLayout::PARK_BOUNDARY_POLY[i].z);
+    }
+    glEnd();
+
+    // 2.3. Các tam giác nối liền vùng quảng trường Sun Wheel từ bờ Nam hồ [8]..[9] xuống cổng Nam [15]
+    glBegin(GL_TRIANGLES);
+    glVertex3f(-220.0f, -0.04f, -180.0f);
+    glVertex3f(ParkLayout::PARK_BOUNDARY_POLY[15].x, -0.04f, ParkLayout::PARK_BOUNDARY_POLY[15].z);
+    glVertex3f(ParkLayout::PARK_BOUNDARY_POLY[8].x,  -0.04f, ParkLayout::PARK_BOUNDARY_POLY[8].z);
+
+    glVertex3f(ParkLayout::PARK_BOUNDARY_POLY[8].x,  -0.04f, ParkLayout::PARK_BOUNDARY_POLY[8].z);
+    glVertex3f(ParkLayout::PARK_BOUNDARY_POLY[15].x, -0.04f, ParkLayout::PARK_BOUNDARY_POLY[15].z);
+    glVertex3f(ParkLayout::PARK_BOUNDARY_POLY[9].x,  -0.04f, ParkLayout::PARK_BOUNDARY_POLY[9].z);
+
+    glVertex3f(ParkLayout::PARK_BOUNDARY_POLY[9].x,  -0.04f, ParkLayout::PARK_BOUNDARY_POLY[9].z);
+    glVertex3f(ParkLayout::PARK_BOUNDARY_POLY[15].x, -0.04f, ParkLayout::PARK_BOUNDARY_POLY[15].z);
+    glVertex3f( 200.0f, -0.04f, -100.0f);
+    glEnd();
+
+    // Viền ranh giới công viên mảnh sát đất (y = 0.015m)
+    glColor3f(0.28f, 0.52f, 0.30f);
+    glLineWidth(1.5f);
+    glBegin(GL_LINE_LOOP);
+    for (int i = 0; i < ParkLayout::NUM_PARK_BOUNDARY_PTS; ++i) {
+        glVertex3f(ParkLayout::PARK_BOUNDARY_POLY[i].x, 0.015f, ParkLayout::PARK_BOUNDARY_POLY[i].z);
+    }
+    glEnd();
+    glLineWidth(1.0f);
+
+    // 3. Dải mặt nước Sông Hàn ở rìa phía Đông Đường Thuận Yến / Đỗ Pháp Thuận (y = -0.05m)
+    glColor3f(0.06f, 0.24f, 0.44f);
     glNormal3f(0.0f, 1.0f, 0.0f);
     glBegin(GL_QUADS);
-    glVertex3f(-58.0f, 0.0f, -62.0f);
-    glVertex3f(-58.0f, 0.0f,  16.0f);
-    glVertex3f( 58.0f, 0.0f,  16.0f);
-    glVertex3f( 58.0f, 0.0f, -62.0f);
+    glVertex3f(ParkLayout::HAN_RIVER_QUAD.v[0].x, -0.05f, ParkLayout::HAN_RIVER_QUAD.v[0].z);
+    glVertex3f(ParkLayout::HAN_RIVER_QUAD.v[1].x, -0.05f, ParkLayout::HAN_RIVER_QUAD.v[1].z);
+    glVertex3f(ParkLayout::HAN_RIVER_QUAD.v[2].x, -0.05f, ParkLayout::HAN_RIVER_QUAD.v[2].z);
+    glVertex3f(ParkLayout::HAN_RIVER_QUAD.v[3].x, -0.05f, ParkLayout::HAN_RIVER_QUAD.v[3].z);
+    glEnd();
+
+    // 4. Các tuyến đường nhựa bao quanh công viên (Phan Đăng Lưu, Đỗ Pháp Thuận/Thuận Yến, đường phía Tây)
+    drawFlatPolylineStrip(
+        ParkLayout::ROAD_PHAN_DANG_LUU,
+        ParkLayout::NUM_ROAD_PHAN_DANG_LUU_PTS,
+        ParkLayout::ROAD_PHAN_DANG_LUU_WIDTH,
+        -0.02f, 0.22f, 0.24f, 0.27f
+    );
+    drawFlatPolylineStrip(
+        ParkLayout::ROAD_EAST_BORDER,
+        ParkLayout::NUM_ROAD_EAST_BORDER_PTS,
+        ParkLayout::ROAD_EAST_BORDER_WIDTH,
+        -0.02f, 0.22f, 0.24f, 0.27f
+    );
+    drawFlatPolylineStrip(
+        ParkLayout::ROAD_WEST_BORDER,
+        ParkLayout::NUM_ROAD_WEST_BORDER_PTS,
+        ParkLayout::ROAD_WEST_BORDER_WIDTH,
+        -0.02f, 0.22f, 0.24f, 0.27f
+    );
+
+    // 5. Hồ nước thực tế phía Bắc Sun Wheel (Z_eng <= -73.4m) bán trong suốt tại mặt phẳng y = 0 (GL_BLEND)
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0.08f, 0.28f, 0.48f, 0.68f);
+    glNormal3f(0.0f, 1.0f, 0.0f);
+    glBegin(GL_QUADS);
+    for (int q = 0; q < ParkLayout::NUM_LAKE_CONVEX_QUADS; ++q) {
+        const auto& quad = ParkLayout::LAKE_CONVEX_QUADS[q];
+        // Thứ tự đỉnh ngược chiều kim đồng hồ (CCW) khi nhìn từ +Y xuống
+        glVertex3f(quad.v[0].x, 0.0f, quad.v[0].z);
+        glVertex3f(quad.v[1].x, 0.0f, quad.v[1].z);
+        glVertex3f(quad.v[2].x, 0.0f, quad.v[2].z);
+        glVertex3f(quad.v[3].x, 0.0f, quad.v[3].z);
+    }
     glEnd();
     glDisable(GL_BLEND);
 
-    // Các trụ đèn lồng dạo bộ phong cách Á Đông quanh hồ (minh họa đủ 4 dạng mặt cong tham số ParametricShapes)
-    static const MathCG::Vec3 lampLocations[] = {
-        { -56.0f, 0.0f,  14.0f },
-        { -28.0f, 0.0f,  14.0f },
-        {   0.0f, 0.0f,  14.0f },
-        {  28.0f, 0.0f,  14.0f },
-        {  56.0f, 0.0f,  14.0f },
-        { -56.0f, 0.0f, -60.0f },
-        { -28.0f, 0.0f, -60.0f },
-        {   0.0f, 0.0f, -60.0f },
-        {  28.0f, 0.0f, -60.0f },
-        {  56.0f, 0.0f, -60.0f }
-    };
+    // Bờ kè đá viền quanh mép hồ phía Bắc Sun Wheel (y = 0.03m)
+    glColor3f(0.55f, 0.56f, 0.58f);
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+    for (int i = 0; i < ParkLayout::NUM_LAKE_OUTLINE_PTS; ++i) {
+        glVertex3f(ParkLayout::LAKE_OUTLINE_POLY[i].x, 0.03f, ParkLayout::LAKE_OUTLINE_POLY[i].z);
+    }
+    glEnd();
+    glLineWidth(1.0f);
 
-    for (const auto& pos : lampLocations) {
+    // 6. Hệ thống lối đi nội bộ dẫn giữa các công trình (dải phẳng nâng lên y = 0.035..0.04m tránh Z-fighting)
+    // 6.1. Lối đi chính (rộng 5-6m, màu gạch lát quảng trường sáng ấm)
+    drawFlatPolylineStrip(
+        ParkLayout::PATH_MAIN_SPINE,
+        ParkLayout::NUM_PATH_MAIN_SPINE_PTS,
+        ParkLayout::PATH_MAIN_SPINE_WIDTH,
+        ParkLayout::PATH_Y_MAIN,
+        0.74f, 0.68f, 0.58f
+    );
+    drawFlatPolylineStrip(
+        ParkLayout::PATH_SOUTH_LAKE_PROM,
+        ParkLayout::NUM_PATH_SOUTH_LAKE_PROM_PTS,
+        ParkLayout::PATH_SOUTH_LAKE_PROM_WIDTH,
+        ParkLayout::PATH_Y_MAIN,
+        0.74f, 0.68f, 0.58f
+    );
+    drawFlatPolylineStrip(
+        ParkLayout::PATH_WEST_SPINE,
+        ParkLayout::NUM_PATH_WEST_SPINE_PTS,
+        ParkLayout::PATH_WEST_SPINE_WIDTH,
+        ParkLayout::PATH_Y_MAIN,
+        0.74f, 0.68f, 0.58f
+    );
+
+    // 6.2. Lối đi phụ (rộng 3.0-3.5m, ven bờ Tây hồ nước & lối nối ngang trung tâm)
+    drawFlatPolylineStrip(
+        ParkLayout::PATH_LAKESIDE_WEST,
+        ParkLayout::NUM_PATH_LAKESIDE_WEST_PTS,
+        ParkLayout::PATH_LAKESIDE_WEST_WIDTH,
+        ParkLayout::PATH_Y_SECONDARY,
+        0.66f, 0.62f, 0.54f
+    );
+    drawFlatPolylineStrip(
+        ParkLayout::PATH_CENTRAL_CONNECTOR,
+        ParkLayout::NUM_PATH_CENTRAL_CONNECTOR_PTS,
+        ParkLayout::PATH_CENTRAL_CONNECTOR_WIDTH,
+        ParkLayout::PATH_Y_SECONDARY,
+        0.66f, 0.62f, 0.54f
+    );
+
+    // 6.3. Cầu gỗ dẫn từ bờ kè Nam ra Thủy đình trên mặt hồ (rộng 3.0m, cao y = 0.25m trên mặt nước)
+    drawFlatPolylineStrip(
+        ParkLayout::PATH_PAVILION_PIER,
+        ParkLayout::NUM_PATH_PAVILION_PIER_PTS,
+        ParkLayout::PATH_PAVILION_PIER_WIDTH,
+        ParkLayout::PIER_Y_DECK,
+        0.58f, 0.36f, 0.20f
+    );
+
+    // 7. 10 trụ đèn lồng dạo bộ phong cách Á Đông dọc bờ kè phía Nam của hồ mới (ParametricShapes)
+    for (int i = 0; i < ParkLayout::NUM_LAKESIDE_LANTERNS; ++i) {
+        const auto& pos = ParkLayout::LAKESIDE_LANTERN_POS[i];
         glPushMatrix();
         glTranslatef(pos.x, pos.y, pos.z);
 
@@ -521,7 +698,9 @@ static void displayCallback() {
             gState.showMinimap,
             gState.isPaused,
             gCurves.queenCobraTrain.paramT,
-            gCurves.queenCobraTrain.lastSpeedMps
+            gCurves.queenCobraTrain.lastSpeedMps,
+            gSunWheel.getEffectiveSpeedDeg(),
+            gSunWheel.fastDemoMode
         );
     }
 
@@ -663,6 +842,9 @@ static void applyMenuSelection(int option) {
         case MENU_ANIM_SLOWER:
             gState.animSpeed = std::max(0.25f, gState.animSpeed - 0.25f);
             break;
+        case MENU_TOGGLE_SUNWHEEL_FAST:
+            gSunWheel.fastDemoMode = !gSunWheel.fastDemoMode;
+            break;
         case MENU_TOGGLE_HUD:
             gState.showHUD = !gState.showHUD;
             break;
@@ -744,6 +926,9 @@ static void keyboardCallback(unsigned char key, int x, int y) {
             break;
         case 'r': case 'R':
             gState.lakeReflection = !gState.lakeReflection;
+            break;
+        case 'v': case 'V':
+            applyMenuSelection(MENU_TOGGLE_SUNWHEEL_FAST);
             break;
         case 'l': case 'L': {
             int nextTime = (static_cast<int>(gLighting.timeOfDay) + 1) % 3;
@@ -935,6 +1120,7 @@ static void createGLUTMenus() {
 
     int animSubMenu = glutCreateMenu(applyMenuSelection);
     glutAddMenuEntry("Tam dung / Tiep tuc Hoat anh [SPACE]",    MENU_ANIM_TOGGLE);
+    glutAddMenuEntry("Bat/Tat Tua nhanh Sun Wheel x5 (2.0 do/s) [V]", MENU_TOGGLE_SUNWHEEL_FAST);
     glutAddMenuEntry("Tang toc hoat anh",                       MENU_ANIM_FASTER);
     glutAddMenuEntry("Giam toc hoat anh",                       MENU_ANIM_SLOWER);
     glutAddMenuEntry("Bat/Tat Ban do nho 2D [M]",               MENU_TOGGLE_MINIMAP);
@@ -952,10 +1138,162 @@ static void createGLUTMenus() {
 }
 
 // ============================================================================
+// CHỤP ẢNH SCENE NHÌN TỪ TRÊN XUỐNG (ORTHO TOP-DOWN) KHÔNG CẦN MÀN HÌNH X11
+// ============================================================================
+
+#ifndef _WIN32
+static bool renderHeadlessTopDownPPM(const char* outPpmPath) {
+    const int capW = 2258;
+    const int capH = 1869;
+
+    // 1. Khởi tạo EGL Surfaceless Mesa Pbuffer (hoạt động cả khi không có X11 DISPLAY)
+    constexpr EGLenum kPlatformSurfacelessMesa = 0x31DD;
+    EGLDisplay dpy = eglGetPlatformDisplay(kPlatformSurfacelessMesa, nullptr, nullptr);
+    if (dpy == EGL_NO_DISPLAY) {
+        dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+    }
+    if (dpy == EGL_NO_DISPLAY) return false;
+
+    EGLint major = 0, minor = 0;
+    if (!eglInitialize(dpy, &major, &minor)) return false;
+    if (!eglBindAPI(EGL_OPENGL_API)) return false;
+
+    const EGLint cfgAttribs[] = {
+        EGL_SURFACE_TYPE,    EGL_PBUFFER_BIT,
+        EGL_RED_SIZE,        8,
+        EGL_GREEN_SIZE,      8,
+        EGL_BLUE_SIZE,       8,
+        EGL_ALPHA_SIZE,      8,
+        EGL_DEPTH_SIZE,      24,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+        EGL_NONE
+    };
+    EGLConfig cfg = nullptr;
+    EGLint numCfgs = 0;
+    if (!eglChooseConfig(dpy, cfgAttribs, &cfg, 1, &numCfgs) || numCfgs < 1) return false;
+
+    const EGLint pbufAttribs[] = {
+        EGL_WIDTH,  capW,
+        EGL_HEIGHT, capH,
+        EGL_NONE
+    };
+    EGLSurface surf = eglCreatePbufferSurface(dpy, cfg, pbufAttribs);
+    if (surf == EGL_NO_SURFACE) return false;
+
+    EGLContext ctx = eglCreateContext(dpy, cfg, EGL_NO_CONTEXT, nullptr);
+    if (ctx == EGL_NO_CONTEXT) return false;
+    if (!eglMakeCurrent(dpy, surf, surf, ctx)) return false;
+
+    // 2. Khởi tạo dữ liệu đường ray & thiết lập trạng thái OpenGL
+    gCurves.init();
+    glViewport(0, 0, capW, capH);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    gLighting.timeOfDay = TimeOfDay::DAY;
+    gLighting.applyClearColor();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // 3. Thiết lập phép chiếu trực giao từ trên xuống khớp chính xác khung bao của layout_overlay.png:
+    //    Local X in [-490, +470], Local Z in [-485, +305] => Engine X in [-490, +470], Engine Z in [-523, +267]
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(-490.0, 470.0, -267.0, 523.0, 1.0, 1500.0);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    // Đặt mắt tại (0, 600, 0) nhìn thẳng xuống gốc (0, 0, 0) với vector Up hướng Bắc (0, 0, -1)
+    // Khi đó: X_eye = X_world, Y_eye = -Z_world, Z_eye = Y_world - 600
+    // => Z_world = -523 (cạnh Bắc) ánh xạ tới Y_eye = +523 (mép trên ảnh)
+    // => Z_world = +267 (cạnh Nam) ánh xạ tới Y_eye = -267 (mép dưới ảnh)
+    gluLookAt(0.0, 600.0, 0.0,
+              0.0,   0.0, 0.0,
+              0.0,   0.0, -1.0);
+
+    TrackFrame queenFrame = gCurves.getQueenCobraCameraFrame();
+    gLighting.applyLights(gState.sunWheelCenter);
+    gLighting.applyCoasterHeadlight(
+        queenFrame.position + queenFrame.up * 0.8f + queenFrame.tangent * 1.5f,
+        queenFrame.tangent
+    );
+
+    // 4. Vẽ toàn bộ cảnh 3D của Đợt 1
+    drawParkGroundAndLake();
+    drawLakesidePavilionMesh();
+    drawHierarchicalSunWheelPreview();
+    gCurves.draw(false, gLighting.lightingEnabled, gLighting.timeOfDay);
+    gSkyTower.draw(false, false);
+    gCarousel.draw(false, false);
+    gNgoMonGate.draw(false, false, true);
+
+    // 5. Vẽ thêm lưới tọa độ mét (bước 50m / 100m theo Local X, Z) để dễ đối chiếu trực tiếp với layout_overlay.png
+    glDisable(GL_LIGHTING);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBegin(GL_LINES);
+    for (int gx = -450; gx <= 450; gx += 50) {
+        bool major = (gx % 100 == 0);
+        glColor4f(1.0f, 1.0f, 0.85f, major ? 0.38f : 0.16f);
+        glVertex3f(static_cast<float>(gx), 0.15f, -523.0f);
+        glVertex3f(static_cast<float>(gx), 0.15f,  267.0f);
+    }
+    for (int gzLoc = -450; gzLoc <= 300; gzLoc += 50) {
+        bool major = (gzLoc % 100 == 0);
+        float gzEng = static_cast<float>(gzLoc) + ParkLayout::ENGINE_Z_OFFSET;
+        glColor4f(1.0f, 1.0f, 0.85f, major ? 0.38f : 0.16f);
+        glVertex3f(-490.0f, 0.15f, gzEng);
+        glVertex3f( 470.0f, 0.15f, gzEng);
+    }
+    glEnd();
+    glDisable(GL_BLEND);
+
+    glFlush();
+    glFinish();
+
+    // 6. Đọc framebuffer và ghi file PPM
+    std::vector<unsigned char> pixels(static_cast<size_t>(capW) * capH * 3);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glReadPixels(0, 0, capW, capH, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+
+    FILE* fp = std::fopen(outPpmPath, "wb");
+    if (!fp) return false;
+    std::fprintf(fp, "P6\n%d %d\n255\n", capW, capH);
+    // Lật trục dọc từ gốc dưới-trái của OpenGL sang trên-trái của ảnh PPM
+    for (int y = capH - 1; y >= 0; --y) {
+        std::fwrite(&pixels[static_cast<size_t>(y) * capW * 3], 1, static_cast<size_t>(capW) * 3, fp);
+    }
+    std::fclose(fp);
+
+    eglMakeCurrent(dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    eglDestroyContext(dpy, ctx);
+    eglDestroySurface(dpy, surf);
+    eglTerminate(dpy);
+    return true;
+}
+#endif
+
+// ============================================================================
 // HÀM MAIN KHỞI CHẠY CHƯƠNG TRÌNH
 // ============================================================================
 
 int main(int argc, char** argv) {
+#ifndef _WIN32
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--capture-top") == 0 && i + 1 < argc) {
+            bool ok = renderHeadlessTopDownPPM(argv[i + 1]);
+            if (ok) {
+                std::printf("Captured top-down scene to %s\n", argv[i + 1]);
+                return 0;
+            } else {
+                std::fprintf(stderr, "Failed to capture headless top-down scene\n");
+                return 1;
+            }
+        }
+    }
+#endif
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
     glutInitWindowSize(gState.windowWidth, gState.windowHeight);
