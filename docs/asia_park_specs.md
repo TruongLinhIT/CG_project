@@ -480,6 +480,20 @@ Theo yêu cầu điều chỉnh số 1 & 2, cả 5 hạng mục dưới đây đ
 
 ---
 
+### 12.9. Chỉnh bề mặt ĐỢT 7 (Mặt đất mờ dần ra đường chân trời & Màn hình xanh dịu có chữ/hoa văn tại Sân khấu Sun Wheel)
+
+1. **Mở rộng nền ngoài ranh giới thành mặt đất mờ dần kèm đường chân trời (`drawParkGroundAndLake()` trong `src/main.cpp`):**
+   - Thay tấm nền tối hẹp `[-620..+640]` bằng vành địa hình hướng tâm mở rộng tới bán kính `R = 2 150 m` (`y = −0.10 m`), chuyển sắc mượt từ màu đất cỏ ngoại vi (`R = 280 m`) qua lớp sương mờ trung cảnh (`R = 820 m`) và hòa hoàn toàn vào màu bầu trời tại đường chân trời (`R = 2 150 m`) theo cả 3 chế độ Ngày / Hoàng hôn / Đêm, kết hợp dải núi mờ xa ở chân trời (`R = 1 980 m`). Triệt tiêu hoàn toàn viền đen ngoài ranh giới công viên.
+2. **Đổi màn hình Sân khấu Sun Wheel từ trắng phẳng sang nền xanh dịu có chữ & hoa văn (`drawStageCircularScreensAndLights()` trong `src/rides/ParkArchitecture.h`):**
+   - Màn hình LED chính giữa sân khấu được vẽ với nền chuyển sắc xanh ngọc dịu → xanh biển trầm, kèm dải sóng nước ở chân màn hình, biểu tượng Vòng quay Mặt Trời 12 nan hoa vàng ở tâm và dòng chữ **`"ASIA PARK"`** phía trên; 2 màn hình tròn hai bên dùng nền xanh dịu đồng bộ kèm hoa văn mặt trời/hoa sen 8 cánh vàng ở tâm.
+3. **Hiệu năng & Bộ 3 ảnh toàn cảnh Đợt 7:**
+   - **FPS tại `1280 × 768` (200 khung hình liên tiếp):** **`118.7 FPS`** (`200 frames / 1.684 s` — vượt ngưỡng `≥ 100 FPS`).
+   - [`img/wave7_panorama_sunset.png`](img/wave7_panorama_sunset.png) — Ảnh toàn cảnh 1 (Góc cao Nam – Tây Nam lúc hoàng hôn, thấy rõ mặt đất mờ dần ra đường chân trời và màn hình sân khấu xanh dịu).
+   - [`img/wave7_panorama_west_day.png`](img/wave7_panorama_west_day.png) — Ảnh toàn cảnh 2 (Góc cao khu Tây ban ngày với đường chân trời xanh dịu và toàn bộ công viên).
+   - [`img/wave7_panorama_stage_sunwheel.png`](img/wave7_panorama_stage_sunwheel.png) *(kèm cận cảnh sân khấu [`img/wave7_stage_closeup.png`](img/wave7_stage_closeup.png))* — Ảnh toàn cảnh 3 (Trục Quảng trường Trung tâm nhìn về Sân khấu Sun Wheel có chữ `"ASIA PARK"` & biểu tượng vòng quay trên màn hình xanh dịu cùng đường chân trời phía Bắc).
+
+---
+
 ## 11. Danh mục nguồn bổ sung
 
 1. [Sun World — Vòng quay Mặt Trời Sun Wheel](https://sunworld.vn/vi/check-in/vong-quay-sun-wheel-tai-asia-park-niem-tu-hao-cua-da-nang-6125)

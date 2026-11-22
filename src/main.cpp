@@ -348,15 +348,90 @@ static void drawFlatPolylineStrip(
  *        Hồ nước phản xạ bán trong suốt phía Bắc Sun Wheel (y = 0) & Hệ thống lối đi nội bộ
  */
 static void drawParkGroundAndLake() {
-    // 1. Nền đất tổng thể bên ngoài công viên (màu đất đô thị sẫm tại y = -0.10m)
-    glColor3f(0.11f, 0.16f, 0.12f);
-    glNormal3f(0.0f, 1.0f, 0.0f);
-    glBegin(GL_QUADS);
-    glVertex3f(-620.0f, -0.10f, -560.0f);
-    glVertex3f(-620.0f, -0.10f,  320.0f);
-    glVertex3f( 640.0f, -0.10f,  320.0f);
-    glVertex3f( 640.0f, -0.10f, -560.0f);
+    // 1. ĐỢT 7: Mặt đất ngoài ranh giới mở rộng ra tận đường chân trời (R = 2150m) với hiệu ứng mờ dần (radial fade)
+    //    hòa vào màu bầu trời theo từng thời điểm (Ngày / Hoàng hôn / Đêm) + dải núi Sơn Trà - Hải Vân mờ xa ở chân trời,
+    //    triệt tiêu hoàn toàn viền đen ngoài ranh giới công viên.
+    GLboolean wasLit  = glIsEnabled(GL_LIGHTING);
+    GLboolean wasCull = glIsEnabled(GL_CULL_FACE);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_CULL_FACE);
+
+    float inR = 0.18f, inG = 0.35f, inB = 0.20f;
+    float midR = 0.32f, midG = 0.52f, midB = 0.48f;
+    float skyR = 0.52f, skyG = 0.77f, skyB = 0.96f;
+    float mtnR = 0.38f, mtnG = 0.56f, mtnB = 0.76f;
+
+    if (gLighting.timeOfDay == TimeOfDay::SUNSET) {
+        inR  = 0.22f; inG  = 0.28f; inB  = 0.18f;
+        midR = 0.52f; midG = 0.36f; midB = 0.26f;
+        skyR = 0.88f; skyG = 0.48f; skyB = 0.30f;
+        mtnR = 0.56f; mtnG = 0.34f; mtnB = 0.32f;
+    } else if (gLighting.timeOfDay == TimeOfDay::NIGHT) {
+        inR  = 0.06f; inG  = 0.11f; inB  = 0.10f;
+        midR = 0.05f; midG = 0.08f; midB = 0.12f;
+        skyR = 0.03f; skyG = 0.04f; skyB = 0.09f;
+        mtnR = 0.06f; mtnG = 0.08f; mtnB = 0.16f;
+    }
+
+    const int   horizonSlices = 48;
+    const float rInner = 280.0f;
+    const float rMid   = 820.0f;
+    const float rOuter = 2150.0f;
+    const float yBase  = -0.10f;
+
+    // Đĩa trung tâm dưới đáy công viên (R = 280m, CCW khi nhìn từ +Y xuống: sin(-a))
+    glBegin(GL_TRIANGLE_FAN);
+    glColor3f(inR, inG, inB);
+    glVertex3f(0.0f, yBase, -120.0f);
+    for (int i = 0; i <= horizonSlices; ++i) {
+        float a = (static_cast<float>(i) / horizonSlices) * MathCG::TWO_PI;
+        glVertex3f(rInner * std::cos(a), yBase, -120.0f - rInner * std::sin(a));
+    }
     glEnd();
+
+    // Vành chuyển tiếp 1 (rInner -> rMid): từ màu đất cỏ ngoại vi sang màu sương mờ trung cảnh
+    glBegin(GL_QUAD_STRIP);
+    for (int i = 0; i <= horizonSlices; ++i) {
+        float a = (static_cast<float>(i) / horizonSlices) * MathCG::TWO_PI;
+        float ca = std::cos(a);
+        float sa = -std::sin(a);
+        glColor3f(inR, inG, inB);
+        glVertex3f(rInner * ca, yBase, -120.0f + rInner * sa);
+        glColor3f(midR, midG, midB);
+        glVertex3f(rMid * ca, yBase, -120.0f + rMid * sa);
+    }
+    glEnd();
+
+    // Vành chuyển tiếp 2 (rMid -> rOuter): mờ dần hoàn toàn vào màu bầu trời tại đường chân trời
+    glBegin(GL_QUAD_STRIP);
+    for (int i = 0; i <= horizonSlices; ++i) {
+        float a = (static_cast<float>(i) / horizonSlices) * MathCG::TWO_PI;
+        float ca = std::cos(a);
+        float sa = -std::sin(a);
+        glColor3f(midR, midG, midB);
+        glVertex3f(rMid * ca, yBase, -120.0f + rMid * sa);
+        glColor3f(skyR, skyG, skyB);
+        glVertex3f(rOuter * ca, yBase, -120.0f + rOuter * sa);
+    }
+    glEnd();
+
+    // Dải núi mờ đường chân trời (Sơn Trà - Hải Vân - Ngũ Hành Sơn bao quanh Đà Nẵng ở R = 1950m)
+    glBegin(GL_QUAD_STRIP);
+    for (int i = 0; i <= horizonSlices; ++i) {
+        float a = (static_cast<float>(i) / horizonSlices) * MathCG::TWO_PI;
+        float ca = std::cos(a);
+        float sa = std::sin(a);
+        float hPeak = 45.0f + 55.0f * (0.5f + 0.5f * std::sin(a * 3.0f + 0.6f)) * (0.5f + 0.5f * std::cos(a * 5.0f));
+        // Vẽ cả mặt trong và mặt ngoài bằng CULL_FACE tạm tắt để luôn thấy từ mọi góc camera
+        glColor3f(skyR, skyG, skyB);
+        glVertex3f(1980.0f * ca, yBase, -120.0f + 1980.0f * sa);
+        glColor3f(mtnR, mtnG, mtnB);
+        glVertex3f(1980.0f * ca, hPeak, -120.0f + 1980.0f * sa);
+    }
+    glEnd();
+
+    if (wasCull) glEnable(GL_CULL_FACE);
+    if (wasLit)  glEnable(GL_LIGHTING);
 
     // 2. Mặt phẳng cỏ công viên một màu mở rộng theo ranh giới thực tế (~36.1 ha, kể cả nửa Đông là nền cỏ đơn giản)
     //    Chia đa giác PARK_BOUNDARY_POLY thành hai quạt tam giác lồi (Nửa Tây & Nửa Đông) với thứ tự đỉnh CCW chuẩn

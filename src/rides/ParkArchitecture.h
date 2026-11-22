@@ -1092,11 +1092,16 @@ private:
 
     /**
      * @brief Vẽ HAI MÀN HÌNH TRÒN phát sáng lớn và màn hình sân khấu dưới chân Sun Wheel
+     *        (Đợt 7: Đổi màn hình giữa sân khấu từ trắng phẳng sang nền xanh dịu chuyển sắc
+     *         kèm biểu tượng Vòng quay / mặt trời vàng, sóng nước và dòng chữ "ASIA PARK" đơn giản)
      */
     void drawStageCircularScreensAndLights(bool isNightOrSunset) const {
-        const float stZ     = ParkLayout::SUN_WHEEL_STAGE_POS.z; // -17.7m
-        const float frontZ  = stZ + ParkLayout::SUN_WHEEL_STAGE_DEPTH * 0.5f + 0.08f; // -13.12m
+        const float stZ     = ParkLayout::SUN_WHEEL_STAGE_POS.z; // -15.9m
+        const float frontZ  = stZ + ParkLayout::SUN_WHEEL_STAGE_DEPTH * 0.5f + 0.08f;
         const float screenR = ParkLayout::SUN_WHEEL_SCREEN_RADIUS; // 3.1m
+
+        // Tắt tạm thời GL_LIGHTING khi vẽ đồ họa trên mặt màn hình LED để màu sắc không bị cộng dồn thành trắng phẳng
+        GLboolean wasLit = glIsEnabled(GL_LIGHTING);
 
         // 1. Hai Màn hình Tròn lớn ở hai khối nhà cánh (cx = ±19.75m, cy = 4.65m)
         for (int side : {-1, 1}) {
@@ -1106,49 +1111,157 @@ private:
             glPushMatrix();
             glTranslatef(sx, sy, frontZ);
 
-            // Vành khuyên viền mạ vàng quanh màn hình tròn
+            // Vành khuyên viền mạ vàng quanh màn hình tròn (có chiếu sáng)
+            if (wasLit) glEnable(GL_LIGHTING);
             glColor3f(0.92f, 0.74f, 0.20f);
             ParametricShapes::drawToroid(screenR + 0.12f, 0.22f, 28, 8, false);
 
-            // Mặt đĩa màn hình tròn phát sáng rực rỡ vào ban đêm (giống hệt 3 ảnh mẫu)
-            if (isNightOrSunset) {
-                GLfloat emit[4] = { 1.0f, 0.90f, 0.78f, 1.0f };
-                glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, emit);
-                glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, emit);
-                glColor3f(1.0f, 0.94f, 0.85f);
-            } else {
-                glColor3f(0.85f, 0.90f, 0.96f);
-            }
+            // Mặt đĩa màn hình tròn: nền xanh lam dịu + vòng tròn ngọc + hoa sen vàng 8 cánh ở tâm
+            glDisable(GL_LIGHTING);
+            glColor3f(isNightOrSunset ? 0.18f : 0.22f, isNightOrSunset ? 0.52f : 0.58f, isNightOrSunset ? 0.78f : 0.84f);
             ParametricShapes::drawDisk(screenR, 28, 0.0f, false);
 
-            if (isNightOrSunset) {
-                GLfloat zeroEmit[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-                glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, zeroEmit);
+            glPushMatrix();
+            glTranslatef(0.0f, 0.0f, 0.03f);
+            glColor3f(0.32f, 0.74f, 0.88f);
+            ParametricShapes::drawDisk(screenR * 0.68f, 24, 0.0f, false);
+
+            glTranslatef(0.0f, 0.0f, 0.02f);
+            glColor3f(0.98f, 0.84f, 0.36f);
+            glBegin(GL_TRIANGLE_FAN);
+            glVertex3f(0.0f, 0.0f, 0.0f);
+            for (int i = 0; i <= 32; ++i) {
+                float a = (static_cast<float>(i) / 32.0f) * MathCG::TWO_PI;
+                float r = 0.75f + 0.65f * std::fabs(std::cos(4.0f * a));
+                glVertex3f(r * std::cos(a), r * std::sin(a), 0.0f);
             }
+            glEnd();
+            glPopMatrix();
+
             glPopMatrix();
         }
 
-        // 2. Màn hình LED chính giữa Sân khấu Sun Wheel (X thuộc [-9.5, +9.5], Y thuộc [1.6, 7.2], Z = -14.0m)
-        if (isNightOrSunset) {
-            GLfloat stageEmit[4] = { 0.55f, 0.78f, 1.0f, 1.0f };
-            glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, stageEmit);
-            glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, stageEmit);
-            glColor3f(0.65f, 0.85f, 1.0f);
-        } else {
-            glColor3f(0.20f, 0.35f, 0.55f);
-        }
-        glNormal3f(0.0f, 0.0f, 1.0f);
+        // 2. Màn hình LED chính giữa Sân khấu Sun Wheel (X thuộc [-9.5, +9.5], Y thuộc [1.55, 7.25])
+        //    Nền xanh dương/xanh ngọc dịu chuyển sắc + hoa văn Vòng quay Mặt Trời + sóng nước + chữ "ASIA PARK"
+        glDisable(GL_LIGHTING);
+        const float scrZ = stZ + 4.54f; // Ngay phía trước tường hậu đài sân khấu
+
+        // 2.1. Khung viền kim loại sẫm bao quanh màn hình
+        glColor3f(0.16f, 0.20f, 0.28f);
         glBegin(GL_QUADS);
-        glVertex3f(-9.5f, 1.55f, stZ + 3.72f);
-        glVertex3f( 9.5f, 1.55f, stZ + 3.72f);
-        glVertex3f( 9.5f, 7.25f, stZ + 3.72f);
-        glVertex3f(-9.5f, 7.25f, stZ + 3.72f);
+        glVertex3f(-9.8f, 1.42f, scrZ - 0.03f);
+        glVertex3f( 9.8f, 1.42f, scrZ - 0.03f);
+        glVertex3f( 9.8f, 7.38f, scrZ - 0.03f);
+        glVertex3f(-9.8f, 7.38f, scrZ - 0.03f);
         glEnd();
 
-        if (isNightOrSunset) {
-            GLfloat zeroEmit[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-            glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, zeroEmit);
+        // 2.2. Nền màn hình xanh dịu chuyển sắc dọc (dưới xanh ngọc dịu -> trên xanh biển trầm)
+        glBegin(GL_QUADS);
+        glColor3f(0.18f, 0.56f, 0.78f);
+        glVertex3f(-9.5f, 1.55f, scrZ);
+        glVertex3f( 9.5f, 1.55f, scrZ);
+        glColor3f(0.09f, 0.30f, 0.56f);
+        glVertex3f( 9.5f, 7.25f, scrZ);
+        glVertex3f(-9.5f, 7.25f, scrZ);
+        glEnd();
+
+        // 2.3. Hoa văn dải sóng nước xanh sáng dưới chân màn hình (y = 1.65 .. 2.35m)
+        const float zFg = scrZ + 0.03f;
+        glColor3f(0.32f, 0.76f, 0.90f);
+        glBegin(GL_QUAD_STRIP);
+        for (int i = 0; i <= 24; ++i) {
+            float tx = -9.4f + 18.8f * (static_cast<float>(i) / 24.0f);
+            float wy = 2.05f + 0.22f * std::sin(tx * 0.65f);
+            glVertex3f(tx, 1.58f, zFg);
+            glVertex3f(tx, wy,    zFg);
         }
+        glEnd();
+
+        // 2.4. Hoa văn biểu tượng Sun Wheel / Mặt trời vàng ở tâm màn hình (cx = 0, cy = 4.05m, R = 1.65m)
+        const float embY = 4.05f;
+        glColor3f(0.96f, 0.80f, 0.26f);
+        glLineWidth(2.2f);
+        glBegin(GL_LINE_LOOP);
+        for (int i = 0; i < 28; ++i) {
+            float a = (static_cast<float>(i) / 28.0f) * MathCG::TWO_PI;
+            glVertex3f(1.65f * std::cos(a), embY + 1.65f * std::sin(a), zFg + 0.01f);
+        }
+        glEnd();
+        glColor3f(0.45f, 0.88f, 0.96f);
+        glBegin(GL_LINE_LOOP);
+        for (int i = 0; i < 24; ++i) {
+            float a = (static_cast<float>(i) / 24.0f) * MathCG::TWO_PI;
+            glVertex3f(1.10f * std::cos(a), embY + 1.10f * std::sin(a), zFg + 0.01f);
+        }
+        glEnd();
+        // 12 nan hoa hướng tâm trên biểu tượng màn hình
+        glColor3f(0.98f, 0.86f, 0.38f);
+        glBegin(GL_LINES);
+        for (int i = 0; i < 12; ++i) {
+            float a = (static_cast<float>(i) / 12.0f) * MathCG::TWO_PI;
+            glVertex3f(0.0f, embY, zFg + 0.01f);
+            glVertex3f(1.65f * std::cos(a), embY + 1.65f * std::sin(a), zFg + 0.01f);
+        }
+        glEnd();
+
+        // 2.5. Dòng chữ cách điệu "ASIA PARK" bằng nét вектор ở phần trên màn hình (y = 6.0 .. 6.8m)
+        glColor3f(0.98f, 0.88f, 0.42f);
+        glLineWidth(2.6f);
+        auto drawScreenStrokeLetter = [&](char ch, float lx, float ly, float w, float h) {
+            float x0 = lx, x1 = lx + w, xm = lx + w * 0.5f;
+            float y0 = ly, y1 = ly + h, ym = ly + h * 0.5f;
+            const float zt = zFg + 0.02f;
+            glBegin(GL_LINES);
+            switch (ch) {
+                case 'A':
+                    glVertex3f(x0, y0, zt); glVertex3f(xm, y1, zt);
+                    glVertex3f(xm, y1, zt); glVertex3f(x1, y0, zt);
+                    glVertex3f(x0 + w*0.2f, ym, zt); glVertex3f(x1 - w*0.2f, ym, zt);
+                    break;
+                case 'S':
+                    glVertex3f(x1, y1, zt); glVertex3f(x0, y1, zt);
+                    glVertex3f(x0, y1, zt); glVertex3f(x0, ym, zt);
+                    glVertex3f(x0, ym, zt); glVertex3f(x1, ym, zt);
+                    glVertex3f(x1, ym, zt); glVertex3f(x1, y0, zt);
+                    glVertex3f(x1, y0, zt); glVertex3f(x0, y0, zt);
+                    break;
+                case 'I':
+                    glVertex3f(x0, y1, zt); glVertex3f(x1, y1, zt);
+                    glVertex3f(xm, y0, zt); glVertex3f(xm, y1, zt);
+                    glVertex3f(x0, y0, zt); glVertex3f(x1, y0, zt);
+                    break;
+                case 'P':
+                    glVertex3f(x0, y0, zt); glVertex3f(x0, y1, zt);
+                    glVertex3f(x0, y1, zt); glVertex3f(x1, y1, zt);
+                    glVertex3f(x1, y1, zt); glVertex3f(x1, ym, zt);
+                    glVertex3f(x1, ym, zt); glVertex3f(x0, ym, zt);
+                    break;
+                case 'R':
+                    glVertex3f(x0, y0, zt); glVertex3f(x0, y1, zt);
+                    glVertex3f(x0, y1, zt); glVertex3f(x1, y1, zt);
+                    glVertex3f(x1, y1, zt); glVertex3f(x1, ym, zt);
+                    glVertex3f(x1, ym, zt); glVertex3f(x0, ym, zt);
+                    glVertex3f(xm, ym, zt); glVertex3f(x1, y0, zt);
+                    break;
+                case 'K':
+                    glVertex3f(x0, y0, zt); glVertex3f(x0, y1, zt);
+                    glVertex3f(x0, ym, zt); glVertex3f(x1, y1, zt);
+                    glVertex3f(x0, ym, zt); glVertex3f(x1, y0, zt);
+                    break;
+                default: break;
+            }
+            glEnd();
+        };
+        const char* title = "ASIA PARK";
+        float startX = -4.8f;
+        for (int idx = 0; title[idx] != '\0'; ++idx) {
+            if (title[idx] != ' ') {
+                drawScreenStrokeLetter(title[idx], startX + idx * 1.12f, 5.98f, 0.78f, 0.85f);
+            }
+        }
+        glLineWidth(1.0f);
+
+        if (wasLit) glEnable(GL_LIGHTING);
 
         // 3. ĐỢT 6A: Bóng đèn trụ đèn lối đi & dãy đèn lồng phát sáng bằng vật liệu emissive khi chiều/tối
         //    (KHÔNG dùng quá 8 nguồn sáng GL_LIGHTi; chỉ bật GL_EMISSION trên vật liệu)
