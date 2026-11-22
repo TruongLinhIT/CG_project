@@ -3,23 +3,23 @@
 
 /**
  * @file ParametricShapes.h
- * @brief Chapter 5 & 6: Procedural Parametric Surfaces (Ruled Surfaces & Surfaces of Revolution)
+ * @brief Chương 5 & 6: Các mặt cong tham số sinh tự động (Mặt kẻ & Mặt tròn xoay)
  *
- * Implements explicit parametric surface generation via (u, v) parameter grids:
- *  - Chapter 5:
- *      1. Ruled Cylinder: X(u,v) = r*cos(u), Y(u,v) = r*sin(u), Z(u,v) = h*v
- *      2. Ruled Cone / Frustum: X(u,v) = R(v)*cos(u), Y(u,v) = R(v)*sin(u), Z(u,v) = h*v
- *      3. Surface of Revolution - Sphere: X(u,v) = r*cos(u)*cos(v), Y(u,v) = r*sin(u)*cos(v), Z(u,v) = r*sin(v)
- *      4. Surface of Revolution - Toroid: X(u,v) = (R + a*cos(v))*cos(u), Y(u,v) = (R + a*cos(v))*sin(u), Z(u,v) = a*sin(v)
- *      5. End Caps / Disks (GL_TRIANGLE_FAN)
- *      6. Arbitrary 3D connecting Cylinders & Cones between points A and B
- *      7. Segmented HSV LED Toroid for rides (Sun Wheel, Sky Tower, Carousel)
- *  - Chapter 6:
- *      - Exact analytical unit normal vectors N(u, v) = (dP/du x dP/dv) / ||dP/du x dP/dv||
- *      - Counter-Clockwise (GL_CCW) quad strip winding for correct Back-face Culling (V . N >= 0)
- *      - Debug normal vector visualization lines for teaching & grading defense
+ * Triển khai việc sinh tường minh các mặt cong tham số thông qua lưới tham số (u, v):
+ *  - Chương 5:
+ *      1. Mặt trụ (Mặt kẻ - Ruled Cylinder): X(u,v) = r*cos(u), Y(u,v) = r*sin(u), Z(u,v) = h*v
+ *      2. Mặt nón / Nón cụt (Mặt kẻ - Ruled Cone / Frustum): X(u,v) = R(v)*cos(u), Y(u,v) = R(v)*sin(u), Z(u,v) = h*v
+ *      3. Mặt tròn xoay - Mặt cầu (Sphere): X(u,v) = r*cos(u)*cos(v), Y(u,v) = r*sin(u)*cos(v), Z(u,v) = r*sin(v)
+ *      4. Mặt tròn xoay - Mặt xuyến (Toroid): X(u,v) = (R + a*cos(v))*cos(u), Y(u,v) = (R + a*cos(v))*sin(u), Z(u,v) = a*sin(v)
+ *      5. Nắp chắn hai đầu / Đĩa tròn (GL_TRIANGLE_FAN)
+ *      6. Hình trụ & Hình nón nối giữa hai điểm A và B bất kỳ trong không gian 3D
+ *      7. Mặt xuyến gắn đèn LED HSV phân đoạn cho các trò chơi (Sun Wheel, Sky Tower, Carousel)
+ *  - Chương 6:
+ *      - Vector pháp tuyến đơn vị giải tích chính xác N(u, v) = (dP/du x dP/dv) / ||dP/du x dP/dv||
+ *      - Thứ tự đỉnh dải tứ giác ngược chiều kim đồng hồ (GL_CCW) để khử mặt sau chính xác (V . N >= 0)
+ *      - Các đoạn thẳng hiển thị trực quan vector pháp tuyến phục vụ giảng dạy & bảo vệ đồ án
  *
- * NOTE: Strictly avoids legacy glutSolid* primitives to satisfy assignment syllabus requirements.
+ * LƯU Ý: Tuyệt đối không dùng các hàm khối có sẵn glutSolid* để đáp ứng đúng yêu cầu đề cương môn học.
  */
 
 #include <GL/freeglut.h>
@@ -31,7 +31,7 @@
 namespace ParametricShapes {
 
 // ============================================================================
-// 1. DATA STRUCTURES FOR PROCEDURAL VERTEX/NORMAL CACHING
+// 1. CẤU TRÚC DỮ LIỆU LƯU TRỮ ĐỈNH VÀ PHÁP TUYẾN BỀ MẶT
 // ============================================================================
 
 struct SurfaceVertex {
@@ -45,19 +45,19 @@ struct SurfaceVertex {
 };
 
 // ============================================================================
-// 2. ANALYTICAL SURFACE EVALUATION (FORMULAS FROM SYLLABUS CHAPTER 5 & 6)
+// 2. TÍNH TOÁN BỀ MẶT GIẢI TÍCH (CÔNG THỨC TRONG ĐỀ CƯƠNG CHƯƠNG 5 & 6)
 // ============================================================================
 
 /**
- * @brief Chapter 5: Ruled Cylinder Evaluation (Z-axis aligned)
+ * @brief Chương 5: Tính điểm trên Mặt trụ kẻ (dọc theo trục Z)
  *        X(u,v) = r * cos(u)
  *        Y(u,v) = r * sin(u)
  *        Z(u,v) = h * v
- *        where u in [0, 2*pi], v in [0, 1]
+ *        với u thuộc [0, 2*pi], v thuộc [0, 1]
  *
- * Normal: dP/du = (-r*sin(u), r*cos(u), 0)
- *         dP/dv = (0, 0, h)
- *         N = (dP/du x dP/dv) / ||...|| = (cos(u), sin(u), 0)
+ * Pháp tuyến: dP/du = (-r*sin(u), r*cos(u), 0)
+ *             dP/dv = (0, 0, h)
+ *             N = (dP/du x dP/dv) / ||...|| = (cos(u), sin(u), 0)
  */
 inline SurfaceVertex evaluateCylinder(float u, float v, float r, float h) {
     float cu = std::cos(u);
@@ -69,15 +69,15 @@ inline SurfaceVertex evaluateCylinder(float u, float v, float r, float h) {
 }
 
 /**
- * @brief Chapter 5: Ruled Cone / Frustum Evaluation (Z-axis aligned)
+ * @brief Chương 5: Tính điểm trên Mặt nón / Nón cụt kẻ (dọc theo trục Z)
  *        R(v) = rBase + (rTop - rBase) * v
  *        X(u,v) = R(v) * cos(u)
  *        Y(u,v) = R(v) * sin(u)
  *        Z(u,v) = h * v
  *
- * Normal: dr = rBase - rTop
- *         slant = sqrt(dr^2 + h^2)
- *         N = ( (h/slant)*cos(u), (h/slant)*sin(u), dr/slant )
+ * Pháp tuyến: dr = rBase - rTop
+ *             slant = sqrt(dr^2 + h^2)
+ *             N = ( (h/slant)*cos(u), (h/slant)*sin(u), dr/slant )
  */
 inline SurfaceVertex evaluateCone(float u, float v, float rBase, float rTop, float h) {
     float cu = std::cos(u);
@@ -97,13 +97,13 @@ inline SurfaceVertex evaluateCone(float u, float v, float rBase, float rTop, flo
 }
 
 /**
- * @brief Chapter 5: Surface of Revolution - Sphere Evaluation (Z-axis pole)
- *        u in [0, 2*pi] (azimuth), v in [-pi/2, pi/2] (latitude)
+ * @brief Chương 5: Mặt tròn xoay - Tính điểm trên Mặt cầu (trục cực theo trục Z)
+ *        u thuộc [0, 2*pi] (kinh độ), v thuộc [-pi/2, pi/2] (vĩ độ)
  *        X(u,v) = r * cos(u) * cos(v)
  *        Y(u,v) = r * sin(u) * cos(v)
  *        Z(u,v) = r * sin(v)
  *
- * Normal: N(u,v) = (cos(u)*cos(v), sin(u)*cos(v), sin(v))
+ * Pháp tuyến: N(u,v) = (cos(u)*cos(v), sin(u)*cos(v), sin(v))
  */
 inline SurfaceVertex evaluateSphere(float u, float v, float r) {
     float cu = std::cos(u);
@@ -118,14 +118,14 @@ inline SurfaceVertex evaluateSphere(float u, float v, float r) {
 }
 
 /**
- * @brief Chapter 5: Surface of Revolution - Toroid Evaluation (Z-axis revolution)
- *        u in [0, 2*pi] (revolution angle), v in [0, 2*pi] (tube cross-section angle)
- *        R = major radius, a = tube radius
+ * @brief Chương 5: Mặt tròn xoay - Tính điểm trên Mặt xuyến (xoay quanh trục Z)
+ *        u thuộc [0, 2*pi] (góc quay chính), v thuộc [0, 2*pi] (góc tiết diện ống)
+ *        R = bán kính lớn, a = bán kính ống
  *        X(u,v) = (R + a * cos(v)) * cos(u)
  *        Y(u,v) = (R + a * cos(v)) * sin(u)
  *        Z(u,v) = a * sin(v)
  *
- * Normal: N(u,v) = (cos(v)*cos(u), cos(v)*sin(u), sin(v))
+ * Pháp tuyến: N(u,v) = (cos(v)*cos(u), cos(v)*sin(u), sin(v))
  */
 inline SurfaceVertex evaluateToroid(float u, float v, float R, float a) {
     float cu = std::cos(u);
@@ -140,11 +140,11 @@ inline SurfaceVertex evaluateToroid(float u, float v, float R, float a) {
 }
 
 // ============================================================================
-// 3. DEBUG NORMAL VECTOR RENDERING (Chapter 6)
+// 3. VẼ VECTOR PHÁP TUYẾN KIỂM TRA (Chương 6)
 // ============================================================================
 
 /**
- * @brief Draw debug normal whiskers for teaching & grading defense
+ * @brief Vẽ các đoạn thẳng biểu diễn vector pháp tuyến phục vụ giảng dạy & bảo vệ đồ án
  */
 inline void drawNormalWhiskers(
     const std::vector<std::pair<MathCG::Vec3, MathCG::Vec3>>& whiskers,
@@ -167,12 +167,12 @@ inline void drawNormalWhiskers(
 }
 
 // ============================================================================
-// 4. PLANAR DISK & END CAP GENERATION (GL_TRIANGLE_FAN)
+// 4. SINH ĐĨA TRÒN PHẲNG & NẮP CHẮN HAI ĐẦU (GL_TRIANGLE_FAN)
 // ============================================================================
 
 /**
- * @brief Draw a circular planar disk (end-cap for cylinder/cone) at z = height
- *        using GL_TRIANGLE_FAN with correct normal (+Z or -Z)
+ * @brief Vẽ đĩa tròn phẳng (nắp chắn cho hình trụ/hình nón) tại cao độ z = height
+ *        sử dụng GL_TRIANGLE_FAN với vector pháp tuyến chính xác (+Z hoặc -Z)
  */
 inline void drawDisk(float r, int slices, float z = 0.0f, bool flipNormal = false) {
     if (slices < 3) slices = 3;
@@ -184,7 +184,7 @@ inline void drawDisk(float r, int slices, float z = 0.0f, bool flipNormal = fals
     for (int i = 0; i <= slices; ++i) {
         float u = (static_cast<float>(i) / slices) * MathCG::TWO_PI;
         if (flipNormal) {
-            // Clockwise from top -> CCW when viewed from negative Z
+            // Cùng chiều kim đồng hồ từ trên nhìn xuống -> Ngược chiều kim đồng hồ (CCW) khi nhìn từ hướng -Z
             u = -u;
         }
         glVertex3f(r * std::cos(u), r * std::sin(u), z);
@@ -193,7 +193,7 @@ inline void drawDisk(float r, int slices, float z = 0.0f, bool flipNormal = fals
 }
 
 /**
- * @brief Draw a circular planar disk in the XZ plane (Y-aligned)
+ * @brief Vẽ đĩa tròn phẳng nằm trên mặt phẳng XZ (dọc theo trục Y)
  */
 inline void drawDiskY(float r, int slices, float y = 0.0f, bool flipNormal = false) {
     if (slices < 3) slices = 3;
@@ -213,13 +213,13 @@ inline void drawDiskY(float r, int slices, float y = 0.0f, bool flipNormal = fal
 }
 
 // ============================================================================
-// 5. PARAMETRIC CYLINDER (MẶT TRỤ - MẶT KẺ)
+// 5. MẶT TRỤ THAM SỐ (MẶT TRỤ - MẶT KẺ)
 // ============================================================================
 
 /**
- * @brief Chapter 5: Draw parametric cylinder aligned with local Z-axis [0, h]
- *        using GL_QUAD_STRIP with explicit normal glNormal3f.
- *        Front faces wind CCW viewed from exterior.
+ * @brief Chương 5: Vẽ hình trụ tham số dọc theo trục Z cục bộ [0, h]
+ *        bằng GL_QUAD_STRIP với pháp tuyến tường minh glNormal3f.
+ *        Các mặt trước có thứ tự đỉnh ngược chiều kim đồng hồ (CCW) khi nhìn từ bên ngoài.
  */
 inline void drawCylinder(
     float r, float h,
@@ -244,9 +244,9 @@ inline void drawCylinder(
             float cu = std::cos(u);
             float su = std::sin(u);
 
-            // Outward unit normal: (cos(u), sin(u), 0)
+            // Pháp tuyến đơn vị hướng ra ngoài: (cos(u), sin(u), 0)
             glNormal3f(cu, su, 0.0f);
-            // Emit top (z1) then bottom (z0) for CCW winding outward
+            // Đưa đỉnh trên (z1) trước rồi đến đỉnh dưới (z0) để tạo chiều quấn CCW hướng ra ngoài
             glVertex3f(r * cu, r * su, z1);
             glVertex3f(r * cu, r * su, z0);
 
@@ -261,8 +261,8 @@ inline void drawCylinder(
     }
 
     if (closed) {
-        drawDisk(r, slices, 0.0f, true);  // Bottom cap (normal -Z)
-        drawDisk(r, slices, h, false);    // Top cap (normal +Z)
+        drawDisk(r, slices, 0.0f, true);  // Nắp đáy dưới (pháp tuyến -Z)
+        drawDisk(r, slices, h, false);    // Nắp đáy trên (pháp tuyến +Z)
     }
 
     if (drawNormals && !normalWhiskers.empty()) {
@@ -271,8 +271,8 @@ inline void drawCylinder(
 }
 
 /**
- * @brief Chapter 5: Draw parametric cylinder aligned with local Y-axis [0, h]
- *        Useful for upright park pillars, Sky Tower columns, carousel poles.
+ * @brief Chương 5: Vẽ hình trụ tham số dọc theo trục Y cục bộ [0, h]
+ *        Hữu ích cho các cột trụ thẳng đứng trong công viên, thân tháp Sky Tower, cột vòng quay ngựa gỗ.
  */
 inline void drawCylinderY(
     float r, float h,
@@ -312,8 +312,8 @@ inline void drawCylinderY(
     }
 
     if (closed) {
-        drawDiskY(r, slices, 0.0f, true); // Bottom cap (normal -Y)
-        drawDiskY(r, slices, h, false);   // Top cap (normal +Y)
+        drawDiskY(r, slices, 0.0f, true); // Nắp đáy dưới (pháp tuyến -Y)
+        drawDiskY(r, slices, h, false);   // Nắp đáy trên (pháp tuyến +Y)
     }
 
     if (drawNormals && !normalWhiskers.empty()) {
@@ -322,13 +322,13 @@ inline void drawCylinderY(
 }
 
 // ============================================================================
-// 6. PARAMETRIC CONE / FRUSTUM (MẶT NÓN - MẶT KẺ)
+// 6. MẶT NÓN / NÓN CỤT THAM SỐ (MẶT NÓN - MẶT KẺ)
 // ============================================================================
 
 /**
- * @brief Chapter 5: Draw parametric cone or frustum aligned with local Z-axis [0, h]
- *        Base at z = 0 with radius rBase, top at z = h with radius rTop.
- *        If rTop == 0.0f, produces a sharp cone tip.
+ * @brief Chương 5: Vẽ hình nón hoặc nón cụt tham số dọc theo trục Z cục bộ [0, h]
+ *        Đáy tại z = 0 với bán kính rBase, đỉnh tại z = h với bán kính rTop.
+ *        Nếu rTop == 0.0f thì tạo ra đỉnh nón nhọn.
  */
 inline void drawCone(
     float rBase, float rTop, float h,
@@ -376,8 +376,8 @@ inline void drawCone(
     }
 
     if (closed) {
-        if (rBase > 1e-5f) drawDisk(rBase, slices, 0.0f, true); // Base cap (-Z)
-        if (rTop  > 1e-5f) drawDisk(rTop,  slices, h, false);   // Top cap (+Z)
+        if (rBase > 1e-5f) drawDisk(rBase, slices, 0.0f, true); // Nắp đáy dưới (-Z)
+        if (rTop  > 1e-5f) drawDisk(rTop,  slices, h, false);   // Nắp đáy trên (+Z)
     }
 
     if (drawNormals && !normalWhiskers.empty()) {
@@ -386,8 +386,8 @@ inline void drawCone(
 }
 
 /**
- * @brief Chapter 5: Draw parametric cone or frustum aligned with local Y-axis [0, h]
- *        Useful for Carousel conical roofs, pagodas, decorative pinnacles.
+ * @brief Chương 5: Vẽ hình nón hoặc nón cụt tham số dọc theo trục Y cục bộ [0, h]
+ *        Hữu ích cho mái nón vòng quay ngựa gỗ Carousel, tháp chùa, chóp trang trí.
  */
 inline void drawConeY(
     float rBase, float rTop, float h,
@@ -435,8 +435,8 @@ inline void drawConeY(
     }
 
     if (closed) {
-        if (rBase > 1e-5f) drawDiskY(rBase, slices, 0.0f, true); // Base cap (-Y)
-        if (rTop  > 1e-5f) drawDiskY(rTop,  slices, h, false);   // Top cap (+Y)
+        if (rBase > 1e-5f) drawDiskY(rBase, slices, 0.0f, true); // Nắp đáy dưới (-Y)
+        if (rTop  > 1e-5f) drawDiskY(rTop,  slices, h, false);   // Nắp đáy trên (+Y)
     }
 
     if (drawNormals && !normalWhiskers.empty()) {
@@ -445,12 +445,12 @@ inline void drawConeY(
 }
 
 // ============================================================================
-// 7. PARAMETRIC SPHERE (MẶT CẦU - MẶT TRÒN XOAY)
+// 7. MẶT CẦU THAM SỐ (MẶT CẦU - MẶT TRÒN XOAY)
 // ============================================================================
 
 /**
- * @brief Chapter 5: Draw parametric sphere centered at origin (0,0,0)
- *        Latitude-longitude mesh using GL_QUAD_STRIP with analytical normals
+ * @brief Chương 5: Vẽ mặt cầu tham số có tâm tại gốc tọa độ (0,0,0)
+ *        Lưới kinh độ - vĩ độ sử dụng GL_QUAD_STRIP với pháp tuyến giải tích
  */
 inline void drawSphere(
     float r,
@@ -474,14 +474,14 @@ inline void drawSphere(
             float cTh = std::cos(theta);
             float sTh = std::sin(theta);
 
-            // Upper ring (phi1)
+            // Vòng vĩ tuyến trên (phi1)
             float nx1 = cPhi1 * cTh;
             float ny1 = sPhi1;
             float nz1 = cPhi1 * sTh;
             glNormal3f(nx1, ny1, nz1);
             glVertex3f(r * nx1, r * ny1, r * nz1);
 
-            // Lower ring (phi0)
+            // Vòng vĩ tuyến dưới (phi0)
             float nx0 = cPhi0 * cTh;
             float ny0 = sPhi0;
             float nz0 = cPhi0 * sTh;
@@ -504,15 +504,15 @@ inline void drawSphere(
 }
 
 // ============================================================================
-// 8. PARAMETRIC TOROID (MẶT XUYẾN - MẶT TRÒN XOAY)
+// 8. MẶT XUYẾN THAM SỐ (MẶT XUYẾN - MẶT TRÒN XOAY)
 // ============================================================================
 
 /**
- * @brief Chapter 5: Draw parametric Toroid in XY plane revolving around Z axis
+ * @brief Chương 5: Vẽ mặt xuyến tham số (Toroid) trong mặt phẳng XY quay quanh trục Z
  *        X(u,v) = (R + a*cos(v))*cos(u)
  *        Y(u,v) = (R + a*cos(v))*sin(u)
  *        Z(u,v) = a*sin(v)
- *        Useful for Sun Wheel rims, hub rings, decorative toroids.
+ *        Hữu ích cho vành bánh xe Sun Wheel, vòng trục tâm, các vòng xuyến trang trí.
  */
 inline void drawToroid(
     float R, float a,
@@ -535,7 +535,7 @@ inline void drawToroid(
             float v  = (static_cast<float>(j) / vSteps) * MathCG::TWO_PI;
             float cv = std::cos(v), sv = std::sin(v);
 
-            // Unit normal: (cv * cos(u), cv * sin(u), sv)
+            // Pháp tuyến đơn vị: (cv * cos(u), cv * sin(u), sv)
             glNormal3f(cv * cu0, cv * su0, sv);
             glVertex3f((R + a * cv) * cu0, (R + a * cv) * su0, a * sv);
 
@@ -558,8 +558,8 @@ inline void drawToroid(
 }
 
 /**
- * @brief Chapter 5: Draw parametric Toroid in XZ plane revolving around Y axis
- *        Useful for Sky Tower passenger ring, horizontal circular collars.
+ * @brief Chương 5: Vẽ mặt xuyến tham số (Toroid) trong mặt phẳng XZ quay quanh trục Y
+ *        Hữu ích cho vòng ghế khách trên tháp Sky Tower, các đai tròn nằm ngang.
  */
 inline void drawToroidY(
     float R, float a,
@@ -604,13 +604,13 @@ inline void drawToroidY(
 }
 
 // ============================================================================
-// 9. SWEPT 3D CONNECTORS (ARBITRARY POINTS A -> B)
+// 9. KHỐI TRỤ QUÉT NỐI HAI ĐIỂM 3D BẤT KỲ (A -> B)
 // ============================================================================
 
 /**
- * @brief Draw a tapered cylinder / frustum connecting arbitrary points A and B
- *        in 3D space with radius rA at A and rB at B.
- *        Computes an orthonormal coordinate frame {fwd, right, up} along A->B.
+ * @brief Vẽ hình trụ / nón cụt nối giữa hai điểm A và B bất kỳ trong không gian 3D
+ *        với bán kính rA tại A và rB tại B.
+ *        Tính hệ trục tọa độ trực chuẩn {fwd, right, up} dọc theo vector A->B.
  */
 inline void drawCylinderBetween(
     const MathCG::Vec3& a,
@@ -634,8 +634,8 @@ inline void drawCylinderBetween(
     float dr = rA - rB;
     float slant = std::sqrt(dr * dr + len * len);
     if (slant < 1e-6f) slant = 1.0f;
-    float nr  = len / slant; // radial normal weight
-    float nL  = dr  / slant; // longitudinal normal weight
+    float nr  = len / slant; // Trọng số pháp tuyến hướng kính
+    float nL  = dr  / slant; // Trọng số pháp tuyến dọc trục
 
     glBegin(GL_QUAD_STRIP);
     for (int i = 0; i <= slices; ++i) {
@@ -684,13 +684,13 @@ inline void drawCylinderBetween(
 }
 
 // ============================================================================
-// 10. SEGMENTED HSV LED TOROID (SUN WHEEL / CAROUSEL / SKY TOWER NIGHT EFFECTS)
+// 10. MẶT XUYẾN ĐÈN LED HSV PHÂN ĐOẠN (HIỆU ỨNG BAN ĐÊM CHO SUN WHEEL / CAROUSEL / SKY TOWER)
 // ============================================================================
 
 /**
- * @brief Chapter 1 & 5: Segmented Toroid for multi-color LED animations.
- *        Renders N sectors independently, computing dynamic HSV -> RGB colors
- *        with optional emission for stunning night simulation.
+ * @brief Chương 1 & 5: Mặt xuyến phân đoạn cho hiệu ứng hoạt ảnh đèn LED đa sắc.
+ *        Vẽ độc lập N cung tròn (sector), tính toán màu sắc động HSV -> RGB
+ *        kèm theo độ phát sáng (emission) tùy chọn tạo hiệu ứng ban đêm rực rỡ.
  */
 inline void drawSegmentedLedToroid(
     float R, float a,
@@ -741,7 +741,7 @@ inline void drawSegmentedLedToroid(
         glEnd();
     }
 
-    // Reset emission to zero
+    // Đặt lại độ tự phát sáng (emission) về 0
     GLfloat zeroEmit[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
     glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, zeroEmit);
 }

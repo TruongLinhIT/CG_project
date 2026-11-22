@@ -30,7 +30,7 @@ d:/BTL_CG/
     │   └── MeshModel.h           # Cấu trúc WireFrame (Đỉnh-Cạnh) & PolygonMesh (Đỉnh-Mặt + Pháp tuyến)
     │
     ├── rides/                    # 👤 THÀNH VIÊN 2 PHỤ TRÁCH
-    │   ├── SunWheel.h            # Vòng quay Mặt Trời (Biến đổi phân cấp giữ cabin thẳng đứng + LED HSV)
+    │   ├── SunWheel.h            # Vòng quay Mặt Trời (Biến đổi phân cấp giữ cabin thẳng đứng + LED HSV) Linh lam phan nay roi
     │   ├── SkyTower.h            # Tháp rơi tự do Golden Sky Tower (Trụ + Vòng ghế Toroid trượt/xoay)
     │   ├── Carousel.h            # Đu quay ngựa gỗ (Mái nón + Ngựa chuyển động phân cấp xoay & nhấp nhô)
     │   └── NgoMonGate.h          # Cổng Ngọ Môn & Tháp Đồng Hồ (Dựng bằng lưới đa giác PolygonMesh)

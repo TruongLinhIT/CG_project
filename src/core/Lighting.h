@@ -3,13 +3,13 @@
 
 /**
  * @file Lighting.h
- * @brief Chapter 6: Illumination Models, Point Light Attenuation & Day/Sunset/Night Cycle
+ * @brief Chương 6: Các Mô hình Chiếu sáng, Suy giảm Nguồn sáng Điểm & Chu kỳ Ngày/Hoàng hôn/Đêm
  *
- * Implements:
- *  - Ambient light contribution: I_a * k_a
- *  - Point light diffuse & specular illumination with quadratic distance attenuation:
+ * Cài đặt:
+ *  - Thành phần ánh sáng môi trường (Ambient light): I_a * k_a
+ *  - Chiếu sáng khuếch tán (Diffuse) & phản xạ gương (Specular) từ nguồn sáng điểm với suy giảm bậc hai theo khoảng cách:
  *      I_d = I_s * k_d * max(0, cos(theta)) / (c_0 + c_1 * D + c_2 * D^2)
- *  - Interactive Day / Sunset / Night cycle + HSV-driven night LED accent light on Sun Wheel
+ *  - Chu kỳ Ngày / Hoàng hôn / Đêm tương tác + Hệ thống đèn LED đổi màu theo HSV vào ban đêm trên Vòng quay Sun Wheel
  */
 
 #include <GL/freeglut.h>
@@ -22,8 +22,8 @@ enum class TimeOfDay {
 };
 
 enum class ShadingModel {
-    GOURAUD_SMOOTH = 0, // GL_SMOOTH (Interpolated vertex normals n_p = 1/k sum n_i)
-    LAMBERT_FLAT   = 1  // GL_FLAT   (Constant face normal N = A x B)
+    GOURAUD_SMOOTH = 0, // GL_SMOOTH (Nội suy pháp tuyến đỉnh n_p = 1/k sum n_i)
+    LAMBERT_FLAT   = 1  // GL_FLAT   (Pháp tuyến mặt hằng số N = A x B)
 };
 
 class LightingSystem {
@@ -31,7 +31,7 @@ public:
     TimeOfDay    timeOfDay;
     ShadingModel shadingModel;
     bool         lightingEnabled;
-    float        ledHueDeg; // Dynamic H in [0, 360) for Sun Wheel HSV->RGB LEDs
+    float        ledHueDeg; // Góc màu H động thuộc [0, 360) cho dải đèn LED HSV->RGB trên Sun Wheel
 
     LightingSystem()
         : timeOfDay(TimeOfDay::NIGHT),
@@ -40,7 +40,7 @@ public:
           ledHueDeg(0.0f) {}
 
     /**
-     * @brief Set sky clear color based on Day / Sunset / Night state.
+     * @brief Thiết lập màu nền bầu trời (clear color) dựa theo trạng thái Ngày / Hoàng hôn / Đêm.
      */
     void applyClearColor() const {
         switch (timeOfDay) {
@@ -58,9 +58,9 @@ public:
     }
 
     /**
-     * @brief Apply Lambert Constant Shading (GL_FLAT) or Gouraud Shading (GL_SMOOTH)
-     *        and configure Light 0 (Sun/Moon directional-point light) and Light 1
-     *        (Sun Wheel central point light with 1/D^2 distance attenuation).
+     * @brief Áp dụng mô hình tô bóng hằng Lambert (GL_FLAT) hoặc tô bóng mượt Gouraud (GL_SMOOTH)
+     *        và cấu hình Nguồn sáng 0 (Mặt trời/Mặt trăng) cùng Nguồn sáng 1
+     *        (Nguồn sáng điểm tại tâm Sun Wheel có suy giảm theo bình phương khoảng cách 1/D^2).
      */
     void applyLights(const MathCG::Vec3& sunWheelCenter) const {
         if (shadingModel == ShadingModel::LAMBERT_FLAT) {
@@ -83,7 +83,7 @@ public:
         resetMaterial();
 
         // --------------------------------------------------------------------
-        // Global Ambient Intensity I_a and Light0 (Sun / Moon)
+        // Cường độ ánh sáng môi trường toàn cục I_a và Nguồn sáng Light0 (Mặt trời / Mặt trăng)
         // --------------------------------------------------------------------
         GLfloat globalAmbient[4];
         GLfloat light0Pos[4];
@@ -101,7 +101,7 @@ public:
             light0Diff[0]    = 1.00f; light0Diff[1]    = 0.58f; light0Diff[2]    = 0.30f; light0Diff[3]    = 1.0f;
             light0Spec[0]    = 0.75f; light0Spec[1]    = 0.45f; light0Spec[2]    = 0.25f; light0Spec[3]    = 1.0f;
         } else {
-            // NIGHT: Low ambient I_a k_a so LED emission and point light attenuation stand out
+            // BAN ĐÊM: Ánh sáng môi trường I_a * k_a thấp để làm nổi bật hiệu ứng tự phát sáng LED và suy giảm nguồn sáng điểm
             globalAmbient[0] = 0.14f; globalAmbient[1] = 0.15f; globalAmbient[2] = 0.24f; globalAmbient[3] = 1.0f;
             light0Pos[0]     = 80.0f;  light0Pos[1]    = 150.0f; light0Pos[2]    = -90.0f; light0Pos[3]    = 1.0f;
             light0Diff[0]    = 0.25f; light0Diff[1]    = 0.30f; light0Diff[2]    = 0.48f; light0Diff[3]    = 1.0f;
@@ -119,8 +119,8 @@ public:
         glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.000005f);
 
         // --------------------------------------------------------------------
-        // Light 1: Sun Wheel Dynamic HSV->RGB Point Light with 1/D^2 Attenuation
-        // Syllabus formula: I = I_s * k_d * cos(theta) / D^2
+        // Nguồn sáng 1 (Light 1): Nguồn sáng điểm động HSV->RGB tại tâm Sun Wheel có suy giảm 1/D^2
+        // Công thức theo đề cương: I = I_s * k_d * cos(theta) / D^2
         // --------------------------------------------------------------------
         glEnable(GL_LIGHT1);
         float r = 1.0f, g = 0.8f, b = 0.3f;
@@ -139,15 +139,15 @@ public:
         glLightfv(GL_LIGHT1, GL_DIFFUSE,  light1Diff);
         glLightfv(GL_LIGHT1, GL_SPECULAR, light1Spec);
 
-        // Quadratic distance attenuation (1 / D^2 behavior)
+        // Suy giảm bậc hai theo khoảng cách (mô phỏng quy luật 1 / D^2)
         glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION,  0.4f);
         glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION,    0.004f);
         glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, 0.00018f);
     }
 
     /**
-     * @brief Configure Light 2 as a warm directional headlight on the Queen Cobra lead car
-     *        during Sunset and Night modes (with quadratic attenuation).
+     * @brief Cấu hình Nguồn sáng 2 (Light 2) làm đèn pha định hướng ánh sáng ấm gắn trên toa đầu tàu Queen Cobra
+     *        trong chế độ Hoàng hôn và Ban đêm (có suy giảm bậc hai theo khoảng cách).
      */
     void applyCoasterHeadlight(const MathCG::Vec3& pos, const MathCG::Vec3& forward) const {
         if (!lightingEnabled || timeOfDay == TimeOfDay::DAY) {
@@ -176,8 +176,8 @@ public:
     }
 
     /**
-     * @brief Set surface specular reflection k_s, Phong shininess exponent n,
-     *        and optional self-emission for metallic rails or night LED fixtures.
+     * @brief Thiết lập hệ số phản xạ gương bề mặt k_s, số mũ độ bóng Phong n,
+     *        và độ tự phát sáng (emission) tùy chọn cho đường ray kim loại hoặc đèn LED ban đêm.
      */
     static void setMaterial(
         float specStrength,
@@ -194,7 +194,7 @@ public:
     }
 
     /**
-     * @brief Restore default matte-satin material specular & zero emission.
+     * @brief Khôi phục thuộc tính phản xạ gương mặc định của vật liệu và tắt tự phát sáng.
      */
     static void resetMaterial() {
         setMaterial(0.32f, 28.0f, 0.0f, 0.0f, 0.0f);

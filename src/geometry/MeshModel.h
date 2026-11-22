@@ -3,34 +3,34 @@
 
 /**
  * @file MeshModel.h
- * @brief Chapter 4 & 6: 3D Surface Representation: WireFrame & PolygonMesh Models
+ * @brief Chương 4 & 6: Biểu diễn bề mặt 3D: Mô hình Khung dây (WireFrame) & Lưới đa giác (PolygonMesh)
  *
- * Implements fundamental geometric data structures:
- *  - Chapter 4 (3D Geometric Modeling & Viewing):
- *      1. WireFrame Model (Đỉnh + Cạnh):
+ * Triển khai các cấu trúc dữ liệu hình học nền tảng:
+ *  - Chương 4 (Mô hình hóa hình học & Quan sát 3D):
+ *      1. Mô hình Khung dây - WireFrame (Đỉnh + Cạnh):
  *         - vertices: std::vector<Vec3>
  *         - edges:    std::vector<std::pair<int, int>>
- *         - Renders with glLineWidth & glBegin(GL_LINES)
- *      2. PolygonMesh / Face-Vertex Model (Đỉnh + Mặt + Pháp tuyến):
+ *         - Vẽ bằng glLineWidth & glBegin(GL_LINES)
+ *      2. Mô hình Lưới đa giác / Đỉnh-Mặt - PolygonMesh (Đỉnh + Mặt + Pháp tuyến):
  *         - vertices:      std::vector<Vec3>
- *         - vertexNormals: std::vector<Vec3> (Gouraud smooth shading)
- *         - faces:         std::vector<Face> (indices, faceNormal, optional color/material)
- *      3. Homogeneous 4x4 Transformations:
+ *         - vertexNormals: std::vector<Vec3> (tô bóng mịn nội suy Gouraud)
+ *         - faces:         std::vector<Face> (chỉ số đỉnh, pháp tuyến mặt faceNormal, màu sắc/vật liệu tùy chọn)
+ *      3. Các phép biến đổi thuần nhất 4x4:
  *         - transform(Mat4), translate(), scale(), rotateX(), rotateY(), rotateZ()
- *         - append(PolygonMesh) for multi-part architectural assemblies
- *  - Chapter 6 (Illumination, Shading & Hidden Surface Removal):
- *      1. Automatic Normal Computation (computeNormals()):
- *         - Face normal via cross product: N_face = (A x B) / ||A x B||
- *           where A = P1 - P0, B = P2 - P0
- *         - Vertex normal averaging: n_p = (1 / k) * sum_{i=1..k}(n_i), then normalized
- *      2. Dual Shading Modes:
- *         - Flat Shading (GL_FLAT / Lambert): 1 face normal per polygon
- *         - Smooth Shading (GL_SMOOTH / Gouraud): per-vertex averaged normal
- *      3. Debug Normal Visualization (Whiskers):
- *         - Yellow face normal vectors from centroid
- *         - Cyan vertex normal vectors from vertices
- *      4. Procedural Architectural Primitives:
- *         - Box, Tapered Prism, Pyramid, Cylinder/Prism, Arch Tunnel, Asian Curved Roof
+ *         - append(PolygonMesh) để ghép nối các bộ phận kiến trúc phức hợp
+ *  - Chương 6 (Chiếu sáng, Tô bóng & Khử mặt khuất):
+ *      1. Tự động tính toán vector pháp tuyến (computeNormals()):
+ *         - Pháp tuyến mặt qua tích có hướng: N_face = (A x B) / ||A x B||
+ *           với A = P1 - P0, B = P2 - P0
+ *         - Trung bình cộng pháp tuyến đỉnh: n_p = (1 / k) * sum_{i=1..k}(n_i), sau đó chuẩn hóa
+ *      2. Hai chế độ tô bóng:
+ *         - Tô bóng phẳng - Flat Shading (GL_FLAT / Lambert): 1 pháp tuyến mặt cho mỗi đa giác
+ *         - Tô bóng mịn - Smooth Shading (GL_SMOOTH / Gouraud): pháp tuyến trung bình tại mỗi đỉnh
+ *      3. Hiển thị trực quan vector pháp tuyến để gỡ lỗi (Whiskers):
+ *         - Vector pháp tuyến mặt màu vàng vẽ từ trọng tâm đa giác
+ *         - Vector pháp tuyến đỉnh màu xanh lơ (cyan) vẽ từ các đỉnh
+ *      4. Các khối kiến trúc cơ sở sinh tự động bằng thuật toán (Procedural):
+ *         - Hình hộp (Box), Lăng trụ vát (Tapered Prism), Hình chóp (Pyramid), Lăng trụ đa giác (Cylinder/Prism), Vòm cổng (Arch Tunnel), Mái cong Á Đông (Asian Curved Roof)
  */
 
 #include <GL/freeglut.h>
@@ -125,12 +125,12 @@ struct WireFrame {
 };
 
 // ============================================================================
-// 2. POLYGON FACE DEFINITION (MẶT ĐA GIÁC - CHƯƠNG 4 & 6)
+// 2. ĐỊNH NGHĨA MẶT ĐA GIÁC - POLYGON FACE (CHƯƠNG 4 & 6)
 // ============================================================================
 
 struct Face {
-    std::vector<int> vertexIndices;               // Indices referencing PolygonMesh::vertices (CCW)
-    MathCG::Vec3     faceNormal = MathCG::Vec3(0.0f, 1.0f, 0.0f); // N = (P1-P0) x (P2-P0)
+    std::vector<int> vertexIndices;               // Danh sách chỉ số tham chiếu tới PolygonMesh::vertices (ngược chiều kim đồng hồ CCW)
+    MathCG::Vec3     faceNormal = MathCG::Vec3(0.0f, 1.0f, 0.0f); // Pháp tuyến mặt N = (P1-P0) x (P2-P0)
     MathCG::ColorRGB color      = MathCG::ColorRGB(1.0f, 1.0f, 1.0f);
     bool             hasCustomColor = false;
 
@@ -149,14 +149,14 @@ struct Face {
 };
 
 // ============================================================================
-// 3. POLYGON MESH (MÔ HÌNH LƯỚI ĐA GIÁC - CHƯƠNG 4 & 6)
+// 3. MÔ HÌNH LƯỚI ĐA GIÁC - POLYGON MESH (CHƯƠNG 4 & 6)
 // ============================================================================
 
 class PolygonMesh {
 public:
     std::string               name;
     std::vector<MathCG::Vec3> vertices;
-    std::vector<MathCG::Vec3> vertexNormals; // Gouraud vertex normals n_p
+    std::vector<MathCG::Vec3> vertexNormals; // Pháp tuyến đỉnh Gouraud n_p
     std::vector<Face>         faces;
     MathCG::ColorRGB          defaultColor = MathCG::ColorRGB(0.85f, 0.85f, 0.88f);
     float                     shininess    = 32.0f;
@@ -193,18 +193,18 @@ public:
     }
 
     // ========================================================================
-    // CHAPTER 6: AUTOMATIC NORMAL COMPUTATION (PHÁP TUYẾN MẶT & ĐỈNH)
+    // CHƯƠNG 6: TỰ ĐỘNG TÍNH TOÁN PHÁP TUYẾN MẶT & ĐỈNH
     // ========================================================================
 
     /**
-     * @brief Computes analytical face normals via cross product N = (P1 - P0) x (P2 - P0)
-     *        and Gouraud vertex normals via adjacent face averaging:
+     * @brief Tính pháp tuyến mặt giải tích qua tích có hướng N = (P1 - P0) x (P2 - P0)
+     *        và pháp tuyến đỉnh Gouraud bằng trung bình cộng các mặt kề:
      *        n_p = (1 / k) * sum_{i=1..k}(N_i)
      */
     void computeNormals() {
         if (vertices.empty()) return;
 
-        // Step 1: Compute unit normal vector for every polygon face
+        // Bước 1: Tính vector pháp tuyến đơn vị cho từng mặt đa giác
         for (auto& face : faces) {
             if (face.vertexIndices.size() >= 3) {
                 int i0 = face.vertexIndices[0];
@@ -223,7 +223,7 @@ public:
             }
         }
 
-        // Step 2: Accumulate adjacent face normals for each vertex
+        // Bước 2: Tập hợp pháp tuyến của các mặt liền kề cho từng đỉnh
         std::vector<std::vector<MathCG::Vec3>> vertexAdjacentNormals(vertices.size());
         for (const auto& face : faces) {
             for (int vIdx : face.vertexIndices) {
@@ -233,7 +233,7 @@ public:
             }
         }
 
-        // Step 3: Compute Gouraud vertex normal average: n_p = (1/k) * sum(n_i)
+        // Bước 3: Tính trung bình pháp tuyến đỉnh Gouraud: n_p = (1/k) * sum(n_i)
         vertexNormals.resize(vertices.size());
         for (size_t i = 0; i < vertices.size(); ++i) {
             vertexNormals[i] = MathCG::averageVertexNormal(vertexAdjacentNormals[i]);
@@ -241,7 +241,7 @@ public:
     }
 
     // ========================================================================
-    // CHAPTER 4: HOMOGENEOUS TRANSFORMATIONS & COMPOSITION
+    // CHƯƠNG 4: CÁC PHÉP BIẾN ĐỔI THUẦN NHẤT & GHÉP HỢP MÔ HÌNH
     // ========================================================================
 
     void transform(const MathCG::Mat4& mat) {
@@ -288,7 +288,7 @@ public:
     }
 
     /**
-     * @brief Merges another polygon mesh into this mesh, offsetting indices
+     * @brief Ghép một lưới đa giác khác vào lưới hiện tại và tự động dịch chuyển chỉ số đỉnh
      */
     void append(const PolygonMesh& other) {
         int indexOffset = static_cast<int>(vertices.size());
@@ -305,11 +305,11 @@ public:
     }
 
     // ========================================================================
-    // EXTRACTION: WIREFRAME MODEL (CHƯƠNG 4)
+    // TRÍCH XUẤT MÔ HÌNH KHUNG DÂY - WIREFRAME (CHƯƠNG 4)
     // ========================================================================
 
     /**
-     * @brief Extracts unique topological edges from all polygon faces
+     * @brief Trích xuất tập hợp các cạnh hình học duy nhất từ tất cả các mặt đa giác
      */
     WireFrame extractWireframe(const MathCG::ColorRGB& wireCol = MathCG::ColorRGB(1.0f, 1.0f, 1.0f), float width = 1.0f) const {
         WireFrame wf;
@@ -334,13 +334,13 @@ public:
     }
 
     // ========================================================================
-    // RENDERING & DEBUG NORMAL VISUALIZATION (CHƯƠNG 6)
+    // VẼ MÔ HÌNH & HIỂN THỊ VECTOR PHÁP TUYẾN KIỂM TRA (CHƯƠNG 6)
     // ========================================================================
 
     /**
-     * @brief Render the polygon mesh with lighting & shading:
-     * @param smoothShading true for Gouraud interpolation (GL_SMOOTH), false for Lambert Flat (GL_FLAT)
-     * @param drawNormals true to draw yellow face normal & cyan vertex normal whiskers
+     * @brief Vẽ lưới đa giác có chiếu sáng và tô bóng:
+     * @param smoothShading true để tô bóng nội suy Gouraud (GL_SMOOTH), false để tô bóng phẳng Lambert (GL_FLAT)
+     * @param drawNormals true để vẽ các đoạn thẳng biểu diễn pháp tuyến mặt (vàng) & pháp tuyến đỉnh (xanh lơ)
      */
     void draw(bool smoothShading = true, bool drawNormals = false) const {
         if (vertices.empty() || faces.empty()) return;
@@ -356,7 +356,7 @@ public:
                 glColor3f(defaultColor.r, defaultColor.g, defaultColor.b);
             }
 
-            // In Flat Shading or when vertex normals are absent, emit 1 face normal
+            // Ở chế độ tô bóng phẳng (Flat Shading) hoặc khi chưa có pháp tuyến đỉnh, truyền 1 pháp tuyến mặt
             if (!smoothShading || !hasVertexNormals) {
                 glNormal3f(face.faceNormal.x, face.faceNormal.y, face.faceNormal.z);
             }
@@ -379,20 +379,20 @@ public:
             glEnd();
         }
 
-        // Debug visualization of normals (Chapter 6 teaching & defense)
+        // Hiển thị trực quan pháp tuyến để kiểm tra (phục vụ giảng dạy & bảo vệ đồ án Chương 6)
         if (drawNormals) {
             drawDebugNormals();
         }
     }
 
     /**
-     * @brief Draw yellow whiskers for face normals and cyan whiskers for vertex normals
+     * @brief Vẽ các đoạn thẳng màu vàng cho pháp tuyến mặt và màu xanh lơ (cyan) cho pháp tuyến đỉnh
      */
     void drawDebugNormals(float faceNormalLen = 0.6f, float vertexNormalLen = 0.45f) const {
         GLboolean lightingWasOn = glIsEnabled(GL_LIGHTING);
         if (lightingWasOn) glDisable(GL_LIGHTING);
 
-        // 1. Face Normals (Yellow from centroid)
+        // 1. Pháp tuyến mặt (Màu vàng từ trọng tâm mặt)
         glColor3f(1.0f, 1.0f, 0.1f);
         glBegin(GL_LINES);
         for (const auto& face : faces) {
@@ -410,7 +410,7 @@ public:
         }
         glEnd();
 
-        // 2. Vertex Normals (Cyan from each vertex)
+        // 2. Pháp tuyến đỉnh (Màu xanh lơ từ mỗi đỉnh)
         if (vertexNormals.size() == vertices.size()) {
             glColor3f(0.1f, 0.9f, 1.0f);
             glBegin(GL_LINES);
@@ -427,11 +427,11 @@ public:
     }
 
     // ========================================================================
-    // PROCEDURAL SHAPE GENERATORS & ARCHITECTURAL BUILDERS
+    // CÁC HÀM SINH KHỐI HÌNH HỌC & CẤU TRÚC KIẾN TRÚC BẰNG THUẬT TOÁN
     // ========================================================================
 
     /**
-     * @brief Creates an Axis-Aligned Box centered at (cx, cy, cz) with dimensions (sx, sy, sz)
+     * @brief Tạo hình hộp chữ nhật song song trục tọa độ có tâm tại (cx, cy, cz) và kích thước (sx, sy, sz)
      */
     static PolygonMesh createBox(
         float cx, float cy, float cz,
@@ -444,30 +444,30 @@ public:
         float hy = sy * 0.5f;
         float hz = sz * 0.5f;
 
-        // 8 Vertices
-        mesh.addVertex(cx - hx, cy - hy, cz + hz); // 0: Front-Bottom-Left
-        mesh.addVertex(cx + hx, cy - hy, cz + hz); // 1: Front-Bottom-Right
-        mesh.addVertex(cx + hx, cy + hy, cz + hz); // 2: Front-Top-Right
-        mesh.addVertex(cx - hx, cy + hy, cz + hz); // 3: Front-Top-Left
-        mesh.addVertex(cx - hx, cy - hy, cz - hz); // 4: Back-Bottom-Left
-        mesh.addVertex(cx + hx, cy - hy, cz - hz); // 5: Back-Bottom-Right
-        mesh.addVertex(cx + hx, cy + hy, cz - hz); // 6: Back-Top-Right
-        mesh.addVertex(cx - hx, cy + hy, cz - hz); // 7: Back-Top-Left
+        // 8 đỉnh của hình hộp
+        mesh.addVertex(cx - hx, cy - hy, cz + hz); // 0: Trước-Dưới-Trái
+        mesh.addVertex(cx + hx, cy - hy, cz + hz); // 1: Trước-Dưới-Phải
+        mesh.addVertex(cx + hx, cy + hy, cz + hz); // 2: Trước-Trên-Phải
+        mesh.addVertex(cx - hx, cy + hy, cz + hz); // 3: Trước-Trên-Trái
+        mesh.addVertex(cx - hx, cy - hy, cz - hz); // 4: Sau-Dưới-Trái
+        mesh.addVertex(cx + hx, cy - hy, cz - hz); // 5: Sau-Dưới-Phải
+        mesh.addVertex(cx + hx, cy + hy, cz - hz); // 6: Sau-Trên-Phải
+        mesh.addVertex(cx - hx, cy + hy, cz - hz); // 7: Sau-Trên-Trái
 
-        // 6 Faces (CCW from outside)
-        mesh.addQuad(0, 1, 2, 3, col, true); // Front (+Z)
-        mesh.addQuad(5, 4, 7, 6, col, true); // Back (-Z)
-        mesh.addQuad(3, 2, 6, 7, col, true); // Top (+Y)
-        mesh.addQuad(4, 5, 1, 0, col, true); // Bottom (-Y)
-        mesh.addQuad(4, 0, 3, 7, col, true); // Left (-X)
-        mesh.addQuad(1, 5, 6, 2, col, true); // Right (+X)
+        // 6 mặt tứ giác (ngược chiều kim đồng hồ CCW khi nhìn từ ngoài vào)
+        mesh.addQuad(0, 1, 2, 3, col, true); // Mặt trước (+Z)
+        mesh.addQuad(5, 4, 7, 6, col, true); // Mặt sau (-Z)
+        mesh.addQuad(3, 2, 6, 7, col, true); // Mặt trên (+Y)
+        mesh.addQuad(4, 5, 1, 0, col, true); // Mặt dưới (-Y)
+        mesh.addQuad(4, 0, 3, 7, col, true); // Mặt trái (-X)
+        mesh.addQuad(1, 5, 6, 2, col, true); // Mặt phải (+X)
 
         mesh.computeNormals();
         return mesh;
     }
 
     /**
-     * @brief Creates a Tapered Prism along Z-axis (useful for car bodies and canopies)
+     * @brief Tạo khối lăng trụ vát dọc theo trục Z (hữu ích cho thân toa tàu và mái vòm)
      */
     static PolygonMesh createTaperedPrism(
         float z0, float y0, float w0, float h0,
@@ -480,31 +480,31 @@ public:
         float hw0 = w0 * 0.5f, hh0 = h0 * 0.5f;
         float hw1 = w1 * 0.5f, hh1 = h1 * 0.5f;
 
-        // Front quad vertices at z1 (higher Z)
-        mesh.addVertex(-hw1, y1 - hh1, z1); // 0: BL
-        mesh.addVertex( hw1, y1 - hh1, z1); // 1: BR
-        mesh.addVertex( hw1, y1 + hh1, z1); // 2: TR
-        mesh.addVertex(-hw1, y1 + hh1, z1); // 3: TL
+        // Các đỉnh tứ giác mặt trước tại z1 (Z lớn hơn)
+        mesh.addVertex(-hw1, y1 - hh1, z1); // 0: Dưới-Trái
+        mesh.addVertex( hw1, y1 - hh1, z1); // 1: Dưới-Phải
+        mesh.addVertex( hw1, y1 + hh1, z1); // 2: Trên-Phải
+        mesh.addVertex(-hw1, y1 + hh1, z1); // 3: Trên-Trái
 
-        // Back quad vertices at z0 (lower Z)
-        mesh.addVertex(-hw0, y0 - hh0, z0); // 4: BL
-        mesh.addVertex( hw0, y0 - hh0, z0); // 5: BR
-        mesh.addVertex( hw0, y0 + hh0, z0); // 6: TR
-        mesh.addVertex(-hw0, y0 + hh0, z0); // 7: TL
+        // Các đỉnh tứ giác mặt sau tại z0 (Z nhỏ hơn)
+        mesh.addVertex(-hw0, y0 - hh0, z0); // 4: Dưới-Trái
+        mesh.addVertex( hw0, y0 - hh0, z0); // 5: Dưới-Phải
+        mesh.addVertex( hw0, y0 + hh0, z0); // 6: Trên-Phải
+        mesh.addVertex(-hw0, y0 + hh0, z0); // 7: Trên-Trái
 
-        mesh.addQuad(0, 1, 2, 3, col, true); // Front (+Z)
-        mesh.addQuad(5, 4, 7, 6, col, true); // Back (-Z)
-        mesh.addQuad(3, 2, 6, 7, col, true); // Top
-        mesh.addQuad(4, 5, 1, 0, col, true); // Bottom
-        mesh.addQuad(4, 0, 3, 7, col, true); // Left
-        mesh.addQuad(1, 5, 6, 2, col, true); // Right
+        mesh.addQuad(0, 1, 2, 3, col, true); // Mặt trước (+Z)
+        mesh.addQuad(5, 4, 7, 6, col, true); // Mặt sau (-Z)
+        mesh.addQuad(3, 2, 6, 7, col, true); // Mặt trên
+        mesh.addQuad(4, 5, 1, 0, col, true); // Mặt dưới
+        mesh.addQuad(4, 0, 3, 7, col, true); // Mặt trái
+        mesh.addQuad(1, 5, 6, 2, col, true); // Mặt phải
 
         mesh.computeNormals();
         return mesh;
     }
 
     /**
-     * @brief Creates a 4-sided Pyramid (base on XZ plane, apex at +Y)
+     * @brief Tạo hình chóp tứ giác đều (đáy nằm trên mặt phẳng XZ, đỉnh chóp hướng theo +Y)
      */
     static PolygonMesh createPyramid(
         float cx, float cy, float cz,
@@ -516,30 +516,30 @@ public:
         float hw = baseW * 0.5f;
         float hd = baseD * 0.5f;
 
-        // Base 4 vertices
-        mesh.addVertex(cx - hw, cy, cz - hd); // 0: Back-Left
-        mesh.addVertex(cx + hw, cy, cz - hd); // 1: Back-Right
-        mesh.addVertex(cx + hw, cy, cz + hd); // 2: Front-Right
-        mesh.addVertex(cx - hw, cy, cz + hd); // 3: Front-Left
+        // 4 đỉnh mặt đáy
+        mesh.addVertex(cx - hw, cy, cz - hd); // 0: Sau-Trái
+        mesh.addVertex(cx + hw, cy, cz - hd); // 1: Sau-Phải
+        mesh.addVertex(cx + hw, cy, cz + hd); // 2: Trước-Phải
+        mesh.addVertex(cx - hw, cy, cz + hd); // 3: Trước-Trái
 
-        // Apex vertex
+        // Đỉnh chóp
         int apex = mesh.addVertex(cx, cy + height, cz); // 4
 
-        // Bottom face
+        // Mặt đáy dưới
         mesh.addQuad(0, 1, 2, 3, col, true);
 
-        // 4 Sloped triangular faces
-        mesh.addTriangle(3, 2, apex, col, true); // Front
-        mesh.addTriangle(2, 1, apex, col, true); // Right
-        mesh.addTriangle(1, 0, apex, col, true); // Back
-        mesh.addTriangle(0, 3, apex, col, true); // Left
+        // 4 mặt bên hình tam giác nghiêng
+        mesh.addTriangle(3, 2, apex, col, true); // Mặt trước
+        mesh.addTriangle(2, 1, apex, col, true); // Mặt phải
+        mesh.addTriangle(1, 0, apex, col, true); // Mặt sau
+        mesh.addTriangle(0, 3, apex, col, true); // Mặt trái
 
         mesh.computeNormals();
         return mesh;
     }
 
     /**
-     * @brief Creates an N-sided Polygonal Prism / Cylinder (Y-aligned)
+     * @brief Tạo khối lăng trụ đa giác đều N cạnh / Hình trụ dọc theo trục Y
      */
     static PolygonMesh createPrismY(
         float cx, float cy, float cz,
@@ -550,23 +550,23 @@ public:
         mesh.defaultColor = col;
         if (sides < 3) sides = 3;
 
-        // Bottom ring [0 .. sides-1]
+        // Vòng đỉnh đáy dưới [0 .. sides-1]
         for (int i = 0; i < sides; ++i) {
             float u = (static_cast<float>(i) / sides) * MathCG::TWO_PI;
             mesh.addVertex(cx + radius * std::cos(u), cy, cz + radius * std::sin(u));
         }
 
-        // Top ring [sides .. 2*sides-1]
+        // Vòng đỉnh đáy trên [sides .. 2*sides-1]
         for (int i = 0; i < sides; ++i) {
             float u = (static_cast<float>(i) / sides) * MathCG::TWO_PI;
             mesh.addVertex(cx + radius * std::cos(u), cy + height, cz + radius * std::sin(u));
         }
 
-        // Bottom center vertex (2*sides) & Top center vertex (2*sides + 1)
+        // Đỉnh tâm đáy dưới (2*sides) & Đỉnh tâm đáy trên (2*sides + 1)
         int bCenter = mesh.addVertex(cx, cy, cz);
         int tCenter = mesh.addVertex(cx, cy + height, cz);
 
-        // Side quads
+        // Các mặt tứ giác xung quanh thân lăng trụ
         for (int i = 0; i < sides; ++i) {
             int iNext = (i + 1) % sides;
             int b0 = i;
@@ -576,11 +576,11 @@ public:
             mesh.addQuad(b0, b1, t1, t0, col, true);
         }
 
-        // Bottom & Top fans
+        // Nắp đáy dưới & nắp đáy trên ghép từ các tam giác chung tâm
         for (int i = 0; i < sides; ++i) {
             int iNext = (i + 1) % sides;
-            mesh.addTriangle(bCenter, (i + 1) % sides, i, col, true);       // Bottom (normal -Y)
-            mesh.addTriangle(tCenter, sides + i, sides + iNext, col, true);  // Top (normal +Y)
+            mesh.addTriangle(bCenter, (i + 1) % sides, i, col, true);       // Đáy dưới (pháp tuyến -Y)
+            mesh.addTriangle(tCenter, sides + i, sides + iNext, col, true);  // Đáy trên (pháp tuyến +Y)
         }
 
         mesh.computeNormals();
@@ -588,8 +588,8 @@ public:
     }
 
     /**
-     * @brief Architectural Tunnel Arch (Vòm Cổng Ngọ Môn)
-     *        Generates a semi-circular curved vault barrel mesh connecting (z0 .. z1)
+     * @brief Vòm hầm kiến trúc (Vòm Cổng Ngọ Môn)
+     *        Sinh lưới bề mặt vòm bán nguyệt nối từ z0 đến z1
      */
     static PolygonMesh createArchVault(
         float cx, float cy, float z0, float z1,
@@ -600,20 +600,20 @@ public:
         mesh.defaultColor = col;
         if (segments < 4) segments = 4;
 
-        // Generate inner and outer semi-circular arcs from angle 0 (right) to pi (left)
-        // at z0 (near) and z1 (far)
+        // Sinh các cung bán nguyệt trong và ngoài từ góc 0 (bên phải) đến pi (bên trái)
+        // tại mặt phẳng z0 (gần) và z1 (xa)
         int baseIdx = 0;
         for (int i = 0; i <= segments; ++i) {
             float th = (static_cast<float>(i) / segments) * MathCG::PI;
             float cTh = std::cos(th);
             float sTh = std::sin(th);
 
-            // z0 ring
-            mesh.addVertex(cx + innerR * cTh, cy + innerR * sTh, z0); // baseIdx + 0: Inner Near
-            mesh.addVertex(cx + outerR * cTh, cy + outerR * sTh, z0); // baseIdx + 1: Outer Near
-            // z1 ring
-            mesh.addVertex(cx + innerR * cTh, cy + innerR * sTh, z1); // baseIdx + 2: Inner Far
-            mesh.addVertex(cx + outerR * cTh, cy + outerR * sTh, z1); // baseIdx + 3: Outer Far
+            // Vòng cung tại z0
+            mesh.addVertex(cx + innerR * cTh, cy + innerR * sTh, z0); // baseIdx + 0: Cung trong mặt gần
+            mesh.addVertex(cx + outerR * cTh, cy + outerR * sTh, z0); // baseIdx + 1: Cung ngoài mặt gần
+            // Vòng cung tại z1
+            mesh.addVertex(cx + innerR * cTh, cy + innerR * sTh, z1); // baseIdx + 2: Cung trong mặt xa
+            mesh.addVertex(cx + outerR * cTh, cy + outerR * sTh, z1); // baseIdx + 3: Cung ngoài mặt xa
 
             baseIdx += 4;
         }
@@ -622,16 +622,16 @@ public:
             int k0 = i * 4;
             int k1 = (i + 1) * 4;
 
-            // Inner ceiling barrel (viewed from below -> normal towards center)
+            // Mặt trần vòm bên trong (nhìn từ dưới lên -> pháp tuyến hướng vào tâm)
             mesh.addQuad(k0 + 0, k0 + 2, k1 + 2, k1 + 0, col, true);
 
-            // Outer vault top
+            // Mặt lưng vòm bên ngoài
             mesh.addQuad(k0 + 1, k1 + 1, k1 + 3, k0 + 3, col, true);
 
-            // Near face arch (z0)
+            // Mặt vòm phía gần (z0)
             mesh.addQuad(k0 + 0, k1 + 0, k1 + 1, k0 + 1, col, true);
 
-            // Far face arch (z1)
+            // Mặt vòm phía xa (z1)
             mesh.addQuad(k0 + 2, k0 + 3, k1 + 3, k1 + 2, col, true);
         }
 
@@ -640,8 +640,8 @@ public:
     }
 
     /**
-     * @brief Traditional Asian Curved Roof Section (Mái cong Cổng Ngọ Môn)
-     *        Generates an authentic tiered curved roof flare using quadratic elevation.
+     * @brief Mái cong truyền thống Á Đông (Mái cong Cổng Ngọ Môn)
+     *        Sinh lưới mái ngói uốn cong vểnh lên ở bốn góc bằng hàm bậc hai.
      */
     static PolygonMesh createCurvedAsianRoof(
         float cx, float cy, float cz,
@@ -657,16 +657,16 @@ public:
         float hw = (baseW + flareOut) * 0.5f;
         float hd = (baseD + flareOut) * 0.5f;
 
-        // Generate curved roof grid using upward curvature towards corners
+        // Sinh lưới bề mặt mái cong với độ uốn vểnh lên về phía các góc mái
         for (int j = 0; j <= vSteps; ++j) {
-            float v = static_cast<float>(j) / vSteps; // 0 (eaves) -> 1 (ridge)
+            float v = static_cast<float>(j) / vSteps; // 0 (diềm mái) -> 1 (đỉnh nóc mái)
             float rz = (v - 0.5f) * 2.0f;             // -1 .. 1
 
             for (int i = 0; i <= uSteps; ++i) {
                 float u = static_cast<float>(i) / uSteps;
                 float rx = (u - 0.5f) * 2.0f;         // -1 .. 1
 
-                // Quadratic flare: corners lift upwards
+                // Độ uốn cong bậc hai: bốn góc mái vểnh cao lên
                 float cornerLift = (rx * rx + rz * rz) * 0.35f * height;
                 float ridgeTaper = (1.0f - v * 0.72f);
 

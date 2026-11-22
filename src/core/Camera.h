@@ -3,19 +3,19 @@
 
 /**
  * @file Camera.h
- * @brief Chapter 4: 3D Viewing System, Spherical Orbit Camera, Ride Cameras & Projections
+ * @brief Chương 4: Hệ thống Quan sát 3D, Camera Quỹ đạo Cầu, Camera Góc nhìn Trò chơi & Các Phép Chiếu
  *
- * Implements:
- *  - Spherical coordinates viewing transformation:
- *      theta (azimuth in XZ plane), Phi (elevation from XZ plane),
- *      distance R (from target origin O to eye O'), and projection plane distance D.
- *  - Dynamic switching between:
- *      1. Free Spherical Orbit Camera
- *      2. First-Person Sun Wheel Cabin Camera
- *      3. First-Person Queen Cobra Coaster Camera (oriented along Bezier tangent P'(t))
- *  - Dynamic toggle between:
- *      1. Perspective Projection (gluPerspective derived from view plane distance D)
- *      2. Parallel / Orthographic Projection (glOrtho with Top, Front, Side technical views)
+ * Cài đặt:
+ *  - Phép biến đổi quan sát dùng tọa độ cầu (Spherical coordinates):
+ *      góc phương vị theta (trong mặt phẳng XZ), góc nâng Phi (tính từ mặt phẳng XZ),
+ *      khoảng cách R (từ điểm nhìn gốc O tới mắt O'), và khoảng cách mặt phẳng chiếu D.
+ *  - Chuyển đổi linh hoạt giữa các chế độ camera:
+ *      1. Camera Quỹ đạo Cầu Tự do (Free Spherical Orbit Camera)
+ *      2. Camera Góc nhìn thứ nhất trong Cabin Vòng quay Sun Wheel
+ *      3. Camera Góc nhìn thứ nhất trên Tàu lượn Queen Cobra (định hướng theo tiếp tuyến Bezier P'(t))
+ *  - Chuyển đổi linh hoạt giữa các phép chiếu:
+ *      1. Phép chiếu Phối cảnh (gluPerspective tính từ khoảng cách màn chiếu D)
+ *      2. Phép chiếu Song song / Trực giao (glOrtho với các góc nhìn kỹ thuật Bằng, Đứng, Cạnh)
  */
 
 #include <GL/freeglut.h>
@@ -40,25 +40,25 @@ enum class ProjectionMode {
 
 class Camera {
 public:
-    // Chapter 4 Spherical Viewing Parameters
-    float thetaDeg;      // Azimuth angle theta (degrees)
-    float phiDeg;        // Elevation angle Phi (degrees)
-    float distanceR;     // Distance R from look-at origin O to eye O'
-    float viewPlaneD;    // Distance D from eye to projection plane (controls FOV)
-    MathCG::Vec3 target; // Look-at reference point O(x, y, z)
+    // Các tham số quan sát tọa độ cầu theo Chương 4
+    float thetaDeg;      // Góc phương vị theta (độ)
+    float phiDeg;        // Góc nâng Phi (độ)
+    float distanceR;     // Khoảng cách R từ tâm nhìn O tới vị trí mắt O'
+    float viewPlaneD;    // Khoảng cách D từ mắt tới mặt phẳng chiếu (điều khiển góc mở FOV)
+    MathCG::Vec3 target; // Điểm đích quan sát O(x, y, z)
 
     CameraMode     cameraMode;
     ProjectionMode projectionMode;
 
-    // Ortho half-height scale
+    // Nửa chiều cao khung chiếu trực giao (Ortho)
     float orthoSize;
 
-    // Free Drone Flight Camera Parameters (Position, Smoothed Velocity, Yaw/Pitch Gimbal)
+    // Các tham số Camera Drone Bay Tự do (Vị trí, Vận tốc làm mượt, Góc quay Yaw/Pitch)
     MathCG::Vec3 dronePos;
     MathCG::Vec3 droneVelocity;
-    float droneYawDeg;    // 0 deg = North (-Z), +90 = East (+X), -90 = West (-X)
-    float dronePitchDeg;  // Clamped in [-85, +85] deg
-    float droneSpeed;     // Flight cruise speed (m/s): 12 (Detail), 35 (Cruise), 75 (Fast)
+    float droneYawDeg;    // 0 độ = Hướng Bắc (-Z), +90 = Hướng Đông (+X), -90 = Hướng Tây (-X)
+    float dronePitchDeg;  // Giới hạn trong khoảng [-85, +85] độ
+    float droneSpeed;     // Tốc độ bay hành trình (m/s): 12 (Chi tiết), 35 (Bình thường), 75 (Nhanh)
 
     Camera()
         : thetaDeg(35.0f),
@@ -76,8 +76,8 @@ public:
           droneSpeed(35.0f) {}
 
     /**
-     * @brief Compute eye position O'(x, y, z) from spherical coordinates (R, theta, Phi)
-     *        relative to target O:
+     * @brief Tính vị trí đặt mắt O'(x, y, z) từ tọa độ cầu (R, theta, Phi)
+     *        so với tâm quan sát O:
      *          O'_x = O_x + R * cos(Phi) * sin(theta)
      *          O'_y = O_y + R * sin(Phi)
      *          O'_z = O_z + R * cos(Phi) * cos(theta)
@@ -92,8 +92,8 @@ public:
     }
 
     /**
-     * @brief Configure the OpenGL Projection Matrix (GL_PROJECTION)
-     *        Supports Perspective (FOV derived from viewPlaneD) and Orthographic views.
+     * @brief Thiết lập Ma trận Chiếu của OpenGL (GL_PROJECTION)
+     *        Hỗ trợ phép chiếu Phối cảnh (FOV tính từ viewPlaneD) và các phép chiếu Trực giao.
      */
     void applyProjection(int windowWidth, int windowHeight) const {
         if (windowHeight <= 0) windowHeight = 1;
@@ -103,12 +103,12 @@ public:
         glLoadIdentity();
 
         if (projectionMode == ProjectionMode::PERSPECTIVE) {
-            // Convert projection plane distance D (with sensor half-height = 25.0) to vertical FOV
+            // Chuyển đổi khoảng cách mặt phẳng chiếu D (với nửa chiều cao cảm biến = 25.0) sang góc mở dọc FOV
             float fovY = 2.0f * std::atan(25.0f / std::max(5.0f, viewPlaneD)) * MathCG::RAD2DEG;
             fovY = std::clamp(fovY, 20.0f, 110.0f);
             gluPerspective(fovY, aspect, 0.5f, 1000.0f);
         } else {
-            // Parallel / Orthographic projection
+            // Phép chiếu song song / trực giao (Orthographic projection)
             float halfW = orthoSize * aspect;
             float halfH = orthoSize;
             glOrtho(-halfW, halfW, -halfH, halfH, -500.0f, 500.0f);
@@ -118,8 +118,8 @@ public:
     }
 
     /**
-     * @brief Configure the OpenGL ModelView Matrix (GL_MODELVIEW)
-     *        based on active ProjectionMode (Ortho technical views) or CameraMode.
+     * @brief Thiết lập Ma trận ModelView của OpenGL (GL_MODELVIEW)
+     *        dựa trên chế độ chiếu hiện hành (các hình chiếu trục đo kỹ thuật Ortho) hoặc chế độ Camera.
      */
     void applyView(
         const MathCG::Vec3& cabinWorldPos,
@@ -134,7 +134,7 @@ public:
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
 
-        // Technical orthographic axis-aligned views (Chapter 4 Parallel Projections)
+        // Các góc nhìn kỹ thuật trực giao dọc theo trục tọa độ (Chương 4: Phép chiếu song song)
         if (projectionMode == ProjectionMode::ORTHO_TOP) {
             gluLookAt(0.0, 260.0, 0.0,   0.0, 0.0, 0.0,   0.0, 0.0, -1.0);
             return;
@@ -146,7 +146,7 @@ public:
             return;
         }
 
-        // Perspective Camera Modes
+        // Các chế độ Camera Phối cảnh
         if (cameraMode == CameraMode::SUN_WHEEL_CABIN) {
             float yawRad = wheelLookYawDeg * MathCG::DEG2RAD;
             MathCG::Vec3 lookDir(std::sin(yawRad), -0.12f, std::cos(yawRad));
@@ -159,7 +159,7 @@ public:
         } else if (cameraMode == CameraMode::COASTER_FIRST_PERSON) {
             MathCG::Vec3 fwd = coasterTangent.normalized();
             MathCG::Vec3 up  = coasterUp.normalized();
-            // Place eye in the front seat of the lead Cobra car, banking smoothly with the track
+            // Đặt mắt tại ghế trước của toa đầu tàu Queen Cobra, nghiêng mượt theo góc nghiêng đường ray
             MathCG::Vec3 eye    = coasterPos + up * 1.95f + fwd * 0.65f;
             MathCG::Vec3 center = eye + fwd * 14.0f - up * 0.45f;
             gluLookAt(
@@ -170,7 +170,7 @@ public:
         } else if (cameraMode == CameraMode::MONORAIL_FIRST_PERSON) {
             MathCG::Vec3 fwd = monorailTangent.normalized();
             MathCG::Vec3 up  = monorailUp.normalized();
-            // Place eye at the panoramic front windshield of the Monorail lead cab
+            // Đặt mắt tại kính chắn gió toàn cảnh phía trước của toa đầu tàu Monorail
             MathCG::Vec3 eye    = monorailPos + up * 1.90f + fwd * 2.15f;
             MathCG::Vec3 center = eye + fwd * 18.0f - up * 0.35f;
             gluLookAt(
@@ -187,7 +187,7 @@ public:
                 0.0,        1.0,        0.0
             );
         } else {
-            // Default Free Spherical Orbit Camera
+            // Mặc định: Camera Quỹ đạo Cầu Tự do
             MathCG::Vec3 eye = getOrbitEyePosition();
             gluLookAt(
                 eye.x,    eye.y,    eye.z,
@@ -198,7 +198,7 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    // Free Drone Gimbal & 6DOF Flight Controls
+    // Điều khiển Gimbal & Bay 6 bậc tự do (6DOF) cho Camera Drone Tự do
     // ------------------------------------------------------------------------
 
     MathCG::Vec3 getDroneForward() const {

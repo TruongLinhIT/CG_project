@@ -3,19 +3,19 @@
 
 /**
  * @file HUD.h
- * @brief Chapter 1 & 3: Heads-Up Display (HUD) Dashboard & Bitmap Text System
+ * @brief Chương 1 & 3: Hệ thống bảng điều khiển hiển thị trên màn hình (HUD) & Văn bản Bitmap
  *
- * Implements:
- *  - Chapter 3 glutBitmapCharacter on-screen bitmap text rendering
- *  - Real-time graphics pipeline state visualization:
- *      * Camera Orbit Coordinates: Azimuth (theta), Elevation (Phi), Distance (R), Viewplane (D)
- *      * Ride POV Tracking: Sun Wheel Cabin #0, Queen Cobra, Monorail
- *      * Projection Modes: Perspective (gluPerspective) vs Parallel Ortho (glOrtho)
- *      * Illumination & Shading: Gouraud (GL_SMOOTH) vs Lambert Flat (GL_FLAT)
- *      * Hidden Surface Removal: Back-face Culling (V . N >= 0) & Z-Buffer Depth Test
- *      * Time of Day & Dynamic HSV LED Hue angle
- *      * Bezier Roller Coaster real-time telemetry (parameter t, speed m/s)
- *      * Keyboard Shortcuts & Interactive Guide
+ * Triển khai:
+ *  - Chương 3: Vẽ văn bản bitmap trực tiếp lên màn hình bằng glutBitmapCharacter
+ *  - Hiển thị trạng thái đường ống đồ họa (graphics pipeline) theo thời gian thực:
+ *      * Tọa độ quỹ đạo Camera: Góc phương vị (theta), Góc nâng (Phi), Khoảng cách (R), Mặt phẳng chiếu (D)
+ *      * Góc nhìn thứ nhất (POV) trên trò chơi: Cabin #0 của Sun Wheel, tàu lượn Queen Cobra, tàu điện Monorail
+ *      * Chế độ phép chiếu: Phối cảnh (gluPerspective) so với Chiếu song song trực giao (glOrtho)
+ *      * Chiếu sáng & Tô bóng: Nội suy Gouraud (GL_SMOOTH) so với Tô bóng phẳng Lambert (GL_FLAT)
+ *      * Khử mặt khuất: Loại bỏ mặt sau Back-face Culling (V . N >= 0) & Kiểm tra độ sâu Z-Buffer
+ *      * Thời gian trong ngày & Góc màu Hue của đèn LED HSV động
+ *      * Thông số đo đạc thời gian thực của tàu lượn Bezier (tham số t, vận tốc m/s)
+ *      * Phím tắt bàn phím & Hướng dẫn tương tác
  */
 
 #include <GL/freeglut.h>
@@ -32,7 +32,7 @@ public:
     HUD() = default;
 
     /**
-     * @brief Draw a bitmap text string at (x, y) in DCS pixel coordinates
+     * @brief Vẽ một chuỗi văn bản bitmap tại tọa độ điểm ảnh (x, y) trong hệ tọa độ thiết bị DCS
      */
     static void drawBitmapText(float x, float y, void* font, const char* text) {
         glRasterPos2f(x, y);
@@ -42,7 +42,7 @@ public:
     }
 
     /**
-     * @brief Render the complete on-screen telemetry dashboard
+     * @brief Hiển thị toàn bộ bảng điều khiển thông số (dashboard) trên màn hình
      */
     static void draw(
         int windowWidth, int windowHeight,
@@ -70,7 +70,7 @@ public:
         glDisable(GL_LIGHTING);
         glDisable(GL_DEPTH_TEST);
 
-        // 1. Semi-transparent dark glass dashboard background at top-left
+        // 1. Nền bảng điều khiển kiểu kính tối bán trong suốt ở góc trên bên trái
         const float panelX      = 12.0f;
         const float panelTop    = windowHeight - 12.0f;
         const float panelHeight = 258.0f;
@@ -80,7 +80,7 @@ public:
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        // Background quad
+        // Hình tứ giác làm nền
         glColor4f(0.03f, 0.06f, 0.12f, 0.82f);
         glBegin(GL_QUADS);
         glVertex2f(panelX, panelTop);
@@ -89,7 +89,7 @@ public:
         glVertex2f(panelX + panelWidth, panelTop);
         glEnd();
 
-        // Neon border frame
+        // Khung viền màu neon
         glColor4f(0.25f, 0.65f, 0.95f, 0.60f);
         glLineWidth(1.5f);
         glBegin(GL_LINE_LOOP);
@@ -100,17 +100,17 @@ public:
         glEnd();
         glDisable(GL_BLEND);
 
-        // 2. Dashboard Text Output
+        // 2. Xuất nội dung văn bản trên bảng điều khiển
         float y = panelTop - 22.0f;
         const float dy = 18.5f;
         char buf[256];
 
-        // Header Title
+        // Tiêu đề chính
         glColor3f(1.0f, 0.85f, 0.25f);
         drawBitmapText(panelX + 14.0f, y, GLUT_BITMAP_HELVETICA_18, "CONG VIEN CHAU A (DA NANG) - MO PHONG DO HOA 3D");
         y -= (dy + 5.0f);
 
-        // Telemetry lines
+        // Các dòng thông số trạng thái
         glColor3f(0.90f, 0.95f, 1.0f);
 
         std::snprintf(buf, sizeof(buf), "[C / 1-5] Camera    : %s", camera.getCameraModeName());
@@ -165,7 +165,7 @@ public:
                            "[H] An bang | [+/-] Zoom | [[ / ]] Doi D | [5] Drone | [ESC] Thoat");
         }
 
-        // Restore OpenGL matrices & capabilities
+        // Khôi phục các ma trận và trạng thái OpenGL
         if (zBufferEnabled) glEnable(GL_DEPTH_TEST);
         if (lighting.lightingEnabled) glEnable(GL_LIGHTING);
 

@@ -3,15 +3,15 @@
 
 /**
  * @file RollerCoaster.h
- * @brief Chapters 4 & 5: Queen Cobra Roller Coaster & Asia Park Monorail Simulation
+ * @brief Chương 4 & 5: Mô phỏng Tàu lượn Siêu tốc Queen Cobra & Tàu điện một ray Monorail Asia Park
  *
- * Implements:
- *  - Multi-car articulated trains riding along closed C^1 Piecewise Cubic Bezier tracks
- *  - Exact arc-length car spacing so train cars maintain constant physical separation
- *  - Dynamic local 3D orientation (Yaw, Pitch, Roll) computed from Bezier tangent P'(t) & curvature
- *  - Energy-based speed profile for Queen Cobra (lift hill climb -> high-speed drop & airtime hills)
- *  - Custom procedural 3D meshes (wheel bogies, Cobra nose fairing, seats, monorail straddle skirts,
- *    boarding stations) with explicit outward normals (no glutSolid* primitives)
+ * Cài đặt:
+ *  - Các đoàn tàu nhiều toa nối khớp di chuyển dọc theo đường ray Bezier bậc 3 từng đoạn khép kín liên tục C^1
+ *  - Giãn cách toa tàu tính chính xác theo độ dài cung (Arc-length) giúp các toa giữ khoảng cách vật lý không đổi
+ *  - Định hướng 3D cục bộ động (Yaw, Pitch, Roll) tính từ tiếp tuyến Bezier P'(t) & độ cong đường ray
+ *  - Biểu đồ tốc độ dựa trên bảo toàn năng lượng cho tàu Queen Cobra (kéo lên đỉnh dốc -> lao dốc tốc độ cao & đồi không trọng lực)
+ *  - Lưới đa giác 3D sinh tự động tùy chỉnh (cụm bánh xe bogie, mũi tàu Hổ Mang, ghế ngồi, chân ôm dầm monorail,
+ *    nhà ga đón khách) với pháp tuyến hướng ra ngoài tường minh (không dùng hàm glutSolid* có sẵn)
  */
 
 #include <GL/freeglut.h>
@@ -44,7 +44,7 @@ inline void emitQuad(
 }
 
 /**
- * @brief Draw an axis-aligned local box centered at (cx, cy, cz) with full size (sx, sy, sz)
+ * @brief Vẽ hình hộp cục bộ căn chỉnh theo trục có tâm tại (cx, cy, cz) với kích thước toàn phần (sx, sy, sz)
  */
 inline void drawBox(float cx, float cy, float cz, float sx, float sy, float sz) {
     float hx = sx * 0.5f, hy = sy * 0.5f, hz = sz * 0.5f;
@@ -60,17 +60,17 @@ inline void drawBox(float cx, float cy, float cz, float sx, float sy, float sz) 
     MathCG::Vec3 f01(cx - hx, cy + hy, cz + hz);
 
     glBegin(GL_QUADS);
-    emitQuad(f00, f10, f11, f01); // +Z Front
-    emitQuad(b10, b00, b01, b11); // -Z Back
-    emitQuad(f10, b10, b11, f11); // +X Right
-    emitQuad(b00, f00, f01, b01); // -X Left
-    emitQuad(f01, f11, b11, b01); // +Y Top
-    emitQuad(b00, b10, f10, f00); // -Y Bottom
+    emitQuad(f00, f10, f11, f01); // +Z Mặt trước
+    emitQuad(b10, b00, b01, b11); // -Z Mặt sau
+    emitQuad(f10, b10, b11, f11); // +X Mặt phải
+    emitQuad(b00, f00, f01, b01); // -X Mặt trái
+    emitQuad(f01, f11, b11, b01); // +Y Mặt trên
+    emitQuad(b00, b10, f10, f00); // -Y Mặt dưới
     glEnd();
 }
 
 /**
- * @brief Draw a tapered aerodynamic prism between z0 (rear) and z1 (front, z1 > z0)
+ * @brief Vẽ khối lăng trụ khí động học thuôn nhọn từ z0 (phía sau) tới z1 (phía trước, z1 > z0)
  */
 inline void drawTaperedPrism(
     float z0, float cy0, float sx0, float sy0,
@@ -90,17 +90,17 @@ inline void drawTaperedPrism(
     MathCG::Vec3 f01(-rx1, cy1 + ry1, z1);
 
     glBegin(GL_QUADS);
-    emitQuad(f00, f10, f11, f01); // +Z Front
-    emitQuad(b10, b00, b01, b11); // -Z Back
-    emitQuad(f10, b10, b11, f11); // +X Right
-    emitQuad(b00, f00, f01, b01); // -X Left
-    emitQuad(f01, f11, b11, b01); // +Y Top
-    emitQuad(b00, b10, f10, f00); // -Y Bottom
+    emitQuad(f00, f10, f11, f01); // +Z Mặt trước
+    emitQuad(b10, b00, b01, b11); // -Z Mặt sau
+    emitQuad(f10, b10, b11, f11); // +X Mặt phải
+    emitQuad(b00, f00, f01, b01); // -X Mặt trái
+    emitQuad(f01, f11, b11, b01); // +Y Mặt trên
+    emitQuad(b00, b10, f10, f00); // -Y Mặt dưới
     glEnd();
 }
 
 /**
- * @brief Draw a custom wheel cylinder oriented along the local X-axis with outward caps
+ * @brief Vẽ hình trụ bánh xe tùy chỉnh định hướng dọc theo trục X cục bộ kèm hai nắp chắn hướng pháp tuyến ra ngoài
  */
 inline void drawWheelX(float cx, float cy, float cz, float radius, float width, int slices = 12) {
     float x0 = cx - width * 0.5f;
@@ -117,7 +117,7 @@ inline void drawWheelX(float cx, float cy, float cz, float radius, float width, 
     }
     glEnd();
 
-    // +X cap (increasing u is CCW when looking from +X)
+    // Nắp chắn +X (góc u tăng dần tạo thứ tự đỉnh CCW khi nhìn từ phía +X)
     glBegin(GL_TRIANGLE_FAN);
     glNormal3f(1.0f, 0.0f, 0.0f);
     glVertex3f(x1, cy, cz);
@@ -127,7 +127,7 @@ inline void drawWheelX(float cx, float cy, float cz, float radius, float width, 
     }
     glEnd();
 
-    // -X cap (decreasing u is CCW when looking from -X)
+    // Nắp chắn -X (góc u giảm dần tạo thứ tự đỉnh CCW khi nhìn từ phía -X)
     glBegin(GL_TRIANGLE_FAN);
     glNormal3f(-1.0f, 0.0f, 0.0f);
     glVertex3f(x0, cy, cz);
@@ -145,8 +145,8 @@ public:
     CoasterStyle style              = CoasterStyle::QUEEN_COBRA;
     int          numCars            = 5;
     float        carSpacing         = 2.85f;
-    float        paramT             = 0.0f;  // Lead car parameter t in [0, 1)
-    float        currentDistMeters  = 0.0f;  // Lead car arc-length distance
+    float        paramT             = 0.0f;  // Tham số t của toa dẫn đầu thuộc [0, 1)
+    float        currentDistMeters  = 0.0f;  // Quãng đường độ dài cung của toa dẫn đầu
     float        cruiseSpeedMps     = 16.0f;
     float        minSpeedMps        = 13.5f;
     float        maxSpeedMps        = 38.0f;
@@ -162,7 +162,7 @@ public:
         paramT      = BezierTrack::wrap01(startT);
         currentDistMeters = track.paramTToDistance(paramT);
 
-        // Find peak track elevation for gravitational energy speed scaling
+        // Tìm độ cao đỉnh lớn nhất của đường ray để tính tốc độ theo thế năng trọng trường
         trackMaxY = 10.0f;
         for (const auto& s : track.samples) {
             trackMaxY = std::max(trackMaxY, s.position.y);
@@ -181,7 +181,7 @@ public:
     }
 
     /**
-     * @brief Advance train along BezierTrack by delta time dt (seconds).
+     * @brief Cập nhật vị trí đoàn tàu tiến dọc theo BezierTrack sau khoảng thời gian dt (giây).
      */
     void update(float dt, const BezierTrack& track) {
         float totalLen = track.getTotalLength();
@@ -191,7 +191,7 @@ public:
         if (useGravityPhysics) {
             TrackFrame lead = track.evaluateFrameAtDistance(currentDistMeters);
             float dropH = std::max(0.0f, trackMaxY - lead.position.y);
-            // Conservation of energy approximation: v = sqrt(v_min^2 + 2*g_eff*dh)
+            // Xấp xỉ định luật bảo toàn cơ năng: v = sqrt(v_min^2 + 2*g_eff*dh)
             speed = std::sqrt(minSpeedMps * minSpeedMps + 2.0f * 11.5f * dropH);
             speed = std::clamp(speed, minSpeedMps, maxSpeedMps);
         }
@@ -211,7 +211,7 @@ public:
     }
 
     /**
-     * @brief Render all articulated train cars oriented via Yaw, Pitch, Roll along P'(t).
+     * @brief Vẽ toàn bộ các toa tàu nối khớp được định hướng qua góc Yaw, Pitch, Roll dọc theo P'(t).
      */
     void draw(const BezierTrack& track, bool showDebugVectors, bool lightingEnabled, bool isNightOrSunset) const {
         if (track.samples.empty()) return;
@@ -237,7 +237,7 @@ public:
 
             glPopMatrix();
 
-            // Draw articulated coupler rod between car i and car i+1
+            // Vẽ thanh khớp nối giữa toa thứ i và toa thứ i+1
             if (i + 1 < numCars) {
                 TrackFrame nextF = getCarFrame(i + 1, track);
                 drawCouplerBar(f.position, nextF.position, f.up);
@@ -251,7 +251,7 @@ private:
         const float wheelR = 0.22f;
         const float wheelY = railRadius + wheelR - 0.04f;
 
-        // 1. Steel bogie frame & 4 running wheels aligned to twin rails
+        // 1. Khung gầm thép bogie & 4 bánh xe lăn căn chỉnh khớp với hai thanh ray đôi
         LightingSystem::setMaterial(0.75f, 56.0f);
         glColor3f(0.18f, 0.20f, 0.24f);
         CoasterMesh::drawBox(0.0f, wheelY + 0.06f,  0.75f, trackGauge + 0.12f, 0.14f, 0.26f);
@@ -264,31 +264,31 @@ private:
         CoasterMesh::drawWheelX(-halfG, wheelY, -0.75f, wheelR, 0.18f, 12);
         CoasterMesh::drawWheelX( halfG, wheelY, -0.75f, wheelR, 0.18f, 12);
 
-        // 2. Main Cobra Car Hull (Golden-Yellow with Crimson racing trim)
+        // 2. Thân chính của toa tàu Hổ Mang (Vàng ánh kim phối viền Đỏ thẫm thể thao)
         const float baseY = wheelY + 0.26f;
         LightingSystem::setMaterial(0.60f, 48.0f);
 
         if (carIndex == 0) {
-            // Lead Cobra Head Car: sleek tapered aerodynamic nose
+            // Toa đầu tàu Hổ Mang (Lead Cobra Head Car): mũi tàu khí động học thuôn nhọn
             glColor3f(1.00f, 0.78f, 0.08f);
             CoasterMesh::drawTaperedPrism(
                 -1.15f, baseY + 0.32f, 1.92f, 0.64f,
                  0.25f, baseY + 0.30f, 1.88f, 0.60f
             );
-            // Tapered nose cone extending forward to z = +1.60
+            // Chóp mũi tàu thuôn nhọn vươn về phía trước tới z = +1.60
             glColor3f(0.95f, 0.34f, 0.08f);
             CoasterMesh::drawTaperedPrism(
                  0.25f, baseY + 0.30f, 1.88f, 0.60f,
                  1.62f, baseY + 0.12f, 0.78f, 0.26f
             );
-            // Cobra hood crest / visor
+            // Mào đầu Hổ Mang / kính chắn gió trước
             glColor3f(0.10f, 0.12f, 0.18f);
             CoasterMesh::drawTaperedPrism(
                 -0.10f, baseY + 0.68f, 1.45f, 0.20f,
                  0.75f, baseY + 0.50f, 1.15f, 0.12f
             );
 
-            // Glowing Cobra twin headlights
+            // Cặp đèn pha đôi phát sáng ở đầu tàu Hổ Mang
             if (isNightOrSunset) {
                 LightingSystem::setMaterial(0.9f, 64.0f, 1.0f, 0.92f, 0.55f);
             }
@@ -297,29 +297,29 @@ private:
             CoasterMesh::drawBox( 0.46f, baseY + 0.24f, 1.25f, 0.24f, 0.14f, 0.22f);
             LightingSystem::resetMaterial();
         } else {
-            // Passenger car shell
+            // Vỏ toa hành khách tiêu chuẩn
             glColor3f(1.00f, 0.78f, 0.08f);
             CoasterMesh::drawBox(0.0f, baseY + 0.26f, 0.0f, 1.90f, 0.52f, 2.25f);
 
-            // Side crimson cobra stripes
+            // Dải sọc đỏ thẫm trang trí hai bên hông toa
             glColor3f(0.86f, 0.16f, 0.12f);
             CoasterMesh::drawBox(-0.97f, baseY + 0.30f, 0.0f, 0.05f, 0.18f, 2.15f);
             CoasterMesh::drawBox( 0.97f, baseY + 0.30f, 0.0f, 0.05f, 0.18f, 2.15f);
         }
 
-        // 3. Twin Passenger Seats + High Backrests + Safety Restraint Bar
+        // 3. Cặp ghế hành khách đôi + Tựa lưng cao + Thanh đai an toàn
         glColor3f(0.14f, 0.16f, 0.22f);
         CoasterMesh::drawBox(-0.44f, baseY + 0.78f, -0.58f, 0.62f, 0.66f, 0.22f);
         CoasterMesh::drawBox( 0.44f, baseY + 0.78f, -0.58f, 0.62f, 0.66f, 0.22f);
-        // Headrest cushions
+        // Đệm tựa đầu
         glColor3f(0.85f, 0.18f, 0.14f);
         CoasterMesh::drawBox(-0.44f, baseY + 1.15f, -0.58f, 0.36f, 0.22f, 0.20f);
         CoasterMesh::drawBox( 0.44f, baseY + 1.15f, -0.58f, 0.36f, 0.22f, 0.20f);
-        // Lap / shoulder safety grab bar
+        // Thanh khóa an toàn ngang đùi / vai
         glColor3f(0.75f, 0.78f, 0.84f);
         CoasterMesh::drawBox(0.0f, baseY + 0.74f, 0.08f, 1.56f, 0.09f, 0.09f);
 
-        // Rear red tail lights
+        // Đèn hậu màu đỏ phía đuôi toa
         if (isNightOrSunset) {
             LightingSystem::setMaterial(0.8f, 32.0f, 0.95f, 0.10f, 0.08f);
         }
@@ -333,34 +333,34 @@ private:
         const bool isLead = (carIndex == 0);
         const bool isTail = (carIndex == numCars - 1);
 
-        // 1. Straddle-beam side bogie skirts hugging the concrete box-girder beam
+        // 1. Phần yếm khung gầm hai bên ôm sát dầm hộp bê tông của đường ray Monorail
         LightingSystem::setMaterial(0.40f, 32.0f);
         glColor3f(0.15f, 0.20f, 0.26f);
         CoasterMesh::drawBox(-0.70f, -0.30f, 0.0f, 0.22f, 0.95f, 4.30f);
         CoasterMesh::drawBox( 0.70f, -0.30f, 0.0f, 0.22f, 0.95f, 4.30f);
 
-        // Teal lower chassis band
+        // Dải khung gầm dưới màu xanh cổ vịt (Teal)
         glColor3f(0.05f, 0.56f, 0.68f);
         CoasterMesh::drawBox(0.0f, 0.36f, 0.0f, 1.98f, 0.48f, 4.45f);
 
-        // 2. Main streamlined white passenger cabin
+        // 2. Khoang hành khách chính màu trắng khí động học
         LightingSystem::setMaterial(0.65f, 52.0f);
         glColor3f(0.94f, 0.96f, 0.98f);
 
         if (isLead) {
-            // Main body + aerodynamic front nose
+            // Thân chính + Mũi tàu khí động học phía trước
             CoasterMesh::drawBox(0.0f, 1.25f, -0.35f, 1.96f, 1.32f, 3.70f);
             CoasterMesh::drawTaperedPrism(
                 1.50f, 1.18f, 1.96f, 1.32f,
                 2.75f, 0.72f, 1.32f, 0.78f
             );
-            // Sloped front windshield
+            // Kính chắn gió vát nghiêng phía trước
             glColor3f(0.10f, 0.18f, 0.28f);
             CoasterMesh::drawTaperedPrism(
                 1.52f, 1.48f, 1.66f, 0.56f,
                 2.32f, 1.14f, 1.24f, 0.44f
             );
-            // Glowing LED headlights & top destination strip
+            // Đèn pha LED phát sáng & bảng đèn hiển thị lộ trình trên nóc
             if (isNightOrSunset) {
                 LightingSystem::setMaterial(0.9f, 64.0f, 0.95f, 0.98f, 1.0f);
             }
@@ -379,7 +379,7 @@ private:
                 -2.75f, 0.72f, 1.32f, 0.78f,
                 -1.50f, 1.18f, 1.96f, 1.32f
             );
-            // Tail lights
+            // Đèn hậu đuôi tàu
             if (isNightOrSunset) {
                 LightingSystem::setMaterial(0.8f, 32.0f, 0.98f, 0.12f, 0.10f);
             }
@@ -391,13 +391,13 @@ private:
             CoasterMesh::drawBox(0.0f, 1.25f, 0.0f, 1.96f, 1.32f, 4.45f);
         }
 
-        // 3. Red accent trim stripe & panoramic tinted side windows
+        // 3. Đường viền chỉ đỏ trang trí & dải cửa sổ kính toàn cảnh hai bên hông
         glColor3f(0.88f, 0.20f, 0.18f);
         CoasterMesh::drawBox(0.0f, 0.64f, 0.0f, 2.01f, 0.12f, 4.10f);
 
         glColor3f(0.12f, 0.20f, 0.30f);
         if (isNightOrSunset) {
-            // Warm interior cabin glow through panoramic windows at night
+            // Ánh sáng ấm áp bên trong khoang tàu hắt qua cửa sổ toàn cảnh vào ban đêm
             LightingSystem::setMaterial(0.8f, 48.0f, 0.65f, 0.55f, 0.30f);
             glColor3f(0.95f, 0.85f, 0.58f);
         }
@@ -407,7 +407,7 @@ private:
         CoasterMesh::drawBox( 0.99f, 1.32f, winZ, 0.04f, 0.58f, winLen);
         LightingSystem::resetMaterial();
 
-        // Roof AC unit
+        // Cụm điều hòa không khí trên mui toa tàu
         glColor3f(0.76f, 0.80f, 0.85f);
         CoasterMesh::drawBox(0.0f, 1.98f, winZ, 1.05f, 0.18f, 1.65f);
     }
@@ -436,15 +436,15 @@ private:
         glDisable(GL_LIGHTING);
         glLineWidth(2.6f);
         glBegin(GL_LINES);
-        // Local +X (Right) - Red
+        // Trục +X cục bộ (Hướng phải) - Màu đỏ
         glColor3f(1.0f, 0.15f, 0.15f);
         glVertex3f(0.0f, 0.6f, 0.0f);
         glVertex3f(4.2f, 0.6f, 0.0f);
-        // Local +Y (Up) - Green
+        // Trục +Y cục bộ (Hướng lên) - Màu xanh lá
         glColor3f(0.2f, 1.0f, 0.25f);
         glVertex3f(0.0f, 0.6f, 0.0f);
         glVertex3f(0.0f, 4.8f, 0.0f);
-        // Local +Z (Tangent P'(t)) - Cyan
+        // Trục +Z cục bộ (Tiếp tuyến P'(t)) - Màu xanh lơ
         glColor3f(0.15f, 0.95f, 1.0f);
         glVertex3f(0.0f, 0.6f, 0.0f);
         glVertex3f(0.0f, 0.6f, 6.2f);
@@ -455,8 +455,8 @@ private:
 };
 
 /**
- * @brief Complete Asia Park Curves & Trains System (Member 1 Deliverable)
- *        Manages Queen Cobra Roller Coaster and the Park Perimeter Monorail.
+ * @brief Hệ thống Đường cong & Đoàn tàu Hoàn chỉnh của Asia Park (Phần việc Thành viên 1)
+ *        Quản lý Tàu lượn Siêu tốc Queen Cobra và Tàu điện một ray Monorail chạy quanh công viên.
  */
 class AsiaParkCurvesSystem {
 public:
@@ -467,18 +467,18 @@ public:
     CoasterTrain monorailTrain;
 
     void init() {
-        // 1. Queen Cobra Roller Coaster (West Adventure Zone, closed C^1 Piecewise Cubic Bezier)
+        // 1. Tàu lượn Siêu tốc Queen Cobra (Phân khu Cảm giác mạnh phía Tây, đường cong Bezier bậc 3 từng đoạn khép kín C^1)
         std::vector<MathCG::Vec3> queenCobraWaypoints = {
-            MathCG::Vec3( -68.0f,  6.0f,  52.0f), // 0: Boarding Station South
-            MathCG::Vec3( -68.0f,  6.0f,  26.0f), // 1: Station Exit -> Lift Chain Base
-            MathCG::Vec3( -68.0f, 26.0f,  -6.0f), // 2: Lift Hill Climb
-            MathCG::Vec3( -72.0f, 47.0f, -44.0f), // 3: Lift Hill Peak (47m)
-            MathCG::Vec3( -90.0f, 40.0f, -76.0f), // 4: High Northwest Panorama Turn
-            MathCG::Vec3(-103.0f, 13.0f, -48.0f), // 5: Steep First Drop Valley
-            MathCG::Vec3( -94.0f, 34.0f, -12.0f), // 6: Airtime Camelback Crest
-            MathCG::Vec3(-101.0f, 10.5f,  24.0f), // 7: Second Drop Low Sweep
-            MathCG::Vec3( -92.0f, 21.0f,  64.0f), // 8: Banked Southwest Horseshoe
-            MathCG::Vec3( -71.0f,  7.5f,  71.0f)  // 9: Brake Run returning straight to Station
+            MathCG::Vec3( -68.0f,  6.0f,  52.0f), // 0: Nhà ga đón khách phía Nam
+            MathCG::Vec3( -68.0f,  6.0f,  26.0f), // 1: Lối ra nhà ga -> Chân dốc kéo xích
+            MathCG::Vec3( -68.0f, 26.0f,  -6.0f), // 2: Đoạn leo dốc kéo xích (Lift Hill)
+            MathCG::Vec3( -72.0f, 47.0f, -44.0f), // 3: Đỉnh dốc cao nhất (47m)
+            MathCG::Vec3( -90.0f, 40.0f, -76.0f), // 4: Khúc cua toàn cảnh trên cao phía Tây Bắc
+            MathCG::Vec3(-103.0f, 13.0f, -48.0f), // 5: Thung lũng sau cú lao dốc đứng đầu tiên
+            MathCG::Vec3( -94.0f, 34.0f, -12.0f), // 6: Đỉnh đồi lạc đà tạo cảm giác không trọng lực (Camelback)
+            MathCG::Vec3(-101.0f, 10.5f,  24.0f), // 7: Đáy lượn thấp sau cú lao dốc thứ hai
+            MathCG::Vec3( -92.0f, 21.0f,  64.0f), // 8: Khúc cua móng ngựa nghiêng phía Tây Nam
+            MathCG::Vec3( -71.0f,  7.5f,  71.0f)  // 9: Đoạn phanh giảm tốc trở về thẳng nhà ga
         };
 
         TrackConfig qcCfg;
@@ -502,20 +502,20 @@ public:
         queenCobraTrack.buildFromClosedWaypoints(queenCobraWaypoints, 0.45f, qcCfg);
         queenCobraTrain.init(queenCobraTrack, CoasterStyle::QUEEN_COBRA, 6, 2.75f, 0.32f);
 
-        // 2. Asia Park Sightseeing Monorail (Elevated Perimeter Loop)
+        // 2. Tàu điện một ray Ngắm cảnh Asia Park Monorail (Vòng tuyến trên cao bao quanh công viên)
         std::vector<MathCG::Vec3> monorailWaypoints = {
-            MathCG::Vec3(   0.0f, 12.0f,  108.0f), // 0: South Front Overpass
-            MathCG::Vec3(  72.0f, 12.5f,  102.0f), // 1: Southeast Curve
-            MathCG::Vec3( 114.0f, 13.0f,   58.0f), // 2: East Plaza Leg
-            MathCG::Vec3( 116.0f, 14.0f,    0.0f), // 3: East Mid
-            MathCG::Vec3( 114.0f, 13.5f,  -60.0f), // 4: Northeast Curve
-            MathCG::Vec3(  72.0f, 13.0f,  -98.0f), // 5: North Behind Sun Wheel East
-            MathCG::Vec3(   0.0f, 14.5f, -102.0f), // 6: North Behind Sun Wheel Center
-            MathCG::Vec3( -72.0f, 13.0f,  -98.0f), // 7: North Behind Sun Wheel West
-            MathCG::Vec3(-114.0f, 12.5f,  -60.0f), // 8: Northwest Curve
-            MathCG::Vec3(-116.0f, 12.0f,    0.0f), // 9: West Perimeter (outside Queen Cobra)
-            MathCG::Vec3(-114.0f, 12.0f,   58.0f), // 10: Southwest Curve
-            MathCG::Vec3( -72.0f, 12.0f,  102.0f)  // 11: South Return
+            MathCG::Vec3(   0.0f, 12.0f,  108.0f), // 0: Cầu vượt mặt tiền phía Nam
+            MathCG::Vec3(  72.0f, 12.5f,  102.0f), // 1: Khúc cua Đông Nam
+            MathCG::Vec3( 114.0f, 13.0f,   58.0f), // 2: Nhánh quảng trường phía Đông
+            MathCG::Vec3( 116.0f, 14.0f,    0.0f), // 3: Điểm giữa phía Đông (Nhà ga Monorail)
+            MathCG::Vec3( 114.0f, 13.5f,  -60.0f), // 4: Khúc cua Đông Bắc
+            MathCG::Vec3(  72.0f, 13.0f,  -98.0f), // 5: Phía Bắc sau lưng Sun Wheel (nhánh Đông)
+            MathCG::Vec3(   0.0f, 14.5f, -102.0f), // 6: Phía Bắc chính giữa sau lưng Sun Wheel
+            MathCG::Vec3( -72.0f, 13.0f,  -98.0f), // 7: Phía Bắc sau lưng Sun Wheel (nhánh Tây)
+            MathCG::Vec3(-114.0f, 12.5f,  -60.0f), // 8: Khúc cua Tây Bắc
+            MathCG::Vec3(-116.0f, 12.0f,    0.0f), // 9: Vành đai phía Tây (bên ngoài khu Queen Cobra)
+            MathCG::Vec3(-114.0f, 12.0f,   58.0f), // 10: Khúc cua Tây Nam
+            MathCG::Vec3( -72.0f, 12.0f,  102.0f)  // 11: Đoạn quay về phía Nam
         };
 
         TrackConfig mrCfg;
@@ -556,43 +556,43 @@ public:
     void draw(bool showNormalsAndCtrl, bool lightingEnabled, TimeOfDay timeOfDay) const {
         bool isNightOrSunset = (timeOfDay != TimeOfDay::DAY);
 
-        // Draw Boarding Stations
+        // Vẽ các Nhà ga Đón khách
         drawQueenCobraStation(isNightOrSunset);
         drawMonorailStation(isNightOrSunset);
 
-        // Draw Tracks + Control Polygons / Tangent Debug Overlay
+        // Vẽ Đường ray + Lớp phủ Kiểm tra Đa giác Điều khiển / Tiếp tuyến
         queenCobraTrack.draw(showNormalsAndCtrl, lightingEnabled);
         monorailTrack.draw(showNormalsAndCtrl, lightingEnabled);
 
-        // Draw Animated Multi-Car Trains
+        // Vẽ các Đoàn tàu Nhiều toa Chuyển động
         queenCobraTrain.draw(queenCobraTrack, showNormalsAndCtrl, lightingEnabled, isNightOrSunset);
         monorailTrain.draw(monorailTrack, showNormalsAndCtrl, lightingEnabled, isNightOrSunset);
     }
 
 private:
     static void drawQueenCobraStation(bool isNightOrSunset) {
-        // Boarding deck alongside flat segment 0: track at x = -68.0, z in [26..52], y = 6.0
+        // Sàn đón khách dọc theo đoạn thẳng 0: đường ray tại x = -68.0, z thuộc [26..52], y = 6.0
         const float cx = -68.0f;
         const float cz = 39.0f;
 
-        // Concrete boarding platform on +X side of track (x in [-66.7 .. -62.1])
+        // Bệ nhà ga bê tông nằm về phía +X của đường ray (x thuộc [-66.7 .. -62.1])
         glColor3f(0.42f, 0.44f, 0.48f);
         CoasterMesh::drawBox(cx + 3.6f, 2.7f, cz, 4.6f, 5.4f, 26.0f);
 
-        // Platform deck overhang (clear of car x >= -67.0)
+        // Sàn chờ nhô ra (cách an toàn với thân toa tàu x >= -67.0)
         glColor3f(0.68f, 0.24f, 0.16f);
         CoasterMesh::drawBox(cx + 3.5f, 5.55f, cz, 4.9f, 0.35f, 27.0f);
 
-        // Canopy steel columns grounded at y = 0 (far -X side) & platform edge (+X side)
+        // Hệ cột thép đỡ mái vòm cắm xuống đất tại y = 0 (bên -X) & dọc mép sàn ga (bên +X)
         glColor3f(0.78f, 0.78f, 0.82f);
         for (int zSide = -1; zSide <= 1; ++zSide) {
-            // Far-side full-height column clear of track (-70.6)
+            // Cột cao bên ngoài cách xa đường ray (-70.6)
             CoasterMesh::drawBox(cx - 2.6f, 5.05f, cz + zSide * 10.5f, 0.38f, 10.1f, 0.38f);
-            // Platform-side column (+X outer edge -62.4)
+            // Cột phía sàn nhà ga (mép ngoài +X tại -62.4)
             CoasterMesh::drawBox(cx + 5.6f, 7.80f, cz + zSide * 10.5f, 0.38f,  4.6f, 0.38f);
         }
 
-        // Sloped station canopy roof over track & boarding platform
+        // Mái che nhà ga che phủ đường ray & sàn đón khách
         glColor3f(0.88f, 0.32f, 0.12f);
         CoasterMesh::drawBox(cx + 1.5f, 10.15f, cz, 9.2f, 0.36f, 27.5f);
 
@@ -605,24 +605,24 @@ private:
     }
 
     static void drawMonorailStation(bool isNightOrSunset) {
-        // Elevated Monorail East Boarding Station near track (116, 14, 0)
+        // Nhà ga đón khách Monorail trên cao phía Đông gần vị trí đường ray (116, 14, 0)
         const float cx = 116.0f;
         const float cz = 0.0f;
 
-        // Station concourse tower & elevated platform clear of monorail cars (x >= 117.4)
+        // Tháp sảnh nhà ga & sàn đón khách trên cao tách biệt an toàn với toa tàu monorail (x >= 117.4)
         glColor3f(0.56f, 0.60f, 0.65f);
         CoasterMesh::drawBox(cx + 4.6f, 6.2f, cz, 5.0f, 12.4f, 22.0f);
 
-        // Teal station trim deck
+        // Sàn viền màu xanh cổ vịt của nhà ga
         glColor3f(0.06f, 0.54f, 0.66f);
         CoasterMesh::drawBox(cx + 4.4f, 12.55f, cz, 5.8f, 0.40f, 23.0f);
 
-        // Modern canopy columns grounded on both sides of the guideway
+        // Các cột đỡ mái vòm hiện đại cắm xuống đất ở cả hai bên dầm dẫn hướng
         glColor3f(0.84f, 0.86f, 0.90f);
         for (int zSide = -1; zSide <= 1; ++zSide) {
-            // Inner-park side full-height column clear of car (-X side: x = 113.8)
+            // Cột cao phía bên trong công viên cách an toàn với toa tàu (phía -X: x = 113.8)
             CoasterMesh::drawBox(cx - 2.2f,  8.90f, cz + zSide * 9.0f, 0.42f, 17.8f, 0.42f);
-            // Platform outer column (+X side: x = 122.8)
+            // Cột mép ngoài sàn ga (phía +X: x = 122.8)
             CoasterMesh::drawBox(cx + 6.8f, 15.20f, cz + zSide * 9.0f, 0.42f,  5.2f, 0.42f);
         }
         glColor3f(0.92f, 0.94f, 0.96f);

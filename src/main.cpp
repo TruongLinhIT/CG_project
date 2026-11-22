@@ -1,15 +1,15 @@
 /**
  * @file main.cpp
- * @brief Entry Point, Interactive State Machine, Camera & GLUT Menu for
- *        "3D Simulation of Asia Park (Da Nang)" - C++ / FreeGLUT
+ * @brief Điểm khởi đầu chương trình (Entry Point), Máy trạng thái tương tác, Camera & Menu GLUT cho
+ *        "Mô phỏng 3D Công viên Châu Á (Đà Nẵng)" - C++ / FreeGLUT
  *
- * Step 1 Deliverable:
- *  - Complete GLUT Window & 60 FPS Timer Loop
- *  - Complete Interactive State Machine (Chapter 1 - Chapter 6 toggles)
- *  - Spherical Orbit Camera (theta, Phi, R, D) + Ride Cameras + Perspective/Ortho Projections
- *  - Right-click Hierarchical GLUT Menu + Keyboard/Mouse Callbacks
- *  - Step 1 Interactive Scene Preview (Planar Lake Reflection at y=0, Hierarchical Sun Wheel
- *    preview with HSV->RGB night LEDs, Bezier track preview, and glutBitmapCharacter HUD)
+ * Sản phẩm bàn giao Bước 1:
+ *  - Cửa sổ GLUT hoàn chỉnh & Vòng lặp bộ định thời (Timer Loop) 60 FPS
+ *  - Máy trạng thái tương tác đầy đủ (Bật/tắt các tính năng từ Chương 1 đến Chương 6)
+ *  - Camera quỹ đạo cầu (theta, Phi, R, D) + Camera góc nhìn trên trò chơi + Phép chiếu Phối cảnh/Trực giao
+ *  - Menu chuột phải phân cấp GLUT + Các hàm gọi lại (Callback) bàn phím và chuột
+ *  - Cảnh mô phỏng tương tác Bước 1 (Phản xạ mặt phẳng hồ tại y=0, mô hình phân cấp Sun Wheel
+ *    với đèn LED ban đêm HSV->RGB, đường ray Bezier và bảng thông số HUD bằng glutBitmapCharacter)
  */
 
 #include <GL/freeglut.h>
@@ -35,46 +35,46 @@
 #include "ui/HUD.h"
 
 // ============================================================================
-// GLOBAL SIMULATION & GRAPHICS PIPELINE STATE MACHINE
+// MÁY TRẠNG THÁI MÔ PHỎNG & ĐƯỜNG ỐNG ĐỒ HỌA TOÀN CỤC
 // ============================================================================
 
 struct SimulationState {
     int windowWidth  = 1280;
     int windowHeight = 768;
 
-    // Animation state (60 FPS timer)
+    // Trạng thái hoạt ảnh (bộ định thời 60 FPS)
     bool  isPaused          = false;
     float animSpeed         = 1.0f;
-    float sunWheelAngleDeg  = 0.0f;  // alpha: main wheel rotation angle
-    float carouselAngleDeg  = 0.0f;  // carousel rotation angle
-    float carouselPhase     = 0.0f;  // horse vertical oscillation phase
-    float skyTowerTime      = 0.0f;  // drives drop tower cycle
-    float coasterParamT     = 0.0f;  // parameter t in [0, 1] along Bezier track
+    float sunWheelAngleDeg  = 0.0f;  // alpha: góc quay chính của vòng quay Sun Wheel
+    float carouselAngleDeg  = 0.0f;  // góc quay của vòng quay ngựa gỗ Carousel
+    float carouselPhase     = 0.0f;  // pha dao động lên xuống theo phương thẳng đứng của ngựa gỗ
+    float skyTowerTime      = 0.0f;  // biến thời gian điều khiển chu kỳ tháp rơi tự do Sky Tower
+    float coasterParamT     = 0.0f;  // tham số t thuộc [0, 1] dọc theo đường ray Bezier
 
-    // Chapter 4 & 6 Graphics Pipeline Toggles
-    bool wireframeMode      = false; // GL_LINE vs GL_FILL
-    bool showNormalsAndCtrl = false; // Debug: surface normals N & Bezier control polygon
-    bool backFaceCulling    = true;  // GL_CULL_FACE (V . N >= 0)
-    bool zBufferEnabled     = true;  // GL_DEPTH_TEST
-    bool lakeReflection     = true;  // Planar reflection across y = 0 + GL_BLEND water
-    bool showMinimap        = true;  // 2D WCS->NCS->DCS Minimap with Cohen-Sutherland clipping
-    bool showHUD            = true;  // On-screen glutBitmapCharacter state overlay
+    // Các tùy chọn bật/tắt đường ống đồ họa Chương 4 & 6
+    bool wireframeMode      = false; // Chế độ khung dây (GL_LINE) so với tô đặc (GL_FILL)
+    bool showNormalsAndCtrl = false; // Gỡ lỗi: hiển thị pháp tuyến bề mặt N & đa giác kiểm soát Bezier
+    bool backFaceCulling    = true;  // Loại bỏ mặt sau GL_CULL_FACE (V . N >= 0)
+    bool zBufferEnabled     = true;  // Kiểm tra độ sâu Z-Buffer (GL_DEPTH_TEST)
+    bool lakeReflection     = true;  // Phản xạ qua mặt phẳng y = 0 + mặt nước bán trong suốt GL_BLEND
+    bool showMinimap        = true;  // Bản đồ nhỏ 2D WCS->NCS->DCS với thuật toán xén Cohen-Sutherland
+    bool showHUD            = true;  // Lớp phủ hiển thị trạng thái trên màn hình bằng glutBitmapCharacter
 
-    // Sun Wheel Real Specs (Asia Park Da Nang):
-    // Diameter = 100m (R = 50m), Center Height = 65m (Total Height = 115m),
-    // 32 radial spokes, 64 cabins (delta = 5.625 deg)
+    // Thông số thực tế của Vòng quay Sun Wheel (Công viên Châu Á - Đà Nẵng):
+    // Đường kính = 100m (R = 50m), Độ cao tâm = 65m (Tổng chiều cao = 115m),
+    // 32 nan hoa hướng tâm, 64 cabin (góc lệch delta = 5.625 độ)
     MathCG::Vec3 sunWheelCenter = MathCG::Vec3(0.0f, 65.0f, -38.0f);
     float        sunWheelRadius = 50.0f;
     int          numSpokes      = 32;
     int          numCabins      = 64;
 
-    // Mouse interaction state
+    // Trạng thái tương tác chuột
     int  lastMouseX     = 0;
     int  lastMouseY     = 0;
     bool leftMouseDown  = false;
     bool midMouseDown   = false;
 
-    // Smooth Drone Flight Input State (updated at 60 FPS in timerCallback)
+    // Trạng thái phím điều khiển bay Drone mượt mà (cập nhật ở tần số 60 FPS trong timerCallback)
     bool keyDown[256]      = { false };
     bool specialLeftDown   = false;
     bool specialRightDown  = false;
@@ -96,7 +96,7 @@ static AsiaParkRides::NgoMonGate  gNgoMonGate;
 static AsiaParkUI::Minimap2D     gMinimap;
 
 // ============================================================================
-// GLUT RIGHT-CLICK MENU IDENTIFIERS
+// CÁC MÃ ĐỊNH DANH MENU CHUỘT PHẢI GLUT
 // ============================================================================
 
 enum MenuOption {
@@ -133,12 +133,12 @@ enum MenuOption {
 };
 
 // ============================================================================
-// HELPER FUNCTIONS FOR RIDE CAMERA POSITIONS & STEP 1 SCENE PREVIEW
+// CÁC HÀM BỔ TRỢ TÍNH VỊ TRÍ CAMERA TRÒ CHƠI & VẼ CẢNH MÔ PHỎNG
 // ============================================================================
 
 /**
- * @brief Compute World Position of Cabin #0 on the Sun Wheel using
- *        Chapter 4 rotation around center I(x0, y0, z0):
+ * @brief Tính tọa độ thế giới của Cabin #0 trên vòng quay Sun Wheel sử dụng
+ *        phép quay quanh tâm I(x0, y0, z0) ở Chương 4:
  *        P_cabin = T(I) * R_z(alpha) * (R_wheel, 0, 0)
  */
 static MathCG::Vec3 getTrackedCabinWorldPos() {
@@ -188,7 +188,7 @@ static void activateCameraMode(CameraMode nextMode) {
 }
 
 /**
- * @brief Draw a bitmap text string at 2D pixel position (x, y) using glutBitmapCharacter (Chapter 3)
+ * @brief Vẽ chuỗi văn bản bitmap tại vị trí điểm ảnh 2D (x, y) bằng glutBitmapCharacter (Chương 3)
  */
 [[maybe_unused]] static void drawBitmapText(float x, float y, void* font, const char* text) {
     glRasterPos2f(x, y);
@@ -198,7 +198,7 @@ static void activateCameraMode(CameraMode nextMode) {
 }
 
 /**
- * @brief Forwarding to Member 2's ParametricShapes library (Chapter 5 & 6)
+ * @brief Chuyển tiếp lời gọi sang thư viện ParametricShapes (Chương 5 & 6)
  */
 [[maybe_unused]] static void drawParametricCylinder(float r, float h, int slices, int stacks, bool drawNormals) {
     ParametricShapes::drawCylinder(r, h, slices, stacks, false, drawNormals);
@@ -219,7 +219,7 @@ static void activateCameraMode(CameraMode nextMode) {
 }
 
 /**
- * @brief Chapter 4 & 5: Sun Wheel rendering delegated to Member 2's AsiaParkRides::SunWheel
+ * @brief Chương 4 & 5: Vẽ vòng quay Sun Wheel thông qua lớp AsiaParkRides::SunWheel
  */
 static void drawHierarchicalSunWheelPreview() {
     bool isNightOrSunset = (gLighting.timeOfDay != TimeOfDay::DAY);
@@ -227,33 +227,33 @@ static void drawHierarchicalSunWheelPreview() {
 }
 
 /**
- * @brief Chapter 4 & 6: Lakeside Asian Viewing Pavilion built via Member 2's PolygonMesh
+ * @brief Chương 4 & 6: Thủy đình Á Đông ven hồ được xây dựng bằng lớp PolygonMesh
  */
 static void drawLakesidePavilionMesh() {
     static Geometry::PolygonMesh pavilionMesh;
     static bool initialized = false;
     if (!initialized) {
         initialized = true;
-        // 1. Foundation Podium
+        // 1. Bệ móng đá
         auto podium = Geometry::PolygonMesh::createBox(0.0f, 0.4f, 0.0f, 10.0f, 0.8f, 10.0f, MathCG::ColorRGB(0.55f, 0.52f, 0.48f));
         pavilionMesh.append(podium);
 
-        // 2. Pillars at 4 corners
+        // 2. Các cột trụ ở 4 góc
         float cornerOffsets[4][2] = { {-3.8f, -3.8f}, {3.8f, -3.8f}, {3.8f, 3.8f}, {-3.8f, 3.8f} };
         for (int i = 0; i < 4; ++i) {
             auto pillar = Geometry::PolygonMesh::createPrismY(cornerOffsets[i][0], 0.8f, cornerOffsets[i][1], 0.28f, 4.2f, 12, MathCG::ColorRGB(0.72f, 0.22f, 0.16f));
             pavilionMesh.append(pillar);
         }
 
-        // 3. Eaves beam
+        // 3. Xà đỡ diềm mái
         auto beam = Geometry::PolygonMesh::createBox(0.0f, 5.1f, 0.0f, 8.4f, 0.4f, 8.4f, MathCG::ColorRGB(0.85f, 0.65f, 0.22f));
         pavilionMesh.append(beam);
 
-        // 4. Asian Curved Roof
+        // 4. Mái cong Á Đông
         auto roof = Geometry::PolygonMesh::createCurvedAsianRoof(0.0f, 5.3f, 0.0f, 9.6f, 9.6f, 2.6f, 2.4f, MathCG::ColorRGB(0.88f, 0.35f, 0.12f));
         pavilionMesh.append(roof);
 
-        // 5. Roof pinnacle
+        // 5. Chóp đỉnh mái
         auto pinnacle = Geometry::PolygonMesh::createPyramid(0.0f, 7.9f, 0.0f, 0.9f, 0.9f, 1.2f, MathCG::ColorRGB(0.95f, 0.82f, 0.25f));
         pavilionMesh.append(pinnacle);
 
@@ -261,43 +261,43 @@ static void drawLakesidePavilionMesh() {
     }
 
     glPushMatrix();
-    glTranslatef(0.0f, 0.0f, 28.0f); // South viewing deck facing the lake
+    glTranslatef(0.0f, 0.0f, 28.0f); // Đài ngắm cảnh phía Nam hướng ra mặt hồ
     bool smooth = (gLighting.shadingModel == ShadingModel::GOURAUD_SMOOTH);
     pavilionMesh.draw(smooth, gState.showNormalsAndCtrl);
     glPopMatrix();
 }
 
 /**
- * @brief Draw Park Ground Grid & Semi-Transparent Reflection Lake at y = 0
+ * @brief Vẽ mặt đất công viên & Hồ nước phản xạ bán trong suốt tại mặt phẳng y = 0
  */
 static void drawParkGroundAndLake() {
-    // Outer park lawns (leaving central lake region [-58..58, -62..16] open for 115m Sun Wheel reflection)
+    // Thảm cỏ công viên phía ngoài (để trống vùng hồ trung tâm [-58..58, -62..16] cho ảnh phản xạ của Sun Wheel cao 115m)
     glColor3f(0.16f, 0.36f, 0.18f);
     glNormal3f(0.0f, 1.0f, 0.0f);
     glBegin(GL_QUADS);
-    // North strip
+    // Dải đất phía Bắc
     glVertex3f(-140.0f, -0.05f, -140.0f);
     glVertex3f(-140.0f, -0.05f,  -62.0f);
     glVertex3f( 140.0f, -0.05f,  -62.0f);
     glVertex3f( 140.0f, -0.05f, -140.0f);
-    // South strip
+    // Dải đất phía Nam
     glVertex3f(-140.0f, -0.05f,   16.0f);
     glVertex3f(-140.0f, -0.05f,  140.0f);
     glVertex3f( 140.0f, -0.05f,  140.0f);
     glVertex3f( 140.0f, -0.05f,   16.0f);
-    // West strip
+    // Dải đất phía Tây
     glVertex3f(-140.0f, -0.05f,  -62.0f);
     glVertex3f(-140.0f, -0.05f,   16.0f);
     glVertex3f( -58.0f, -0.05f,   16.0f);
     glVertex3f( -58.0f, -0.05f,  -62.0f);
-    // East strip
+    // Dải đất phía Đông
     glVertex3f(  58.0f, -0.05f,  -62.0f);
     glVertex3f(  58.0f, -0.05f,   16.0f);
     glVertex3f( 140.0f, -0.05f,   16.0f);
     glVertex3f( 140.0f, -0.05f,  -62.0f);
     glEnd();
 
-    // Semi-transparent central lake at y = 0 (GL_BLEND)
+    // Hồ nước trung tâm bán trong suốt tại y = 0 (GL_BLEND)
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glColor4f(0.08f, 0.28f, 0.48f, 0.62f);
@@ -310,7 +310,7 @@ static void drawParkGroundAndLake() {
     glEnd();
     glDisable(GL_BLEND);
 
-    // Decorative Asian-style promenade lantern posts around the lake (showcasing all 4 ParametricShapes)
+    // Các trụ đèn lồng dạo bộ phong cách Á Đông quanh hồ (minh họa đủ 4 dạng mặt cong tham số ParametricShapes)
     static const MathCG::Vec3 lampLocations[] = {
         { -56.0f, 0.0f,  14.0f },
         { -28.0f, 0.0f,  14.0f },
@@ -328,20 +328,20 @@ static void drawParkGroundAndLake() {
         glPushMatrix();
         glTranslatef(pos.x, pos.y, pos.z);
 
-        // 1. Parametric Ruled Cylinder (Base & Pillar)
+        // 1. Mặt trụ kẻ tham số (Chân đế & Thân cột)
         glColor3f(0.24f, 0.25f, 0.28f);
         ParametricShapes::drawCylinderY(0.42f, 0.35f, 16, 2, true, gState.showNormalsAndCtrl);
         glColor3f(0.38f, 0.40f, 0.44f);
         ParametricShapes::drawCylinderY(0.16f, 3.80f, 16, 4, true, gState.showNormalsAndCtrl);
 
-        // 2. Parametric Toroid (Decorative collar ring)
+        // 2. Mặt xuyến tham số (Vòng cổ trang trí)
         glPushMatrix();
         glTranslatef(0.0f, 3.80f, 0.0f);
         glColor3f(0.85f, 0.70f, 0.20f);
         ParametricShapes::drawToroidY(0.32f, 0.07f, 16, 8, gState.showNormalsAndCtrl);
         glPopMatrix();
 
-        // 3. Parametric Sphere of Revolution (Glowing Lantern Bulb)
+        // 3. Mặt cầu tròn xoay tham số (Bóng đèn lồng phát sáng)
         glPushMatrix();
         glTranslatef(0.0f, 4.25f, 0.0f);
         if (gLighting.lightingEnabled) {
@@ -357,7 +357,7 @@ static void drawParkGroundAndLake() {
         }
         glPopMatrix();
 
-        // 4. Parametric Ruled Cone (Pagoda Roof Cap)
+        // 4. Mặt nón kẻ tham số (Nón che đèn kiểu mái chùa)
         glPushMatrix();
         glTranslatef(0.0f, 4.60f, 0.0f);
         glColor3f(0.72f, 0.18f, 0.14f);
@@ -372,7 +372,7 @@ static void displayCallback() {
     gLighting.applyClearColor();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // 1. Apply Chapter 6 Hidden Surface Removal & Polygon State
+    // 1. Áp dụng trạng thái khử mặt khuất & chế độ vẽ đa giác (Chương 6)
     if (gState.zBufferEnabled) {
         glEnable(GL_DEPTH_TEST);
     } else {
@@ -389,7 +389,7 @@ static void displayCallback() {
 
     glPolygonMode(GL_FRONT_AND_BACK, gState.wireframeMode ? GL_LINE : GL_FILL);
 
-    // 2. Apply Chapter 4 Projection & Viewing Transformations
+    // 2. Áp dụng phép biến đổi chiếu & quan sát (Chương 4)
     glViewport(0, 0, gState.windowWidth, gState.windowHeight);
     gCamera.applyProjection(gState.windowWidth, gState.windowHeight);
 
@@ -403,20 +403,20 @@ static void displayCallback() {
         monorailFrame.position, monorailFrame.tangent, monorailFrame.up
     );
 
-    // 3. Apply Chapter 6 Illumination & Shading
+    // 3. Áp dụng chiếu sáng & tô bóng (Chương 6)
     gLighting.applyLights(gState.sunWheelCenter);
     gLighting.applyCoasterHeadlight(
         queenFrame.position + queenFrame.up * 0.8f + queenFrame.tangent * 1.5f,
         queenFrame.tangent
     );
 
-    // 4. Chapter 4 Planar Reflection Pass across central lake plane y = 0
+    // 4. Lượt vẽ phản xạ qua mặt phẳng hồ trung tâm y = 0 (Chương 4)
     if (gState.lakeReflection) {
         glPushMatrix();
         MathCG::Mat4 reflectMat = MathCG::Mat4::reflectionAcrossYPlane(0.0f);
         glMultMatrixf(reflectMat.m);
 
-        // Reflection flips handedness (CCW <-> CW)
+        // Phép phản xạ làm đảo chiều định hướng đỉnh đa giác (CCW <-> CW)
         if (gState.backFaceCulling) glFrontFace(GL_CW);
         drawHierarchicalSunWheelPreview();
         if (gState.backFaceCulling) glFrontFace(GL_CCW);
@@ -424,23 +424,23 @@ static void displayCallback() {
         glPopMatrix();
     }
 
-    // 5. Render Main 3D Scene
+    // 5. Vẽ cảnh 3D chính
     drawParkGroundAndLake();
     drawLakesidePavilionMesh();
     drawHierarchicalSunWheelPreview();
     gCurves.draw(gState.showNormalsAndCtrl, gLighting.lightingEnabled, gLighting.timeOfDay);
 
-    // Member 2 Rides & Monumental Architecture
+    // Các trò chơi & công trình kiến trúc biểu tượng
     bool isNightOrSunset = (gLighting.timeOfDay != TimeOfDay::DAY);
     bool smooth = (gLighting.shadingModel == ShadingModel::GOURAUD_SMOOTH);
     gSkyTower.draw(isNightOrSunset, gState.showNormalsAndCtrl);
     gCarousel.draw(isNightOrSunset, gState.showNormalsAndCtrl);
     gNgoMonGate.draw(isNightOrSunset, gState.showNormalsAndCtrl, smooth);
 
-    // 6. Render 2D Overlays (Always in GL_FILL)
+    // 6. Vẽ các lớp phủ giao diện 2D (Luôn ở chế độ tô đặc GL_FILL)
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    // 6.1 Minimap 2D Radar (Chapter 1 & 3: WCS->NCS->DCS, Cohen-Sutherland, Midpoint Circle, Bresenham Line)
+    // 6.1 Bản đồ nhỏ Radar 2D (Chương 1 & 3: WCS->NCS->DCS, Cohen-Sutherland, Đường tròn Midpoint, Đoạn thẳng Bresenham)
     if (gState.showMinimap) {
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
@@ -495,7 +495,7 @@ static void displayCallback() {
         glMatrixMode(GL_MODELVIEW);
     }
 
-    // 6.2 On-Screen Telemetry HUD (Chapter 3: glutBitmapCharacter)
+    // 6.2 Bảng thông số điều khiển HUD trên màn hình (Chương 3: glutBitmapCharacter)
     if (gState.showHUD) {
         AsiaParkUI::HUD::draw(
             gState.windowWidth, gState.windowHeight,
@@ -531,7 +531,7 @@ static void timerCallback(int value) {
         : (1.0f / 60.0f);
     gState.prevElapsedMs = nowMs;
 
-    // Free Drone Flight stays active even when park rides are paused for close inspection
+    // Chế độ bay Drone tự do vẫn hoạt động ngay cả khi tạm dừng các trò chơi để quan sát chi tiết
     if (gCamera.cameraMode == CameraMode::DRONE_FREE) {
         float moveFwd   = (gState.keyDown['w'] ? 1.0f : 0.0f) - (gState.keyDown['s'] ? 1.0f : 0.0f);
         float moveRight = (gState.keyDown['d'] ? 1.0f : 0.0f) - (gState.keyDown['a'] ? 1.0f : 0.0f);
@@ -545,12 +545,12 @@ static void timerCallback(int value) {
     const float dt = realDt * gState.animSpeed;
 
     if (!gState.isPaused) {
-        // Rotate Sun Wheel by angle alpha and cycle HSV Hue H in [0, 360)
+        // Quay vòng quay Sun Wheel theo góc alpha và biến thiên góc màu HSV Hue H trong [0, 360)
         gSunWheel.update(dt);
         gState.sunWheelAngleDeg = gSunWheel.currentAngleDeg;
         gLighting.ledHueDeg     = std::fmod(gLighting.ledHueDeg     + 45.0f * dt, 360.0f);
 
-        // Advance Carousel, Sky Tower & Bezier Coaster / Monorail along closed C^1 tracks
+        // Cập nhật chuyển động của Carousel, Sky Tower & tàu lượn Bezier / Monorail dọc theo đường ray khép kín C^1
         gCarousel.update(dt);
         gState.carouselAngleDeg = gCarousel.currentAngleDeg;
         gState.carouselPhase    = gCarousel.oscillationPhase;
@@ -563,12 +563,12 @@ static void timerCallback(int value) {
     }
 
     glutPostRedisplay();
-    glutTimerFunc(16, timerCallback, 0); // ~60 FPS
+    glutTimerFunc(16, timerCallback, 0); // Khoảng ~60 FPS
 }
 
 static void applyMenuSelection(int option) {
     switch (option) {
-        // Camera Modes
+        // Các chế độ Camera
         case MENU_CAM_ORBIT:
             activateCameraMode(CameraMode::FREE_ORBIT);
             break;
@@ -589,7 +589,7 @@ static void applyMenuSelection(int option) {
             setDroneInputMode(false);
             break;
 
-        // Projections
+        // Các chế độ phép chiếu
         case MENU_PROJ_PERSPECTIVE:
             gCamera.projectionMode = ProjectionMode::PERSPECTIVE;
             break;
@@ -603,7 +603,7 @@ static void applyMenuSelection(int option) {
             gCamera.projectionMode = ProjectionMode::ORTHO_SIDE;
             break;
 
-        // Shading & Pipeline States
+        // Tô bóng & Trạng thái đường ống đồ họa
         case MENU_SHADE_GOURAUD:
             gLighting.shadingModel = ShadingModel::GOURAUD_SMOOTH;
             break;
@@ -626,7 +626,7 @@ static void applyMenuSelection(int option) {
             gState.lakeReflection = !gState.lakeReflection;
             break;
 
-        // Time of Day
+        // Thời gian trong ngày
         case MENU_TIME_DAY:
             gLighting.timeOfDay = TimeOfDay::DAY;
             break;
@@ -637,7 +637,7 @@ static void applyMenuSelection(int option) {
             gLighting.timeOfDay = TimeOfDay::NIGHT;
             break;
 
-        // Animation & UI
+        // Hoạt ảnh & Giao diện người dùng
         case MENU_ANIM_TOGGLE:
             gState.isPaused = !gState.isPaused;
             break;
@@ -667,7 +667,7 @@ static void keyboardCallback(unsigned char key, int x, int y) {
     unsigned char lowerKey = static_cast<unsigned char>(std::tolower(key));
     gState.keyDown[lowerKey] = true;
 
-    // In Free Drone mode, reserve W/A/S/D/E/Q for smooth flight and F/+/- for speed
+    // Ở chế độ Drone tự do, dành riêng các phím W/A/S/D/E/Q để bay mượt và F/+/- để chỉnh tốc độ
     if (gCamera.cameraMode == CameraMode::DRONE_FREE) {
         if (lowerKey == 'w' || lowerKey == 's' || lowerKey == 'a' ||
             lowerKey == 'd' || lowerKey == 'e' || lowerKey == 'q') {
@@ -760,7 +760,7 @@ static void keyboardCallback(unsigned char key, int x, int y) {
         case ' ':
             gState.isPaused = !gState.isPaused;
             break;
-        case 27: // ESC
+        case 27: // Phím ESC
             glutLeaveMainLoop();
             break;
         default:
@@ -849,10 +849,10 @@ static void mouseButtonCallback(int button, int state, int x, int y) {
         gState.leftMouseDown = (state == GLUT_DOWN);
     } else if (button == GLUT_MIDDLE_BUTTON) {
         gState.midMouseDown = (state == GLUT_DOWN);
-    } else if (button == 3 && state == GLUT_DOWN) { // Scroll wheel up
+    } else if (button == 3 && state == GLUT_DOWN) { // Cuộn con lăn chuột lên
         gCamera.zoom(-6.0f);
         glutPostRedisplay();
-    } else if (button == 4 && state == GLUT_DOWN) { // Scroll wheel down
+    } else if (button == 4 && state == GLUT_DOWN) { // Cuộn con lăn chuột xuống
         gCamera.zoom(6.0f);
         glutPostRedisplay();
     }
@@ -936,7 +936,7 @@ static void createGLUTMenus() {
 }
 
 // ============================================================================
-// MAIN ENTRY POINT
+// HÀM MAIN KHỞI CHẠY CHƯƠNG TRÌNH
 // ============================================================================
 
 int main(int argc, char** argv) {
@@ -946,7 +946,7 @@ int main(int argc, char** argv) {
     glutInitWindowPosition(80, 60);
     glutCreateWindow("Cong vien Chau A (Da Nang) - Mo phong Do hoa May tinh 3D");
 
-    // Register callbacks
+    // Đăng ký các hàm gọi lại (Callback) xử lý sự kiện của GLUT
     glutDisplayFunc(displayCallback);
     glutReshapeFunc(reshapeCallback);
     glutKeyboardFunc(keyboardCallback);
@@ -958,13 +958,13 @@ int main(int argc, char** argv) {
     glutMenuStatusFunc(menuStatusCallback);
     glutTimerFunc(16, timerCallback, 0);
 
-    // Initialize Member 1 Curves & Rides (Queen Cobra + Monorail)
+    // Khởi tạo hệ thống đường cong & đoàn tàu (Queen Cobra + Monorail)
     gCurves.init();
 
-    // Create right-click hierarchical menu
+    // Tạo menu phân cấp khi nhấp chuột phải
     createGLUTMenus();
 
-    // Default OpenGL states
+    // Thiết lập trạng thái OpenGL mặc định
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);

@@ -3,28 +3,28 @@
 
 /**
  * @file NgoMonGate.h
- * @brief Chapter 4 & 6: Architectural Simulation of Asia Park's Grand Entrance:
+ * @brief Chương 4 & 6: Mô phỏng Kiến trúc Cổng Chính Công viên Châu Á (Asia Park):
  *        Cổng Ngọ Môn (Meridian Imperial Gate) & Tháp Đồng Hồ (Central Clock Tower)
  *
- * Implements:
- *  - Authentic Asia Park Da Nang Entrance Architecture:
- *      * Location: (0.0, 0.0, 86.0) at the South Entrance Plaza facing city arrival
- *      * Footprint: 48m width x 16m depth x 28m peak tower height
- *  - Chapter 4 3D Geometric Representation via Geometry::PolygonMesh:
- *      * 1. Massive Stone Bastion Base (Bệ Thành Lũy) with battered sloping stone courses
- *      * 2. Three Arched Barrel Vault Gateways:
- *           - Central Royal Arch (Lối đi chính Ngọ Môn)
- *           - Left & Right Flanking Gates (Tả Đoan Môn & Hữu Đoan Môn)
- *           generated via Geometry::PolygonMesh::createArchVault
- *      * 3. Lầu Ngũ Phụng (Five-Phoenix Pavilion):
- *           - Red timber columns (createPrismY) & white stone balustrades
- *           - Double-tiered curved Asian hip-and-gable flared roofs (createCurvedAsianRoof)
- *      * 4. Central Grand Clock Tower (Tháp Đồng Hồ):
- *           - 4-sided illuminated clock faces with hour and minute hands
- *           - Imperial tiered crown & golden pinnacle spire
- *  - Chapter 6 Illumination, Shading & Normal Calculations:
- *      * Fully computed face & vertex normals via PolygonMesh::computeNormals()
- *      * Backlit glowing clock dials & suspended red imperial lanterns at night
+ * Triển khai:
+ *  - Kiến trúc Cổng vào đặc trưng của Asia Park Đà Nẵng:
+ *      * Vị trí: (0.0, 0.0, 86.0) tại Quảng trường Cổng Nam hướng ra trục đường đón khách
+ *      * Kích thước mặt bằng: Rộng 48m x Sâu 16m x Đỉnh tháp cao 28m
+ *  - Chương 4 Biểu diễn Hình học 3D qua Geometry::PolygonMesh:
+ *      * 1. Bệ Thành Lũy Đá Đồ Sộ với các lớp đá xây kiên cố
+ *      * 2. Ba Cổng Vòm Cuốn (Arched Barrel Vaults):
+ *           - Cổng vòm chính giữa (Lối đi chính Ngọ Môn)
+ *           - Hai cổng vòm hai bên (Tả Đoan Môn & Hữu Đoan Môn)
+ *           được khởi tạo bằng hàm Geometry::PolygonMesh::createArchVault
+ *      * 3. Lầu Ngũ Phụng:
+ *           - Hệ cột gỗ sơn son (createPrismY) & lan can đá trắng chạm trổ
+ *           - Hệ mái cổ truyền Á Đông 2 tầng đao cong (createCurvedAsianRoof)
+ *      * 4. Tháp Đồng Hồ Trung Tâm:
+ *           - Mặt đồng hồ phát sáng 4 hướng kèm kim giờ và kim phút
+ *           - Mái tháp nhiều tầng & chóp đỉnh mạ vàng
+ *  - Chương 6 Chiếu sáng, Tô bóng & Tính toán Pháp tuyến:
+ *      * Tính toán đầy đủ pháp tuyến bề mặt & pháp tuyến đỉnh qua PolygonMesh::computeNormals()
+ *      * Mặt đồng hồ phát sáng nền & dàn đèn lồng đỏ cung đình rực sáng vào ban đêm
  */
 
 #include <GL/freeglut.h>
@@ -51,19 +51,19 @@ public:
     }
 
     /**
-     * @brief Render the Grand Meridian Gate & Clock Tower
+     * @brief Vẽ Cổng Ngọ Môn & Tháp Đồng Hồ Trung Tâm
      */
     void draw(bool isNightOrSunset, bool showNormals = false, bool smoothShading = true) const {
         glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
 
-        // 1. Render Pre-built Architectural Polygon Mesh
+        // 1. Vẽ lưới đa giác kiến trúc (PolygonMesh) đã được dựng sẵn
         gateMesh.draw(smoothShading, showNormals);
 
-        // 2. Render 4-Sided Illuminated Clock Faces on Central Tower
+        // 2. Vẽ 4 mặt đồng hồ phát sáng trên Tháp Trung Tâm
         drawClockFaces(isNightOrSunset);
 
-        // 3. Render Suspended Red Imperial Lanterns beneath Pavilion Eaves
+        // 3. Vẽ dàn đèn lồng đỏ cung đình treo dưới hiên Lầu Ngũ Phụng
         drawLanterns(isNightOrSunset, showNormals);
 
         glPopMatrix();
@@ -73,27 +73,27 @@ private:
     mutable Geometry::PolygonMesh gateMesh;
 
     /**
-     * @brief Procedurally build the complete Ngo Mon Gate & Clock Tower PolygonMesh
+     * @brief Khởi tạo thủ tục toàn bộ lưới đa giác (PolygonMesh) của Cổng Ngọ Môn & Tháp Đồng Hồ
      */
     void buildGateMesh() {
         gateMesh.clear();
         gateMesh.name = "NgoMonImperialGate";
 
-        MathCG::ColorRGB stoneCol(0.62f, 0.60f, 0.58f); // Ancient gray fortress stone
-        MathCG::ColorRGB redPillarCol(0.78f, 0.16f, 0.14f); // Imperial lacquered vermilion
-        MathCG::ColorRGB goldRoofCol(0.95f, 0.70f, 0.12f); // Imperial yellow glazed tiles (Hoang Luu Ly)
-        MathCG::ColorRGB darkTrimCol(0.22f, 0.20f, 0.22f); // Dark timber beam lintels
-        MathCG::ColorRGB balustradeCol(0.88f, 0.88f, 0.90f); // White carved marble balustrade
+        MathCG::ColorRGB stoneCol(0.62f, 0.60f, 0.58f); // Đá xám cổ kính xây thành
+        MathCG::ColorRGB redPillarCol(0.78f, 0.16f, 0.14f); // Sơn son đỏ cung đình
+        MathCG::ColorRGB goldRoofCol(0.95f, 0.70f, 0.12f); // Ngói hoàng lưu ly vàng rực
+        MathCG::ColorRGB darkTrimCol(0.22f, 0.20f, 0.22f); // Dầm xà gỗ màu sẫm
+        MathCG::ColorRGB balustradeCol(0.88f, 0.88f, 0.90f); // Lan can đá cẩm thạch trắng chạm khắc
 
         // ====================================================================
-        // 1. BASTION PODIUM BASE & WINGS (Bệ Đài Thành Cổ)
+        // 1. BỆ ĐÀI THÀNH CỔ & HAI CÁNH THÀNH BÊN
         // ====================================================================
-        // Central Gate Bastion (holds the 3 arches)
+        // Khối đài cổng trung tâm (nơi bố trí 3 vòm cổng)
         float centerW = 24.0f;
-        float wingW   = (width - centerW) * 0.5f; // 11m each wing
+        float wingW   = (width - centerW) * 0.5f; // Mỗi cánh rộng 11m
         float hZ      = depth * 0.5f;
 
-        // Central podium block above arches (y = 5.2 .. 6.8)
+        // Khối bệ trung tâm phía trên các vòm cổng (y = 5.2 .. 6.8)
         auto centerTop = Geometry::PolygonMesh::createBox(
             0.0f, 6.0f, 0.0f,
             centerW, 1.6f, depth,
@@ -101,14 +101,14 @@ private:
         );
         gateMesh.append(centerTop);
 
-        // Left & Right fortress pier pillars forming the 3 arches
-        // Pier 0: Far-Left (x = -10.5 .. -8.0)
+        // Các trụ đá thành lũy bên trái & bên phải tạo thành 3 lối cổng vòm
+        // Trụ 0: Ngoài cùng bên trái (x = -10.5 .. -8.0)
         auto pierL0 = Geometry::PolygonMesh::createBox(-9.25f, 2.6f, 0.0f, 2.5f, 5.2f, depth, stoneCol);
-        // Pier 1: Mid-Left (x = -4.0 .. -2.0)
+        // Trụ 1: Giữa bên trái (x = -4.0 .. -2.0)
         auto pierL1 = Geometry::PolygonMesh::createBox(-3.0f,  2.6f, 0.0f, 2.0f, 5.2f, depth, stoneCol);
-        // Pier 2: Mid-Right (x = 2.0 .. 4.0)
+        // Trụ 2: Giữa bên phải (x = 2.0 .. 4.0)
         auto pierR1 = Geometry::PolygonMesh::createBox( 3.0f,  2.6f, 0.0f, 2.0f, 5.2f, depth, stoneCol);
-        // Pier 3: Far-Right (x = 8.0 .. 10.5)
+        // Trụ 3: Ngoài cùng bên phải (x = 8.0 .. 10.5)
         auto pierR0 = Geometry::PolygonMesh::createBox( 9.25f, 2.6f, 0.0f, 2.5f, 5.2f, depth, stoneCol);
 
         gateMesh.append(pierL0);
@@ -116,7 +116,7 @@ private:
         gateMesh.append(pierR1);
         gateMesh.append(pierR0);
 
-        // East & West Bastion Wings
+        // Hai cánh thành phía Đông & phía Tây
         auto wingLeft = Geometry::PolygonMesh::createBox(
             -(centerW * 0.5f + wingW * 0.5f), 3.4f, 0.0f,
             wingW, bastionHeight, depth,
@@ -130,14 +130,14 @@ private:
         gateMesh.append(wingLeft);
         gateMesh.append(wingRight);
 
-        // Stone Base Molding / Plinth
+        // Chân đế đá / Bệ móng dưới cùng
         auto basePlinth = Geometry::PolygonMesh::createBox(0.0f, 0.25f, 0.0f, width + 2.0f, 0.5f, depth + 1.6f, MathCG::ColorRGB(0.48f, 0.46f, 0.44f));
         gateMesh.append(basePlinth);
 
         // ====================================================================
-        // 2. THREE ARCHED BARREL VAULTS (Vòm Cuốn Cổng Ngọ Môn)
+        // 2. BA VÒM CUỐN CỔNG NGỌ MÔN
         // ====================================================================
-        // Center Royal Arch (Radius = 2.0m, Height = 4.8m)
+        // Cổng vòm chính giữa (Bán kính = 2.0m, Chiều cao = 4.8m)
         auto centralVault = Geometry::PolygonMesh::createArchVault(
             0.0f, 2.8f, -hZ, hZ,
             1.95f, 2.55f, 14,
@@ -145,7 +145,7 @@ private:
         );
         gateMesh.append(centralVault);
 
-        // Left Side Arch (Radius = 1.4m, Height = 4.2m)
+        // Cổng vòm bên trái (Bán kính = 1.4m, Chiều cao = 4.2m)
         auto leftVault = Geometry::PolygonMesh::createArchVault(
             -6.0f, 2.4f, -hZ, hZ,
             1.40f, 1.85f, 12,
@@ -153,7 +153,7 @@ private:
         );
         gateMesh.append(leftVault);
 
-        // Right Side Arch (Radius = 1.4m, Height = 4.2m)
+        // Cổng vòm bên phải (Bán kính = 1.4m, Chiều cao = 4.2m)
         auto rightVault = Geometry::PolygonMesh::createArchVault(
              6.0f, 2.4f, -hZ, hZ,
             1.40f, 1.85f, 12,
@@ -162,18 +162,18 @@ private:
         gateMesh.append(rightVault);
 
         // ====================================================================
-        // 3. WHITE STONE BALUSTRADES & TERRACE FLOOR (Lan Can Đá Lầu Ngũ Phụng)
+        // 3. LAN CAN ĐÁ TRẮNG & SÀN SÂN THƯỢNG LẦU NGŨ PHỤNG
         // ====================================================================
-        // Terrace floor deck
+        // Mặt sàn sân thượng trên đài thành
         auto terraceFloor = Geometry::PolygonMesh::createBox(0.0f, bastionHeight + 0.15f, 0.0f, width + 0.6f, 0.30f, depth + 0.6f, MathCG::ColorRGB(0.75f, 0.72f, 0.70f));
         gateMesh.append(terraceFloor);
 
-        // Perimeter carved balustrade walls (h = 0.9m)
+        // Tường lan can chạm khắc bao quanh chu vi (cao h = 0.9m)
         float bY = bastionHeight + 0.30f + 0.45f;
-        // Front & Back balustrade
+        // Lan can mặt trước & mặt sau
         auto balFront = Geometry::PolygonMesh::createBox(0.0f, bY,  hZ + 0.2f, width + 0.4f, 0.90f, 0.30f, balustradeCol);
         auto balBack  = Geometry::PolygonMesh::createBox(0.0f, bY, -hZ - 0.2f, width + 0.4f, 0.90f, 0.30f, balustradeCol);
-        // Left & Right balustrade
+        // Lan can mặt trái & mặt phải
         auto balLeft  = Geometry::PolygonMesh::createBox(-width * 0.5f - 0.2f, bY, 0.0f, 0.30f, 0.90f, depth + 0.4f, balustradeCol);
         auto balRight = Geometry::PolygonMesh::createBox( width * 0.5f + 0.2f, bY, 0.0f, 0.30f, 0.90f, depth + 0.4f, balustradeCol);
         gateMesh.append(balFront);
@@ -182,13 +182,13 @@ private:
         gateMesh.append(balRight);
 
         // ====================================================================
-        // 4. LẦU NGŨ PHỤNG (FIVE-PHOENIX PAVILION - Double-Tiered Curved Roofs)
+        // 4. LẦU NGŨ PHỤNG (Mái Cổ Truyền Á Đông Hai Tầng Đao Cong)
         // ====================================================================
         float pavY = bastionHeight + 0.30f;
         float pavW = 34.0f;
         float pavD = 10.5f;
 
-        // Red Lacquer timber columns supporting Lower Tier Roof
+        // Hàng cột gỗ sơn son đỡ mái tầng dưới
         const int colCols = 8;
         for (int c = 0; c < colCols; ++c) {
             float frac = static_cast<float>(c) / (colCols - 1);
@@ -200,11 +200,11 @@ private:
             }
         }
 
-        // Lower Pavilion Ceiling & Beam lintel
+        // Trần lầu tầng dưới & hệ dầm xà ngang
         auto lowerLintel = Geometry::PolygonMesh::createBox(0.0f, pavY + 3.8f, 0.0f, pavW + 1.2f, 0.35f, pavD + 1.2f, darkTrimCol);
         gateMesh.append(lowerLintel);
 
-        // Lower Tier Curved Asian Roof (Hoang Luu Ly Golden Glazed Tiles)
+        // Mái đao cong Á Đông tầng dưới (Ngói Hoàng Lưu Ly vàng óng)
         auto lowerRoof = Geometry::PolygonMesh::createCurvedAsianRoof(
             0.0f, pavY + 4.15f, 0.0f,
             pavW + 3.2f, pavD + 3.2f,
@@ -213,7 +213,7 @@ private:
         );
         gateMesh.append(lowerRoof);
 
-        // Upper Mezzanine Pavilion Walls & Columns
+        // Tường & cột tầng lửng phía trên của Lầu Ngũ Phụng
         float upPavY = pavY + 4.15f + 1.8f;
         float upPavW = 24.0f;
         float upPavD = 7.8f;
@@ -221,7 +221,7 @@ private:
         auto upChamber = Geometry::PolygonMesh::createBox(0.0f, upPavY + 1.4f, 0.0f, upPavW, 2.8f, upPavD, MathCG::ColorRGB(0.72f, 0.14f, 0.12f));
         gateMesh.append(upChamber);
 
-        // Upper Tier Curved Asian Roof
+        // Mái đao cong Á Đông tầng trên
         auto upperRoof = Geometry::PolygonMesh::createCurvedAsianRoof(
             0.0f, upPavY + 2.8f, 0.0f,
             upPavW + 3.0f, upPavD + 3.0f,
@@ -231,13 +231,13 @@ private:
         gateMesh.append(upperRoof);
 
         // ====================================================================
-        // 5. CENTRAL CLOCK TOWER (THÁP ĐỒNG HỒ TRUNG TÂM)
+        // 5. THÁP ĐỒNG HỒ TRUNG TÂM
         // ====================================================================
         float towerBaseY = upPavY + 2.8f + 1.2f;
         float towerSideW = 6.4f;
         float towerBodyH = 7.5f;
 
-        // Clock Tower Body (Soaring above the central gate)
+        // Thân Tháp Đồng Hồ (Vươn cao phía trên cổng chính)
         auto clockBody = Geometry::PolygonMesh::createBox(
             0.0f, towerBaseY + towerBodyH * 0.5f, 0.0f,
             towerSideW, towerBodyH, towerSideW,
@@ -245,7 +245,7 @@ private:
         );
         gateMesh.append(clockBody);
 
-        // Golden corner pilasters & cornice moldings
+        // Gờ phào chỉ và diềm mái mạ vàng trên đỉnh thân tháp
         auto towerCornice = Geometry::PolygonMesh::createBox(
             0.0f, towerBaseY + towerBodyH + 0.25f, 0.0f,
             towerSideW + 1.2f, 0.50f, towerSideW + 1.2f,
@@ -253,7 +253,7 @@ private:
         );
         gateMesh.append(towerCornice);
 
-        // Clock Tower Multi-Tier Pagoda Roof (Chóp Mái Tháp Đồng Hồ)
+        // Chóp Mái Tháp Đồng Hồ đao cong cổ truyền
         auto towerRoof = Geometry::PolygonMesh::createCurvedAsianRoof(
             0.0f, towerBaseY + towerBodyH + 0.50f, 0.0f,
             towerSideW + 2.2f, towerSideW + 2.2f,
@@ -262,7 +262,7 @@ private:
         );
         gateMesh.append(towerRoof);
 
-        // Golden Pinnacle Spire at the very peak (H = 27.5m)
+        // Chóp nhọn mạ vàng tại đỉnh cao nhất (H = 27.5m)
         float peakY = towerBaseY + towerBodyH + 0.50f + 2.6f;
         auto spire = Geometry::PolygonMesh::createPyramid(
             0.0f, peakY, 0.0f,
@@ -271,27 +271,27 @@ private:
         );
         gateMesh.append(spire);
 
-        // Compute all normals for the entire assembled gate
+        // Tính toán toàn bộ vector pháp tuyến cho tổng thể cổng sau khi ghép nối
         gateMesh.computeNormals();
     }
 
     /**
-     * @brief Render the 4-sided illuminated Clock Faces on the central tower
+     * @brief Vẽ 4 mặt đồng hồ phát sáng trên bốn phía của tháp trung tâm
      */
     void drawClockFaces(bool isNightOrSunset) const {
         float clockY = bastionHeight + 0.30f + 4.15f + 1.8f + 2.8f + 1.2f + 3.8f; // ~23m
-        float offset = 3.25f; // slightly proud of tower wall (towerSideW / 2 + 0.05)
+        float offset = 3.25f; // nhô nhẹ ra khỏi mặt tường tháp (towerSideW / 2 + 0.05)
 
         for (int side = 0; side < 4; ++side) {
             glPushMatrix();
             glRotatef(side * 90.0f, 0.0f, 1.0f, 0.0f);
             glTranslatef(0.0f, clockY, offset);
 
-            // Clock face bezel (Golden Toroid)
+            // Viền khung mặt đồng hồ (Hình xuyến Toroid mạ vàng)
             glColor3f(0.95f, 0.78f, 0.15f);
             ParametricShapes::drawToroid(2.10f, 0.15f, 24, 8, false);
 
-            // Dial disc (White with optional warm backlight emission)
+            // Đĩa mặt đồng hồ (Màu trắng kèm hiệu ứng phát sáng ấm vào ban đêm)
             if (isNightOrSunset) {
                 GLfloat emit[4] = { 0.95f, 0.95f, 0.85f, 1.0f };
                 glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, emit);
@@ -306,7 +306,7 @@ private:
                 glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, zeroEmit);
             }
 
-            // Dark Roman/Hour markers around dial (12 ticks)
+            // Các vạch chia giờ màu sẫm quanh mặt đồng hồ (12 vạch)
             glColor3f(0.12f, 0.12f, 0.14f);
             glLineWidth(2.5f);
             glBegin(GL_LINES);
@@ -318,16 +318,16 @@ private:
                 glVertex3f(rInner * cTh, rInner * sTh, 0.02f);
                 glVertex3f(rOuter * cTh, rOuter * sTh, 0.02f);
             }
-            // Hour hand (pointing to 2 o'clock)
+            // Kim giờ (chỉ hướng 2 giờ)
             glVertex3f(0.0f, 0.0f, 0.03f);
             glVertex3f(0.85f * std::cos(MathCG::DEG2RAD * 30.0f), 0.85f * std::sin(MathCG::DEG2RAD * 30.0f), 0.03f);
-            // Minute hand (pointing to 10 minutes past the hour)
+            // Kim phút (chỉ hướng 10 phút)
             glVertex3f(0.0f, 0.0f, 0.03f);
             glVertex3f(1.35f * std::cos(MathCG::DEG2RAD * 60.0f), 1.35f * std::sin(MathCG::DEG2RAD * 60.0f), 0.03f);
             glEnd();
             glLineWidth(1.0f);
 
-            // Center golden pin
+            // Chốt tròn mạ vàng ở tâm đồng hồ
             glColor3f(0.95f, 0.80f, 0.15f);
             ParametricShapes::drawSphere(0.15f, 10, 8, false);
 
@@ -336,7 +336,7 @@ private:
     }
 
     /**
-     * @brief Render festive imperial lanterns suspended along the pavilion eaves
+     * @brief Vẽ dàn đèn lồng đỏ cung đình lễ hội treo dọc theo hiên Lầu Ngũ Phụng
      */
     void drawLanterns(bool isNightOrSunset, bool showNormals) const {
         (void)showNormals;
@@ -348,11 +348,11 @@ private:
             glPushMatrix();
             glTranslatef(lx, eaveY - 0.75f, lanternZ);
 
-            // Suspension cord
+            // Dây treo đèn lồng
             glColor3f(0.85f, 0.70f, 0.20f);
             ParametricShapes::drawCylinderY(0.025f, 0.75f, 6, 2, true, false);
 
-            // Crimson lantern sphere
+            // Bầu đèn lồng hình cầu màu đỏ thẫm
             if (isNightOrSunset) {
                 GLfloat emit[4] = { 1.0f, 0.18f, 0.12f, 1.0f };
                 glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, emit);
@@ -367,7 +367,7 @@ private:
                 glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, zeroEmit);
             }
 
-            // Bottom golden tassel
+            // Tua rua vàng trang trí phía dưới đèn lồng
             glTranslatef(0.0f, -0.45f, 0.0f);
             glColor3f(0.95f, 0.80f, 0.15f);
             ParametricShapes::drawConeY(0.14f, 0.0f, -0.35f, 8, 2, true, false);

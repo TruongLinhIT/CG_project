@@ -3,14 +3,14 @@
 
 /**
  * @file MathCG.h
- * @brief Core Mathematical Library for Computer Graphics Syllabus
+ * @brief Thư viện Toán học Cốt lõi theo Đề cương môn Kỹ thuật Đồ họa Máy tính
  *
- * Implements explicit formulas from the university syllabus:
- *  - Chapter 1: HSV <-> RGB Color Model conversion & WCS -> NCS -> DCS 2D coordinate mapping
- *  - Chapter 3: 4-bit Cohen-Sutherland Outcodes & Bresenham/Midpoint helpers
- *  - Chapter 4: 3D Vectors, 4x4 Homogeneous Matrices, Arbitrary Pivot Rotation, Planar Reflection
- *  - Chapter 5: Combinatorics C(n,k) & Bernstein Polynomials B_k^n(t)
- *  - Chapter 6: Cross-product Face Normals, Vertex Normal Averaging, Back-face test (V . N >= 0)
+ * Cài đặt tường minh các công thức toán học trong chương trình học:
+ *  - Chương 1: Chuyển đổi hệ màu HSV <-> RGB & Ánh xạ hệ tọa độ 2D WCS -> NCS -> DCS
+ *  - Chương 3: Mã vùng 4-bit Cohen-Sutherland & Các hàm bổ trợ Bresenham/Midpoint
+ *  - Chương 4: Vector 3D, Ma trận thuần nhất 4x4, Phép quay quanh tâm bất kỳ, Phép đối xứng qua mặt phẳng
+ *  - Chương 5: Tổ hợp C(n,k) & Đa thức cơ sở Bernstein B_k^n(t)
+ *  - Chương 6: Tích có hướng tính pháp tuyến mặt, Trung bình hóa pháp tuyến đỉnh, Kiểm tra mặt khuất (V . N >= 0)
  */
 
 #include <cmath>
@@ -26,7 +26,7 @@ constexpr float DEG2RAD = PI / 180.0f;
 constexpr float RAD2DEG = 180.0f / PI;
 
 // ============================================================================
-// 1. 3D VECTOR & NORMAL COMPUTATIONS (Chapters 4 & 6)
+// 1. TÍNH TOÁN VECTOR 3D & VECTOR PHÁP TUYẾN (Chương 4 & 6)
 // ============================================================================
 
 struct Vec2 {
@@ -68,14 +68,14 @@ inline Vec3 lerp(const Vec3& a, const Vec3& b, float t) {
 }
 
 /**
- * @brief Dot product: A . B = Ax*Bx + Ay*By + Az*Bz
+ * @brief Tích vô hướng (Dot product): A . B = Ax*Bx + Ay*By + Az*Bz
  */
 inline float dot(const Vec3& a, const Vec3& b) {
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
 /**
- * @brief Cross product: N = A x B
+ * @brief Tích có hướng (Cross product): N = A x B
  */
 inline Vec3 cross(const Vec3& a, const Vec3& b) {
     return Vec3(
@@ -86,8 +86,8 @@ inline Vec3 cross(const Vec3& a, const Vec3& b) {
 }
 
 /**
- * @brief Chapter 6: Compute unit normal vector of a polygon face (P0, P1, P2)
- *        using cross product N = A x B where A = P1 - P0, B = P2 - P0.
+ * @brief Chương 6: Tính vector pháp tuyến đơn vị của một mặt đa giác (P0, P1, P2)
+ *        bằng tích có hướng N = A x B với A = P1 - P0, B = P2 - P0.
  */
 inline Vec3 computeFaceNormal(const Vec3& p0, const Vec3& p1, const Vec3& p2) {
     Vec3 A = p1 - p0;
@@ -96,8 +96,8 @@ inline Vec3 computeFaceNormal(const Vec3& p0, const Vec3& p1, const Vec3& p2) {
 }
 
 /**
- * @brief Chapter 6: Compute Gouraud vertex normal by averaging adjacent face normals:
- *        n_p = (1 / k) * sum_{i=1..k}(n_i), then normalized.
+ * @brief Chương 6: Tính pháp tuyến đỉnh cho tô bóng Gouraud bằng trung bình cộng các pháp tuyến mặt kề:
+ *        n_p = (1 / k) * sum_{i=1..k}(n_i), sau đó chuẩn hóa thành vector đơn vị.
  */
 inline Vec3 averageVertexNormal(const std::vector<Vec3>& adjacentFaceNormals) {
     if (adjacentFaceNormals.empty()) return Vec3(0.0f, 1.0f, 0.0f);
@@ -110,16 +110,16 @@ inline Vec3 averageVertexNormal(const std::vector<Vec3>& adjacentFaceNormals) {
 }
 
 /**
- * @brief Chapter 6: Explicit Back-face visibility check.
- *        Given Viewing vector V (from eye towards surface point) and outward unit normal N,
- *        a face is a back-face (hidden) if V . N >= 0.
+ * @brief Chương 6: Kiểm tra tường minh mặt khuất (Back-face visibility check).
+ *        Cho vector hướng nhìn V (từ mắt tới điểm trên bề mặt) và pháp tuyến đơn vị hướng ra ngoài N,
+ *        một mặt là mặt sau (bị khuất) nếu V . N >= 0.
  */
 inline bool isBackFace(const Vec3& viewVector, const Vec3& outwardNormal) {
     return dot(viewVector, outwardNormal) >= 0.0f;
 }
 
 // ============================================================================
-// 2. COLOR MODELS (Chapter 1)
+// 2. CÁC HỆ MÀU (Chương 1)
 // ============================================================================
 
 struct ColorRGB {
@@ -128,31 +128,31 @@ struct ColorRGB {
 };
 
 /**
- * @brief Chapter 1: Convert HSV color model to RGB color model.
- * @param H Hue angle in degrees, H in [0, 360)
- * @param S Saturation in [0, 1]
- * @param V Value (Brightness) in [0, 1]
- * @param R Output Red in [0, 1]
- * @param G Output Green in [0, 1]
- * @param B Output Blue in [0, 1]
+ * @brief Chương 1: Chuyển đổi từ hệ màu HSV sang hệ màu RGB.
+ * @param H Góc sắc độ (Hue) tính bằng độ, H thuộc [0, 360)
+ * @param S Độ bão hòa màu (Saturation) thuộc [0, 1]
+ * @param V Độ sáng (Value / Brightness) thuộc [0, 1]
+ * @param R Kênh Đỏ (Red) đầu ra thuộc [0, 1]
+ * @param G Kênh Lục (Green) đầu ra thuộc [0, 1]
+ * @param B Kênh Lam (Blue) đầu ra thuộc [0, 1]
  */
 inline void HSVtoRGB(float H, float S, float V, float& R, float& G, float& B) {
     S = std::clamp(S, 0.0f, 1.0f);
     V = std::clamp(V, 0.0f, 1.0f);
 
     if (S <= 1e-6f) {
-        // Achromatic (grayscale)
+        // Không sắc độ (thang độ xám / grayscale)
         R = G = B = V;
         return;
     }
 
-    // Wrap H into [0, 360)
+    // Chuẩn hóa góc H vào khoảng [0, 360)
     H = std::fmod(H, 360.0f);
     if (H < 0.0f) H += 360.0f;
 
     float hSector = H / 60.0f;
     int   k       = static_cast<int>(std::floor(hSector)) % 6;
-    float f       = hSector - std::floor(hSector); // fractional part in [0, 1)
+    float f       = hSector - std::floor(hSector); // phần thập phân thuộc [0, 1)
 
     float p = V * (1.0f - S);
     float q = V * (1.0f - S * f);
@@ -164,20 +164,20 @@ inline void HSVtoRGB(float H, float S, float V, float& R, float& G, float& B) {
         case 2:  R = p; G = V; B = t; break;
         case 3:  R = p; G = q; B = V; break;
         case 4:  R = t; G = p; B = V; break;
-        default: R = V; G = p; B = q; break; // case 5
+        default: R = V; G = p; B = q; break; // trường hợp 5 (case 5)
     }
 }
 
 // ============================================================================
-// 3. COORDINATE SYSTEMS: WCS -> NCS -> DCS (Chapters 1 & 3)
+// 3. HỆ TỌA ĐỘ: WCS -> NCS -> DCS (Chương 1 & 3)
 // ============================================================================
 
 /**
- * @brief Maps 2D World Coordinates (WCS) -> Normalized Coordinates (NCS in [0,1])
- *        -> Device/Viewport Coordinates (DCS in pixels).
+ * @brief Ánh xạ tọa độ Thế giới 2D (WCS) -> Tọa độ Chuẩn hóa (NCS thuộc [0,1])
+ *        -> Tọa độ Thiết bị / Khung nhìn (DCS tính theo pixel).
  *
- * Syllabus formula:
- *   x_0 = (x - x_min) / c_x,  y_0 = (y - y_min) / c_y   with x_0, y_0 in [0, 1]
+ * Công thức theo đề cương:
+ *   x_0 = (x - x_min) / c_x,  y_0 = (y - y_min) / c_y   với x_0, y_0 thuộc [0, 1]
  *   x_d = vpX + x_0 * vpWidth, y_d = vpY + y_0 * vpHeight
  */
 struct CoordinateMapper2D {
@@ -192,7 +192,7 @@ struct CoordinateMapper2D {
     ) : wcsMinX(minX), wcsMaxX(maxX), wcsMinY(minY), wcsMaxY(maxY),
         vpX(vx), vpY(vy), vpWidth(vw), vpHeight(vh) {}
 
-    // Step 1: WCS -> NCS (x0 = x/c, y0 = y/c in [0, 1])
+    // Bước 1: WCS -> NCS (x0 = x/c, y0 = y/c thuộc [0, 1])
     Vec2 WCStoNCS(float x, float y) const {
         float cx = wcsMaxX - wcsMinX;
         float cy = wcsMaxY - wcsMinY;
@@ -201,12 +201,12 @@ struct CoordinateMapper2D {
         return Vec2(x0, y0);
     }
 
-    // Step 2: NCS -> DCS (pixel coordinates inside minimap viewport)
+    // Bước 2: NCS -> DCS (tọa độ pixel bên trong khung nhìn minimap)
     Vec2 NCStoDCS(float x0, float y0) const {
         return Vec2(vpX + x0 * vpWidth, vpY + y0 * vpHeight);
     }
 
-    // Combined pipeline: WCS -> NCS -> DCS
+    // Chuỗi ánh xạ kết hợp: WCS -> NCS -> DCS
     Vec2 WCStoDCS(float x, float y) const {
         Vec2 ncs = WCStoNCS(x, y);
         return NCStoDCS(ncs.x, ncs.y);
@@ -214,11 +214,11 @@ struct CoordinateMapper2D {
 };
 
 // ============================================================================
-// 4. 4x4 HOMOGENEOUS TRANSFORMATION MATRICES (Chapter 4)
+// 4. MA TRẬN BIẾN ĐỔI THUẦN NHẤT 4x4 (Chương 4)
 // ============================================================================
 
 /**
- * @brief Column-major 4x4 Homogeneous Matrix compatible with glMultMatrixf(m).
+ * @brief Ma trận thuần nhất 4x4 lưu theo cột (Column-major) tương thích với glMultMatrixf(m).
  */
 struct Mat4 {
     float m[16];
@@ -230,7 +230,7 @@ struct Mat4 {
         m[0] = m[5] = m[10] = m[15] = 1.0f;
     }
 
-    // Access element at (row r, col c) in column-major layout
+    // Truy cập phần tử tại (hàng r, cột c) theo bố cục lưu theo cột (column-major)
     float& at(int r, int c)             { return m[c * 4 + r]; }
     const float& at(int r, int c) const { return m[c * 4 + r]; }
 
@@ -319,9 +319,9 @@ struct Mat4 {
     }
 
     /**
-     * @brief Chapter 4: Composite rotation around an arbitrary center I(x0, y0, z0)
-     *        parallel to the Z-axis: M = T(I) * Rz(alpha) * T(-I) in column-vector notation
-     *        (equivalent to row-vector T(-I) . Rz(alpha) . T(I)).
+     * @brief Chương 4: Phép quay tổng hợp quanh một tâm bất kỳ I(x0, y0, z0)
+     *        song song với trục Z: M = T(I) * Rz(alpha) * T(-I) theo ký hiệu vector cột
+     *        (tương đương với vector hàng T(-I) . Rz(alpha) . T(I)).
      */
     static Mat4 rotateZAroundPoint(const Vec3& centerI, float angleDeg) {
         return translate(centerI.x, centerI.y, centerI.z)
@@ -330,8 +330,8 @@ struct Mat4 {
     }
 
     /**
-     * @brief Chapter 4: 3D Planar Reflection Matrix across horizontal water plane y = planeY.
-     *        For central lake at y = 0, reflects y -> -y.
+     * @brief Chương 4: Ma trận đối xứng qua mặt phẳng ngang 3D (mặt nước y = planeY).
+     *        Đối với hồ nước trung tâm tại y = 0, phép biến đổi phản xạ y -> -y.
      */
     static Mat4 reflectionAcrossYPlane(float planeY = 0.0f) {
         return translate(0.0f, planeY, 0.0f)
@@ -341,11 +341,11 @@ struct Mat4 {
 };
 
 // ============================================================================
-// 5. PARAMETRIC CURVE BASIS: BERNSTEIN POLYNOMIALS (Chapter 5)
+// 5. CƠ SỞ ĐƯỜNG CONG THAM SỐ: ĐA THỨC BERNSTEIN (Chương 5)
 // ============================================================================
 
 /**
- * @brief Binomial coefficient C(n, k) = n! / (k! * (n - k)!)
+ * @brief Hệ số nhị thức (Tổ hợp) C(n, k) = n! / (k! * (n - k)!)
  */
 inline int binomialCoeff(int n, int k) {
     if (k < 0 || k > n) return 0;
@@ -359,7 +359,7 @@ inline int binomialCoeff(int n, int k) {
 }
 
 /**
- * @brief Chapter 5: Bernstein basis polynomial B_k^n(t) = C(n, k) * (1 - t)^(n - k) * t^k
+ * @brief Chương 5: Đa thức cơ sở Bernstein B_k^n(t) = C(n, k) * (1 - t)^(n - k) * t^k
  */
 inline float bernsteinBasis(int n, int k, float t) {
     t = std::clamp(t, 0.0f, 1.0f);
@@ -368,7 +368,7 @@ inline float bernsteinBasis(int n, int k, float t) {
 }
 
 /**
- * @brief Evaluate degree-n Bezier curve point P(t) = sum_{k=0..n} P_k * B_k^n(t)
+ * @brief Tính điểm trên đường cong Bezier bậc n: P(t) = sum_{k=0..n} P_k * B_k^n(t)
  */
 inline Vec3 evaluateBezierPoint(const std::vector<Vec3>& controlPoints, float t) {
     if (controlPoints.empty()) return Vec3();
@@ -381,7 +381,7 @@ inline Vec3 evaluateBezierPoint(const std::vector<Vec3>& controlPoints, float t)
 }
 
 /**
- * @brief Chapter 5: Evaluate degree-n Bezier point via De Casteljau's recursive linear interpolation
+ * @brief Chương 5: Tính điểm trên đường cong Bezier bậc n bằng thuật toán nội suy tuyến tính đệ quy De Casteljau
  */
 inline Vec3 evaluateBezierDeCasteljau(const std::vector<Vec3>& controlPoints, float t) {
     if (controlPoints.empty()) return Vec3();
@@ -397,7 +397,7 @@ inline Vec3 evaluateBezierDeCasteljau(const std::vector<Vec3>& controlPoints, fl
 }
 
 /**
- * @brief Evaluate unnormalized Bezier first derivative vector P'(t) = n * sum_{k=0..n-1} (P_{k+1} - P_k) * B_k^{n-1}(t)
+ * @brief Tính vector đạo hàm bậc nhất chưa chuẩn hóa của đường cong Bezier: P'(t) = n * sum_{k=0..n-1} (P_{k+1} - P_k) * B_k^{n-1}(t)
  */
 inline Vec3 evaluateBezierDerivativeRaw(const std::vector<Vec3>& controlPoints, float t) {
     int n = static_cast<int>(controlPoints.size()) - 1;
@@ -411,7 +411,7 @@ inline Vec3 evaluateBezierDerivativeRaw(const std::vector<Vec3>& controlPoints, 
 }
 
 /**
- * @brief Evaluate normalized Bezier unit tangent vector T(t) = P'(t) / ||P'(t)||
+ * @brief Tính vector tiếp tuyến đơn vị của đường cong Bezier: T(t) = P'(t) / ||P'(t)||
  */
 inline Vec3 evaluateBezierTangent(const std::vector<Vec3>& controlPoints, float t) {
     int n = static_cast<int>(controlPoints.size()) - 1;
@@ -420,7 +420,7 @@ inline Vec3 evaluateBezierTangent(const std::vector<Vec3>& controlPoints, float 
 }
 
 /**
- * @brief Evaluate Bezier second derivative vector P''(t) = n*(n-1) * sum_{k=0..n-2} (P_{k+2} - 2P_{k+1} + P_k) * B_k^{n-2}(t)
+ * @brief Tính vector đạo hàm bậc hai của đường cong Bezier: P''(t) = n*(n-1) * sum_{k=0..n-2} (P_{k+2} - 2P_{k+1} + P_k) * B_k^{n-2}(t)
  */
 inline Vec3 evaluateBezierSecondDerivative(const std::vector<Vec3>& controlPoints, float t) {
     int n = static_cast<int>(controlPoints.size()) - 1;

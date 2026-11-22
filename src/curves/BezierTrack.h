@@ -3,15 +3,15 @@
 
 /**
  * @file BezierTrack.h
- * @brief Chapter 5: Piecewise C^1 Cubic Bezier Track Generator, Tangent Frames & 3D Rails
+ * @brief Chương 5: Bộ tạo Đường ray Bezier Bậc 3 Từng đoạn Liên tục C^1, Khung Tiếp tuyến & Đường ray 3D
  *
- * Implements:
- *  - Piecewise Cubic Bezier curve segments P_0..P_3 evaluated via Bernstein polynomials B_k^3(u)
- *  - Explicit C^0 (P_3^(i) = P_0^(i+1)) and C^1 (P_1^(i+1) = 2*P_3^(i) - P_2^(i)) closed-loop continuity
- *  - First derivative P'(t) & second derivative P''(t) for Yaw, Pitch, and curvature-driven Roll (banking)
- *  - Arc-length parameterization table for exact constant-spacing multi-car train placement
- *  - Procedural 3D track geometry (twin rails, central spine / monorail box-girder, cross-ties, support pillars)
- *  - Debug visualization of Bezier Control Polygon P_0..P_3, tangent vectors P'(t), and track up-normals
+ * Cài đặt:
+ *  - Các đoạn cong Bezier bậc 3 ghép nối P_0..P_3 được tính thông qua đa thức cơ sở Bernstein B_k^3(u)
+ *  - Ràng buộc liên tục khép kín tường minh C^0 (P_3^(i) = P_0^(i+1)) và C^1 (P_1^(i+1) = 2*P_3^(i) - P_2^(i))
+ *  - Đạo hàm bậc nhất P'(t) & đạo hàm bậc hai P''(t) để tính góc hướng (Yaw), góc chúc/ngóc (Pitch), và góc nghiêng theo độ cong (Roll / banking)
+ *  - Bảng tham số hóa theo độ dài cung (Arc-length parameterization) giúp đặt các toa tàu cách đều nhau chính xác
+ *  - Hình học đường ray 3D sinh tự động (hai thanh ray đôi, ống xương sống trung tâm / dầm hộp monorail, thanh tà-vẹt ngang, trụ đỡ)
+ *  - Hiển thị trực quan hóa phục vụ kiểm tra (Debug): Đa giác điều khiển Bezier P_0..P_3, các vector tiếp tuyến P'(t) và pháp tuyến hướng lên
  */
 
 #include <GL/freeglut.h>
@@ -30,12 +30,12 @@ struct CubicBezierSegment {
 
 struct TrackFrame {
     MathCG::Vec3 position;
-    MathCG::Vec3 tangent;  // Forward unit vector (local +Z)
-    MathCG::Vec3 right;    // Lateral unit vector (local +X)
-    MathCG::Vec3 up;       // Normal/up unit vector (local +Y)
-    float yawDeg   = 0.0f; // Rotation around world Y: atan2(Tx, Tz)
-    float pitchDeg = 0.0f; // Rotation around local X: -asin(Ty)
-    float rollDeg  = 0.0f; // Banking rotation around local Z
+    MathCG::Vec3 tangent;  // Vector đơn vị hướng tiến về trước (+Z cục bộ)
+    MathCG::Vec3 right;    // Vector đơn vị hướng ngang sang phải (+X cục bộ)
+    MathCG::Vec3 up;       // Vector pháp tuyến đơn vị hướng lên (+Y cục bộ)
+    float yawDeg   = 0.0f; // Góc quay quanh trục Y thế giới: atan2(Tx, Tz)
+    float pitchDeg = 0.0f; // Góc quay quanh trục X cục bộ: -asin(Ty)
+    float rollDeg  = 0.0f; // Góc nghiêng (banking) quanh trục Z cục bộ
 };
 
 struct TrackConfig {
@@ -63,19 +63,19 @@ public:
     TrackConfig                     config;
     std::vector<CubicBezierSegment> segments;
     std::vector<TrackFrame>         samples;
-    std::vector<float>              cumulativeArcLen; // size == samples.size() + 1 (includes closing edge)
+    std::vector<float>              cumulativeArcLen; // kích thước == samples.size() + 1 (bao gồm cạnh khép kín vòng)
     float                           totalLength = 0.0f;
 
     BezierTrack() = default;
 
     /**
-     * @brief Build a closed, C^0 and C^1 continuous piecewise cubic Bezier track
-     *        from control waypoints using cardinal tangent handles:
+     * @brief Xây dựng đường ray Bezier bậc 3 từng đoạn khép kín, liên tục C^0 và C^1
+     *        từ các điểm mốc điều khiển (waypoints) sử dụng tiếp tuyến Cardinal:
      *          V_i = tension * (W_{i+1} - W_{i-1})
      *          P_0^(i) = W_i, P_3^(i) = W_{i+1}
      *          P_1^(i) = W_i + V_i / 3
      *          P_2^(i) = W_{i+1} - V_{i+1} / 3
-     *        Guarantees P_3^(i) == P_0^(i+1) and P_1^(i+1) == 2*P_3^(i) - P_2^(i).
+     *        Đảm bảo P_3^(i) == P_0^(i+1) và P_1^(i+1) == 2*P_3^(i) - P_2^(i).
      */
     void buildFromClosedWaypoints(
         const std::vector<MathCG::Vec3>& waypoints,
@@ -109,7 +109,7 @@ public:
     }
 
     /**
-     * @brief Build track from explicit cubic Bezier segments.
+     * @brief Xây dựng đường ray từ danh sách các đoạn cong Bezier bậc 3 tường minh.
      */
     void buildFromSegments(
         const std::vector<CubicBezierSegment>& segs,
@@ -121,7 +121,7 @@ public:
     }
 
     /**
-     * @brief Verify C^0 continuity max error: ||P_3^(i) - P_0^(i+1)||
+     * @brief Kiểm tra sai số cực đại của tính liên tục C^0: ||P_3^(i) - P_0^(i+1)||
      */
     float verifyC0Continuity() const {
         const int n = static_cast<int>(segments.size());
@@ -135,7 +135,7 @@ public:
     }
 
     /**
-     * @brief Verify C^1 continuity max error: ||P_1^(i+1) - (2*P_3^(i) - P_2^(i))||
+     * @brief Kiểm tra sai số cực đại của tính liên tục C^1: ||P_1^(i+1) - (2*P_3^(i) - P_2^(i))||
      */
     float verifyC1Continuity() const {
         const int n = static_cast<int>(segments.size());
@@ -167,8 +167,8 @@ public:
     }
 
     /**
-     * @brief Evaluate curve position P(t) at global parameter t in [0, 1)
-     *        using Chapter 5 Bernstein basis B_k^3(u).
+     * @brief Tính vị trí điểm P(t) trên đường cong tại tham số toàn cục t thuộc [0, 1)
+     *        sử dụng đa thức cơ sở Bernstein B_k^3(u) của Chương 5.
      */
     MathCG::Vec3 evaluatePoint(float t) const {
         if (segments.empty()) return MathCG::Vec3();
@@ -180,7 +180,7 @@ public:
     }
 
     /**
-     * @brief Evaluate unnormalized derivative P'(t_local) at global parameter t in [0, 1).
+     * @brief Tính vector đạo hàm bậc nhất chưa chuẩn hóa P'(t_local) tại tham số toàn cục t thuộc [0, 1).
      */
     MathCG::Vec3 evaluateDerivativeRaw(float t) const {
         if (segments.empty()) return MathCG::Vec3(0.0f, 0.0f, 1.0f);
@@ -192,15 +192,15 @@ public:
     }
 
     /**
-     * @brief Evaluate unit tangent T(t) = P'(t) / ||P'(t)|| at global parameter t in [0, 1).
+     * @brief Tính vector tiếp tuyến đơn vị T(t) = P'(t) / ||P'(t)|| tại tham số toàn cục t thuộc [0, 1).
      */
     MathCG::Vec3 evaluateTangent(float t) const {
         return evaluateDerivativeRaw(t).normalized();
     }
 
     /**
-     * @brief Evaluate full 3D orientation frame (Position, Tangent, Right, Up, Yaw, Pitch, Roll)
-     *        at global parameter t in [0, 1).
+     * @brief Tính khung định hướng 3D đầy đủ (Vị trí, Tiếp tuyến, Phải, Lên, Yaw, Pitch, Roll)
+     *        tại tham số toàn cục t thuộc [0, 1).
      */
     TrackFrame evaluateFrameAtParamT(float t) const {
         TrackFrame frame;
@@ -210,7 +210,7 @@ public:
         frame.position = evaluatePoint(wt);
         frame.tangent  = evaluateTangent(wt);
 
-        // Interpolate smoothed banking angle from precomputed closed sample ring
+        // Nội suy góc nghiêng (banking) đã làm mượt từ vòng mẫu khép kín tính sẵn
         const int numSamples = static_cast<int>(samples.size());
         float fIdx = wt * static_cast<float>(numSamples);
         int idx0   = static_cast<int>(std::floor(fIdx)) % numSamples;
@@ -223,7 +223,7 @@ public:
     }
 
     /**
-     * @brief Convert arc-length distance (meters) along closed loop to parameter t in [0, 1).
+     * @brief Chuyển đổi khoảng cách độ dài cung (mét) dọc theo vòng khép kín sang tham số t thuộc [0, 1).
      */
     float distanceToParamT(float distMeters) const {
         const int numSamples = static_cast<int>(samples.size());
@@ -246,7 +246,7 @@ public:
     }
 
     /**
-     * @brief Convert parameter t in [0, 1) to arc-length distance (meters).
+     * @brief Chuyển đổi tham số t thuộc [0, 1) sang khoảng cách độ dài cung (mét).
      */
     float paramTToDistance(float t) const {
         const int numSamples = static_cast<int>(samples.size());
@@ -260,14 +260,14 @@ public:
     }
 
     /**
-     * @brief Evaluate full TrackFrame at a physical arc-length distance along the closed loop.
+     * @brief Tính khung tọa độ TrackFrame đầy đủ tại khoảng cách độ dài cung vật lý dọc theo vòng khép kín.
      */
     TrackFrame evaluateFrameAtDistance(float distMeters) const {
         return evaluateFrameAtParamT(distanceToParamT(distMeters));
     }
 
     /**
-     * @brief Return sampled 3D track centerline points (useful for 2D Minimap WCS->NCS->DCS).
+     * @brief Trả về danh sách các điểm lấy mẫu dọc tâm đường ray 3D (hữu ích cho Minimap 2D WCS->NCS->DCS).
      */
     std::vector<MathCG::Vec3> getSampledPoints() const {
         std::vector<MathCG::Vec3> pts;
@@ -279,34 +279,34 @@ public:
     }
 
     /**
-     * @brief Render complete 3D track: rails, spine / monorail girder, cross-ties, support pillars,
-     *        and optional debug Bezier control polygon & tangent vectors.
+     * @brief Vẽ toàn bộ đường ray 3D: thanh ray, ống xương sống / dầm monorail, tà-vẹt ngang, trụ đỡ,
+     *        và tùy chọn hiển thị kiểm tra đa giác điều khiển Bezier & vector tiếp tuyến.
      */
     void draw(bool showDebugCtrlAndTangents, bool lightingEnabled) const {
         if (samples.size() < 3) return;
 
-        // 1. Support pillars down to y = 0
+        // 1. Hệ thống cột trụ đỡ nối xuống mặt đất y = 0
         drawSupportPillars();
 
-        // 2. Cross-ties / crosstie ribs (Ta-vet) or pier brackets
+        // 2. Các thanh tà-vẹt ngang hoặc đai đỡ dầm
         drawCrossTies();
 
-        // 3. Spine tube (Queen Cobra) or concrete box-girder beam (Monorail)
+        // 3. Ống thép xương sống (Queen Cobra) hoặc dầm hộp bê tông (Monorail)
         if (config.isMonorailBeam) {
             drawMonorailBoxGirder();
-            // Twin side contact / guide rails on the concrete beam
+            // Hai thanh ray dẫn hướng / tiếp điện bên hông dầm bê tông
             LightingSystem::setMaterial(0.65f, 48.0f);
             glColor3f(config.railColor.r, config.railColor.g, config.railColor.b);
             drawClosedTubeRail(-config.trackGauge * 0.5f, -0.22f, config.railRadius);
             drawClosedTubeRail( config.trackGauge * 0.5f, -0.22f, config.railRadius);
             LightingSystem::resetMaterial();
         } else {
-            // Central steel backbone spine tube
+            // Ống thép xương sống chịu lực ở chính giữa
             LightingSystem::setMaterial(0.45f, 36.0f);
             glColor3f(config.spineColor.r, config.spineColor.g, config.spineColor.b);
             drawClosedTubeRail(0.0f, -config.spineDropOffset, config.spineRadius);
 
-            // Twin outer running rails with higher metallic specular highlight
+            // Hai thanh ray chạy tàu hai bên với độ bóng kim loại cao hơn
             LightingSystem::setMaterial(0.75f, 64.0f);
             glColor3f(config.railColor.r, config.railColor.g, config.railColor.b);
             drawClosedTubeRail(-config.trackGauge * 0.5f, 0.0f, config.railRadius);
@@ -314,7 +314,7 @@ public:
             LightingSystem::resetMaterial();
         }
 
-        // 4. Debug visualization: Bezier control polygon P_0..P_3 and P'(t) tangent vectors
+        // 4. Hiển thị trực quan hóa kiểm tra (Debug): Đa giác điều khiển Bezier P_0..P_3 và vector tiếp tuyến P'(t)
         if (showDebugCtrlAndTangents) {
             drawDebugOverlay(lightingEnabled);
         }
@@ -340,7 +340,7 @@ private:
         outFrame.pitchDeg = -std::asin(std::clamp(outFrame.tangent.y, -1.0f, 1.0f)) * MathCG::RAD2DEG;
         outFrame.rollDeg  = rollDeg;
 
-        // Construct basis identically to glRotatef(yaw,0,1,0) * glRotatef(pitch,1,0,0) * glRotatef(roll,0,0,1)
+        // Xây dựng hệ cơ sở trực chuẩn tương đương với glRotatef(yaw,0,1,0) * glRotatef(pitch,1,0,0) * glRotatef(roll,0,0,1)
         MathCG::Mat4 rot = MathCG::Mat4::rotateY(outFrame.yawDeg)
                          * MathCG::Mat4::rotateX(outFrame.pitchDeg)
                          * MathCG::Mat4::rotateZ(outFrame.rollDeg);
@@ -378,7 +378,7 @@ private:
             samples[i].position = pos;
             samples[i].tangent  = tang;
 
-            // Signed horizontal lateral acceleration -> natural coaster banking angle
+            // Gia tốc hướng tâm ngang có dấu -> góc nghiêng tự nhiên của tàu lượn khi vào cua
             MathCG::Vec3 flatRight(tang.z, 0.0f, -tang.x);
             if (flatRight.lengthSquared() < 1e-6f) {
                 flatRight = MathCG::Vec3(1.0f, 0.0f, 0.0f);
@@ -388,12 +388,12 @@ private:
 
             float speedSq = std::max(1.0f, d1.lengthSquared());
             float latKappa = MathCG::dot(d2, flatRight) / speedSq;
-            // Negative sign banks local +Y inward toward turn center
+            // Dấu âm làm nghiêng trục +Y cục bộ hướng vào phía tâm khúc cua
             float bank = -std::atan(latKappa * config.bankScale) * MathCG::RAD2DEG;
             rawRoll[i] = std::clamp(bank, -config.maxBankDeg, config.maxBankDeg);
         }
 
-        // Cyclic smoothing across sample ring so roll transitions are silky smooth over C^1 joins
+        // Làm mượt tuần hoàn trên vòng mẫu để góc nghiêng Roll chuyển tiếp êm ái qua các điểm nối C^1
         std::vector<float> smoothRoll = rawRoll;
         std::vector<float> nextRoll(totalSamples, 0.0f);
         for (int pass = 0; pass < 6; ++pass) {
@@ -409,7 +409,7 @@ private:
             computeFrameAxesFromTangentAndRoll(samples[i].tangent, smoothRoll[i], samples[i]);
         }
 
-        // Build closed-loop cumulative arc-length table
+        // Xây dựng bảng cộng dồn độ dài cung (cumulative arc-length) cho vòng khép kín
         cumulativeArcLen.resize(totalSamples + 1, 0.0f);
         for (int i = 0; i < totalSamples; ++i) {
             int next = (i + 1) % totalSamples;
@@ -420,7 +420,7 @@ private:
     }
 
     // ------------------------------------------------------------------------
-    // Procedural Geometry Helpers (Strictly Custom Vertices & Normals)
+    // Các hàm Bổ trợ Hình học Sinh tự động (Chỉ dùng Đỉnh & Pháp tuyến Tự tính)
     // ------------------------------------------------------------------------
 
     static void drawOrientedQuadFace(
@@ -461,12 +461,12 @@ private:
         MathCG::Vec3 p011 = center - rx + uy + fz;
 
         glBegin(GL_QUADS);
-        drawOrientedQuadFace(p001, p101, p111, p011); // +Z (Front)
-        drawOrientedQuadFace(p100, p000, p010, p110); // -Z (Back)
-        drawOrientedQuadFace(p101, p100, p110, p111); // +X (Right)
-        drawOrientedQuadFace(p000, p001, p011, p010); // -X (Left)
-        drawOrientedQuadFace(p011, p111, p110, p010); // +Y (Top)
-        drawOrientedQuadFace(p000, p100, p101, p001); // -Y (Bottom)
+        drawOrientedQuadFace(p001, p101, p111, p011); // +Z (Mặt trước)
+        drawOrientedQuadFace(p100, p000, p010, p110); // -Z (Mặt sau)
+        drawOrientedQuadFace(p101, p100, p110, p111); // +X (Mặt phải)
+        drawOrientedQuadFace(p000, p001, p011, p010); // -X (Mặt trái)
+        drawOrientedQuadFace(p011, p111, p110, p010); // +Y (Mặt trên)
+        drawOrientedQuadFace(p000, p100, p101, p001); // -Y (Mặt dưới)
         glEnd();
     }
 
@@ -487,7 +487,7 @@ private:
                 float ct = std::cos(theta);
                 float st = std::sin(theta);
 
-                // Emit f1 first, f0 second -> outward CCW normal along +n(theta)
+                // Phát đỉnh f1 trước, f0 sau -> tạo pháp tuyến ngược chiều kim đồng hồ (CCW) hướng ra ngoài dọc theo +n(theta)
                 MathCG::Vec3 n1 = (f1.right * ct + f1.up * st).normalized();
                 MathCG::Vec3 p1 = c1 + n1 * radius;
                 glNormal3f(n1.x, n1.y, n1.z);
@@ -515,7 +515,7 @@ private:
             const TrackFrame& f0 = samples[i];
             const TrackFrame& f1 = samples[(i + 1) % n];
 
-            // Cross-section corners CCW in (right, up) plane: TR -> TL -> BL -> BR
+            // Các góc tiết diện ngang ngược chiều kim đồng hồ (CCW) trong mặt phẳng (right, up): TR -> TL -> BL -> BR
             MathCG::Vec3 cs0[4] = {
                 f0.position + f0.right *  halfWTop + f0.up * yTop,
                 f0.position + f0.right * -halfWTop + f0.up * yTop,
@@ -532,7 +532,7 @@ private:
             glBegin(GL_QUADS);
             for (int side = 0; side < 4; ++side) {
                 int nextSide = (side + 1) % 4;
-                // (cs0[next] - cs0[side]) x (cs1[side] - cs0[side]) points outward!
+                // Tích có hướng (cs0[next] - cs0[side]) x (cs1[side] - cs0[side]) hướng ra phía ngoài!
                 drawOrientedQuadFace(cs0[side], cs0[nextSide], cs1[nextSide], cs1[side]);
             }
             glEnd();
@@ -551,20 +551,20 @@ private:
             TrackFrame f = evaluateFrameAtDistance(i * step);
 
             if (config.isMonorailBeam) {
-                // Sleek mounting collar ring around concrete beam
+                // Đai vòng gá đỡ gọn gàng bao quanh dầm bê tông
                 drawOrientedBox(
                     f.position - f.up * 0.52f,
                     f.right, f.up, f.tangent,
                     0.62f, 0.56f, 0.14f
                 );
             } else {
-                // Horizontal cross-bar linking left and right rails
+                // Thanh tà-vẹt ngang liên kết thanh ray trái và phải
                 drawOrientedBox(
                     f.position - f.up * 0.12f,
                     f.right, f.up, f.tangent,
                     config.trackGauge * 0.54f, 0.08f, 0.12f
                 );
-                // Vertical neck strut linking rail crossbar down to central spine
+                // Thanh chống cổ đứng nối từ thanh ngang xuống ống thép xương sống trung tâm
                 drawOrientedBox(
                     f.position - f.up * (config.spineDropOffset * 0.52f),
                     f.right, f.up, f.tangent,
@@ -598,7 +598,7 @@ private:
             n = n.normalized();
             glNormal3f(n.x, n.y, n.z);
 
-            // Bottom vertex first, top vertex second -> outward CCW normal around +Y
+            // Đỉnh dưới trước, đỉnh trên sau -> tạo pháp tuyến CCW hướng ra ngoài quanh trục +Y
             glVertex3f(cx + rBottom * cu, yBottom, cz + rBottom * su);
             glVertex3f(cx + rTop    * cu, yTop,    cz + rTop    * su);
         }
@@ -622,7 +622,7 @@ private:
 
             if (attachPt.y < 1.2f) continue;
 
-            // Concrete ground footing pad
+            // Bệ móng bê tông dưới mặt đất
             glColor3f(0.45f, 0.47f, 0.50f);
             drawOrientedBox(
                 MathCG::Vec3(attachPt.x, 0.35f, attachPt.z),
@@ -630,7 +630,7 @@ private:
                 config.pillarRadius * 2.1f, 0.35f, config.pillarRadius * 2.1f
             );
 
-            // Tapered tubular support column
+            // Cột trụ đỡ hình trụ thuôn dần lên trên
             glColor3f(config.pillarColor.r, config.pillarColor.g, config.pillarColor.b);
             drawParametricVerticalCylinder(
                 attachPt.x, attachPt.z,
@@ -639,7 +639,7 @@ private:
                 10
             );
 
-            // Top mounting saddle bracket aligned with track tangent
+            // Gối đỡ định vị phía trên đỉnh cột căn chỉnh theo tiếp tuyến đường ray
             glColor3f(config.tieColor.r, config.tieColor.g, config.tieColor.b);
             drawOrientedBox(
                 attachPt,
@@ -652,7 +652,7 @@ private:
     void drawDebugOverlay(bool lightingEnabled) const {
         glDisable(GL_LIGHTING);
 
-        // 1. Bezier Control Polygon P_0 -> P_1 -> P_2 -> P_3 per segment
+        // 1. Đa giác điều khiển Bezier P_0 -> P_1 -> P_2 -> P_3 của từng đoạn
         glLineWidth(1.5f);
         glColor3f(1.0f, 0.95f, 0.20f);
         for (const auto& seg : segments) {
@@ -664,7 +664,7 @@ private:
             glEnd();
         }
 
-        // 2. Anchor waypoints P_0 (green) & C^1 tangent handles P_1, P_2 (yellow)
+        // 2. Các điểm mốc neo P_0 (xanh lá) & các điểm điều khiển tiếp tuyến C^1 P_1, P_2 (vàng)
         glPointSize(7.0f);
         glBegin(GL_POINTS);
         for (const auto& seg : segments) {
@@ -677,7 +677,7 @@ private:
         }
         glEnd();
 
-        // 3. Sampled Tangent vectors P'(t) (cyan) and Up vectors (magenta)
+        // 3. Các vector tiếp tuyến lấy mẫu P'(t) (xanh lơ) và vector hướng lên Up (hồng tím)
         glLineWidth(1.8f);
         glBegin(GL_LINES);
         const int stride = std::max(1, static_cast<int>(samples.size()) / 40);

@@ -3,26 +3,26 @@
 
 /**
  * @file Carousel.h
- * @brief Chapter 4 & 5: Simulation of the Festival Carousel (Đu Quay Ngựa Gỗ Asia Park)
+ * @brief Chương 4 & 5: Mô phỏng Đu Quay Ngựa Gỗ Lễ Hội (Festival Carousel tại Asia Park)
  *
- * Implements:
- *  - Real Festival Carousel specifications:
- *      * Radius R = 8.5m, Height H = 8.8m
- *      * Location: (45.0, 0.0, 48.0) on the Southeast Festive Plaza
- *      * 16 galloping carousel horses arranged in 2 concentric rings (Outer R=6.2m, Inner R=4.2m)
- *  - Chapter 4 Hierarchical Modeling (2-Level Transformation Hierarchy):
- *      * Level 1 (Parent): Rotating wooden circular deck, central mirrored core,
- *        and conical festive canopy roof rotating around world Y by angle gamma = carouselAngleDeg:
+ * Triển khai:
+ *  - Thông số thực tế của Đu Quay Lễ Hội (Festival Carousel):
+ *      * Bán kính R = 8.5m, Chiều cao H = 8.8m
+ *      * Vị trí: (45.0, 0.0, 48.0) tại Quảng trường Lễ hội phía Đông Nam
+ *      * Các chú ngựa gỗ phi nước đại xếp trên 2 vòng đồng tâm (Vòng ngoài R=6.2m, Vòng trong R=4.2m)
+ *  - Chương 4 Mô hình hóa phân cấp (Cấu trúc phân cấp biến đổi 2 cấp):
+ *      * Cấp 1 (Cha - Parent): Sàn gỗ tròn xoay, trụ lõi gương trung tâm
+ *        và mái vòm hình nón lễ hội cùng quay quanh trục Y thế giới theo góc gamma = carouselAngleDeg:
  *        M_parent = T(pos) * R_y(gamma)
- *      * Level 2 (Child): 16 brass support poles and horses inheriting parent rotation gamma,
- *        plus independent vertical harmonic oscillation along each pole:
+ *      * Cấp 2 (Con - Child): Các cột đồng thau và các chú ngựa kế thừa góc quay cha gamma,
+ *        cộng thêm dao động điều hòa thẳng đứng độc lập dọc theo từng cột:
  *        y_i(t) = y_base + A * sin(omega * t + phi_i)
- *        with staggered phase phi_i = i * (2*pi / N) creating an authentic galloping wave!
- *  - Chapter 5 Parametric Surfaces:
- *      * Grand conical canopy roof: ParametricShapes::drawConeY
- *      * Brass vertical poles: ParametricShapes::drawCylinderY
- *      * Golden rim collar: ParametricShapes::drawToroidY
- *      * Crown decorative finial sphere: ParametricShapes::drawSphere
+ *        với pha lệch nhau phi_i = i * (2*pi / N) tạo nên hiệu ứng lượn sóng phi nước đại sống động!
+ *  - Chương 5 Mặt cong tham số:
+ *      * Mái vòm hình nón lớn: ParametricShapes::drawConeY
+ *      * Các cột đồng thau thẳng đứng: ParametricShapes::drawCylinderY
+ *      * Vòng viền mạ vàng: ParametricShapes::drawToroidY
+ *      * Quả cầu trang trí trên đỉnh mái: ParametricShapes::drawSphere
  */
 
 #include <GL/freeglut.h>
@@ -40,15 +40,15 @@ public:
     MathCG::Vec3 position       = MathCG::Vec3(45.0f, 0.0f, 48.0f);
     float        platformRadius = 8.5f;
     float        canopyHeight   = 8.8f;
-    float        rotationSpeed  = 35.0f; // deg/s
-    float        currentAngleDeg= 0.0f;  // gamma: platform rotation angle
-    float        oscillationPhase= 0.0f; // omega * t: horse bounce phase
-    int          numHorses      = 12;    // 12 galloping horses
+    float        rotationSpeed  = 35.0f; // độ/giây
+    float        currentAngleDeg= 0.0f;  // gamma: góc quay của sàn đu quay
+    float        oscillationPhase= 0.0f; // omega * t: pha nhấp nhô của ngựa gỗ
+    int          numHorses      = 12;    // 12 chú ngựa gỗ phi nước đại
 
     Carousel() = default;
 
     /**
-     * @brief Advance simulation timers for both rotation and horse galloping
+     * @brief Cập nhật bộ đếm thời gian mô phỏng cho cả chuyển động quay và nhịp nhấp nhô của ngựa
      */
     void update(float dt) {
         currentAngleDeg  = std::fmod(currentAngleDeg + rotationSpeed * dt, 360.0f);
@@ -56,7 +56,7 @@ public:
     }
 
     /**
-     * @brief Get saddle world position for first-person horse ride camera
+     * @brief Lấy tọa độ thế giới của yên ngựa phục vụ camera góc nhìn thứ nhất trên lưng ngựa
      */
     MathCG::Vec3 getHorseWorldPosition(int horseIndex = 0) const {
         if (numHorses <= 0) return position;
@@ -74,36 +74,36 @@ public:
     }
 
     /**
-     * @brief Render the complete Festival Carousel
+     * @brief Vẽ toàn bộ tổ hợp Đu Quay Ngựa Gỗ Lễ Hội
      */
     void draw(bool isNightOrSunset, bool showNormals = false) const {
         glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
 
         // ====================================================================
-        // 1. Static Circular Concrete Ground Base
+        // 1. Bệ nền bê tông hình tròn tĩnh dưới mặt đất
         // ====================================================================
         glColor3f(0.48f, 0.50f, 0.54f);
         ParametricShapes::drawCylinderY(platformRadius + 0.8f, 0.35f, 28, 2, true, false);
-        glColor3f(0.85f, 0.70f, 0.18f); // Outer gold ring
+        glColor3f(0.85f, 0.70f, 0.18f); // Vòng viền vàng ngoài cùng
         ParametricShapes::drawToroidY(platformRadius + 0.82f, 0.10f, 32, 6, false);
 
         // ====================================================================
-        // 2. LEVEL 1 (PARENT): Rotating Deck, Center Column & Conical Roof
+        // 2. CẤP 1 (CHA - PARENT): Sàn gỗ xoay, Cột trung tâm & Mái vòm hình nón
         // ====================================================================
         glPushMatrix();
-        glRotatef(currentAngleDeg, 0.0f, 1.0f, 0.0f); // Spin by angle gamma
+        glRotatef(currentAngleDeg, 0.0f, 1.0f, 0.0f); // Quay quanh trục đứng theo góc gamma
 
-        // Rotating polished wooden deck
-        glColor3f(0.68f, 0.42f, 0.22f); // Teak wood
+        // Sàn gỗ đánh bóng đang xoay
+        glColor3f(0.68f, 0.42f, 0.22f); // Màu gỗ tếch
         ParametricShapes::drawCylinderY(platformRadius, 0.55f, 28, 2, true, showNormals);
-        glColor3f(0.95f, 0.80f, 0.15f); // Gold platform rim
+        glColor3f(0.95f, 0.80f, 0.15f); // Viền vàng quanh mép sàn
         ParametricShapes::drawToroidY(platformRadius + 0.05f, 0.12f, 32, 8, false);
 
-        // Ornate central core column with golden moldings
-        glColor3f(0.88f, 0.85f, 0.80f); // Cream marble
+        // Cột lõi trung tâm chạm khắc hoa văn với các đường gờ mạ vàng
+        glColor3f(0.88f, 0.85f, 0.80f); // Màu đá cẩm thạch kem
         ParametricShapes::drawCylinderY(2.1f, canopyHeight - 2.5f, 16, 4, true, showNormals);
-        glColor3f(0.92f, 0.75f, 0.16f); // Central gold bands
+        glColor3f(0.92f, 0.75f, 0.16f); // Các đai vàng quanh cột trung tâm
         for (float y = 1.5f; y < canopyHeight - 2.5f; y += 1.8f) {
             glPushMatrix();
             glTranslatef(0.0f, y, 0.0f);
@@ -112,29 +112,29 @@ public:
         }
 
         // ====================================================================
-        // 3. Conical Pavilion Roof (ParametricShapes::drawConeY)
+        // 3. Mái vòm hình nón (ParametricShapes::drawConeY)
         // ====================================================================
         glPushMatrix();
         glTranslatef(0.0f, canopyHeight - 2.5f, 0.0f);
 
-        // Eaves valance band
+        // Diềm mái trang trí xung quanh hiên
         glColor3f(0.95f, 0.75f, 0.15f);
         ParametricShapes::drawCylinderY(platformRadius + 0.45f, 0.65f, 28, 2, true, false);
 
-        // Main conical roof (Striped Crimson and Ivory Asian canopy)
-        glColor3f(0.88f, 0.18f, 0.14f); // Asian red
+        // Mái hình nón chính (Mái lều phong cách Á Đông tông đỏ thẫm và ngà)
+        glColor3f(0.88f, 0.18f, 0.14f); // Đỏ Á Đông
         ParametricShapes::drawConeY(platformRadius + 0.45f, 0.0f, 3.2f, 28, 4, true, showNormals);
 
-        // Decorative crown pinnacle & golden sphere at peak
+        // Chóp vương miện trang trí & quả cầu vàng trên đỉnh mái
         glTranslatef(0.0f, 3.2f, 0.0f);
-        glColor3f(0.98f, 0.82f, 0.18f); // Pure gold
+        glColor3f(0.98f, 0.82f, 0.18f); // Vàng nguyên chất
         ParametricShapes::drawConeY(0.9f, 0.0f, 1.2f, 16, 2, true, false);
         glTranslatef(0.0f, 1.35f, 0.0f);
         ParametricShapes::drawSphere(0.48f, 16, 12, false);
 
         glPopMatrix();
 
-        // Perimeter warm fairy lights around canopy eaves at night
+        // Dải đèn trang trí ánh sáng vàng ấm quanh hiên mái vào ban đêm
         if (isNightOrSunset) {
             GLfloat emit[4] = { 1.0f, 0.90f, 0.45f, 1.0f };
             glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, emit);
@@ -155,136 +155,136 @@ public:
         }
 
         // ====================================================================
-        // 4. LEVEL 2 (CHILDREN): 12 Galloping Horses + Vertical Brass Poles
+        // 4. CẤP 2 (CON - CHILDREN): 12 Ngựa gỗ phi nước đại + Cột đồng thẳng đứng
         // ====================================================================
         for (int i = 0; i < numHorses; ++i) {
             float angleDeg = (360.0f / numHorses) * i;
-            float ringR    = (i % 2 == 0) ? 6.2f : 4.2f; // Alternating 2 rings
+            float ringR    = (i % 2 == 0) ? 6.2f : 4.2f; // Xen kẽ 2 vòng trong và ngoài
             float phaseOffset = (MathCG::TWO_PI / numHorses) * i;
 
-            // Harmonic vertical bounce: y(t) = y_base + A * sin(omega*t + phi_i)
+            // Dao động điều hòa theo phương thẳng đứng: y(t) = y_base + A * sin(omega*t + phi_i)
             float horseY = 1.35f + 0.45f * std::sin(oscillationPhase + phaseOffset);
 
             glPushMatrix();
             glRotatef(angleDeg, 0.0f, 1.0f, 0.0f);
             glTranslatef(ringR, 0.0f, 0.0f);
 
-            // Level 2.1: Brass mounting pole fixed between floor and ceiling
-            glColor3f(0.92f, 0.78f, 0.22f); // Polished brass
+            // Cấp 2.1: Cột đỡ bằng đồng thau gắn cố định giữa sàn và trần mái
+            glColor3f(0.92f, 0.78f, 0.22f); // Đồng thau đánh bóng
             ParametricShapes::drawCylinderY(0.065f, canopyHeight - 2.5f, 10, 4, true, false);
 
-            // Level 2.2: Galloping Carousel Horse sliding vertically along pole
+            // Cấp 2.2: Ngựa gỗ phi nước đại trượt lên xuống dọc theo cột đồng
             glTranslatef(0.0f, horseY, 0.0f);
-            glRotatef(90.0f, 0.0f, 1.0f, 0.0f); // Face tangential forward along carousel rotation
+            glRotatef(90.0f, 0.0f, 1.0f, 0.0f); // Hướng mặt theo phương tiếp tuyến chiều quay đu quay
 
             drawCarouselHorse(i, isNightOrSunset);
 
             glPopMatrix();
         }
 
-        glPopMatrix(); // End Level 1 parent
+        glPopMatrix(); // Kết thúc khối Cấp 1 (Cha)
 
         glPopMatrix();
     }
 
 private:
     /**
-     * @brief Detailed 3D Carousel Horse with ornate saddle, mane, and galloping posture
+     * @brief Mô hình 3D chi tiết của Ngựa gỗ với yên cương hoa văn, bờm và tư thế phi nước đại
      */
     void drawCarouselHorse(int index, bool isNightOrSunset) const {
         (void)isNightOrSunset;
 
-        // Horse coat colors: alternate between Snow White, Chestnut Bay, and Midnight Black
+        // Màu lông ngựa: xen kẽ giữa Trắng tuyết, Nâu hạt dẻ và Đen tuyền
         MathCG::ColorRGB coatCol;
-        if (index % 3 == 0)      coatCol = MathCG::ColorRGB(0.95f, 0.95f, 0.97f); // White
-        else if (index % 3 == 1) coatCol = MathCG::ColorRGB(0.55f, 0.28f, 0.16f); // Chestnut
-        else                     coatCol = MathCG::ColorRGB(0.18f, 0.18f, 0.20f); // Black
+        if (index % 3 == 0)      coatCol = MathCG::ColorRGB(0.95f, 0.95f, 0.97f); // Trắng
+        else if (index % 3 == 1) coatCol = MathCG::ColorRGB(0.55f, 0.28f, 0.16f); // Nâu hạt dẻ
+        else                     coatCol = MathCG::ColorRGB(0.18f, 0.18f, 0.20f); // Đen
 
         LightingSystem::setMaterial(0.55f, 32.0f);
 
-        // 1. Torso barrel body
+        // 1. Thân mình ngựa
         glColor3f(coatCol.r, coatCol.g, coatCol.b);
         drawBox(0.0f, 0.0f, 0.0f, 0.55f, 0.45f, 1.35f);
 
-        // 2. Rump / hindquarters
+        // 2. Phần mông / thân sau
         drawBox(0.0f, 0.06f, -0.65f, 0.50f, 0.42f, 0.45f);
 
-        // 3. Chest & shoulders
+        // 3. Ngực & vai trước
         drawBox(0.0f, 0.08f, 0.62f, 0.52f, 0.48f, 0.45f);
 
-        // 4. Arched Neck
+        // 4. Cổ ngựa uốn cong
         glPushMatrix();
         glTranslatef(0.0f, 0.48f, 0.75f);
         glRotatef(38.0f, 1.0f, 0.0f, 0.0f);
         drawBox(0.0f, 0.0f, 0.0f, 0.32f, 0.65f, 0.38f);
         glPopMatrix();
 
-        // 5. Horse Head & Muzzle
+        // 5. Đầu & Mõm ngựa
         glPushMatrix();
         glTranslatef(0.0f, 0.85f, 0.98f);
         glRotatef(-15.0f, 1.0f, 0.0f, 0.0f);
-        drawBox(0.0f, 0.0f, 0.0f, 0.30f, 0.32f, 0.42f); // Head
-        // Tapered muzzle
+        drawBox(0.0f, 0.0f, 0.0f, 0.30f, 0.32f, 0.42f); // Phần đầu
+        // Phần mõm thon gọn
         glTranslatef(0.0f, -0.10f, 0.26f);
         drawBox(0.0f, 0.0f, 0.0f, 0.22f, 0.22f, 0.28f);
-        // Ears
+        // Hai tai ngựa
         glColor3f(coatCol.r * 0.9f, coatCol.g * 0.9f, coatCol.b * 0.9f);
         drawBox(-0.10f, 0.26f, -0.15f, 0.08f, 0.18f, 0.08f);
         drawBox( 0.10f, 0.26f, -0.15f, 0.08f, 0.18f, 0.08f);
         glPopMatrix();
 
-        // 6. Flowing Golden Mane
-        glColor3f(0.96f, 0.78f, 0.15f); // Gold mane
+        // 6. Bờm ngựa màu vàng óng
+        glColor3f(0.96f, 0.78f, 0.15f); // Bờm vàng
         glPushMatrix();
         glTranslatef(0.0f, 0.62f, 0.65f);
         glRotatef(35.0f, 1.0f, 0.0f, 0.0f);
         drawBox(0.0f, 0.18f, -0.12f, 0.12f, 0.55f, 0.18f);
         glPopMatrix();
 
-        // 7. Golden Saddle & Crimson Saddle Blanket
-        // Crimson blanket
+        // 7. Yên ngựa mạ vàng & Thảm lót yên màu đỏ thẫm
+        // Thảm lót yên màu đỏ thẫm
         glColor3f(0.85f, 0.12f, 0.14f);
         drawBox(0.0f, 0.18f, 0.0f, 0.58f, 0.14f, 0.75f);
-        // Golden saddle
+        // Yên ngựa mạ vàng
         glColor3f(0.96f, 0.80f, 0.18f);
         drawBox(0.0f, 0.26f, 0.02f, 0.48f, 0.12f, 0.52f);
-        // Cantle & pommel
+        // Gờ sau & mỏm trước của yên ngựa
         drawBox(0.0f, 0.35f, -0.20f, 0.42f, 0.16f, 0.10f);
         drawBox(0.0f, 0.35f,  0.22f, 0.38f, 0.14f, 0.09f);
 
-        // 8. Galloping Forelegs (extended forward in stride)
+        // 8. Cặp chân trước đang phi nước đại (vươn về phía trước)
         glColor3f(coatCol.r, coatCol.g, coatCol.b);
         for (int side = -1; side <= 1; side += 2) {
             glPushMatrix();
             glTranslatef(side * 0.20f, -0.18f, 0.60f);
-            glRotatef(30.0f, 1.0f, 0.0f, 0.0f); // Reach forward
+            glRotatef(30.0f, 1.0f, 0.0f, 0.0f); // Vươn ra trước
             drawBox(0.0f, -0.22f, 0.0f, 0.12f, 0.48f, 0.14f);
             glTranslatef(0.0f, -0.42f, 0.0f);
             glRotatef(-25.0f, 1.0f, 0.0f, 0.0f);
             drawBox(0.0f, -0.18f, 0.0f, 0.10f, 0.42f, 0.11f);
-            // Golden hoof
+            // Móng ngựa mạ vàng
             glColor3f(0.92f, 0.76f, 0.18f);
             drawBox(0.0f, -0.40f, 0.0f, 0.12f, 0.10f, 0.14f);
             glPopMatrix();
         }
 
-        // 9. Galloping Hindlegs (trailing back in leap)
+        // 9. Cặp chân sau đang đạp bật nhảy (duỗi về phía sau)
         glColor3f(coatCol.r, coatCol.g, coatCol.b);
         for (int side = -1; side <= 1; side += 2) {
             glPushMatrix();
             glTranslatef(side * 0.19f, -0.16f, -0.62f);
-            glRotatef(-35.0f, 1.0f, 0.0f, 0.0f); // Trail backward
+            glRotatef(-35.0f, 1.0f, 0.0f, 0.0f); // Duỗi ra sau
             drawBox(0.0f, -0.22f, 0.0f, 0.14f, 0.50f, 0.16f);
             glTranslatef(0.0f, -0.46f, 0.0f);
             glRotatef(40.0f, 1.0f, 0.0f, 0.0f);
             drawBox(0.0f, -0.18f, 0.0f, 0.11f, 0.42f, 0.12f);
-            // Golden hoof
+            // Móng ngựa mạ vàng
             glColor3f(0.92f, 0.76f, 0.18f);
             drawBox(0.0f, -0.40f, 0.0f, 0.13f, 0.10f, 0.15f);
             glPopMatrix();
         }
 
-        // 10. Flowing Golden Tail
+        // 10. Đuôi ngựa màu vàng tung bay
         glColor3f(0.96f, 0.78f, 0.15f);
         glPushMatrix();
         glTranslatef(0.0f, 0.10f, -0.85f);

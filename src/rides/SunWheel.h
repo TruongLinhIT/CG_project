@@ -3,28 +3,28 @@
 
 /**
  * @file SunWheel.h
- * @brief Chapter 1, 4 & 5: Simulation of the 115m Da Nang Sun Wheel (Vòng quay Mặt Trời)
+ * @brief Chương 1, 4 & 5: Mô phỏng Vòng quay Mặt Trời Đà Nẵng cao 115m (Da Nang Sun Wheel)
  *
- * Implements:
- *  - Real Da Nang Asia Park specifications:
- *      * Diameter = 100m (Radius R = 50m), Hub Height H_center = 65m (Total Height = 115m)
- *      * Center coordinates: I(0, 65, -38)
- *      * 32 radial LED spokes, 4 concentric rainbow LED rings, twin outer toroidal rims
- *      * 64 passenger gondola cabins (delta = 5.625 deg)
- *  - Chapter 4 Hierarchical Modeling & Coordinate Transformations:
- *      * Main wheel rotation around center I:
+ * Triển khai:
+ *  - Thông số thực tế tại Công viên Châu Á (Asia Park Đà Nẵng):
+ *      * Đường kính = 100m (Bán kính R = 50m), Chiều cao tâm trục H_center = 65m (Tổng chiều cao = 115m)
+ *      * Tọa độ tâm: I(0, 65, -38)
+ *      * 32 nan hoa LED hướng tâm, 4 vòng LED cầu vồng đồng tâm, cặp vành khuyên ngoài dạng Toroid
+ *      * 64 cabin chở khách (góc lệch delta = 5.625 độ)
+ *  - Chương 4 Mô hình hóa phân cấp & Phép biến đổi tọa độ:
+ *      * Phép quay vòng quay chính quanh tâm I:
  *        M_wheel = T(x0, y0, z0) * R_z(alpha) * T(-x0, -y0, -z0)
- *      * Hierarchical cabin suspension & upright maintenance:
- *        At spoke angle beta_k = k * (360 / N), pivot position is at distance R.
- *        Local counter-rotation: R_z(-(beta_k + alpha)) cancels net angular velocity,
- *        guaranteeing the cabin floor stays strictly horizontal and upright at all positions!
- *      * First-Person Cabin POV Camera World Coordinate query for Camera.h
- *  - Chapter 1 HSV to RGB Color Model:
- *      * Dynamic cascading LED animations across 32 spokes & 5 rings via HSVtoRGB
- *  - Chapter 5 Parametric Surfaces:
- *      * Outer toroidal rims & hub collars via ParametricShapes::drawToroid
- *      * Segmented rainbow LED rings via ParametricShapes::drawSegmentedLedToroid
- *      * Structural tubular trusses via ParametricShapes::drawCylinderBetween
+ *      * Treo cabin phân cấp & duy trì trạng thái thẳng đứng:
+ *        Tại góc nan hoa beta_k = k * (360 / N), vị trí chốt treo cách tâm một khoảng R.
+ *        Phép quay ngược cục bộ: R_z(-(beta_k + alpha)) triệt tiêu vận tốc góc tổng hợp,
+ *        đảm bảo sàn cabin luôn nằm ngang và thẳng đứng tuyệt đối ở mọi vị trí!
+ *      * Truy vấn tọa độ thế giới cho Camera góc nhìn thứ nhất (POV) trong cabin phục vụ Camera.h
+ *  - Chương 1 Mô hình màu HSV sang RGB:
+ *      * Hiệu ứng chuyển màu LED động lan tỏa trên 32 nan hoa & 5 vòng qua hàm HSVtoRGB
+ *  - Chương 5 Mặt cong tham số:
+ *      * Vành khuyên ngoài & cổ trục trung tâm qua ParametricShapes::drawToroid
+ *      * Các vòng LED cầu vồng phân đoạn qua ParametricShapes::drawSegmentedLedToroid
+ *      * Kết cấu giàn ống thép qua ParametricShapes::drawCylinderBetween
  */
 
 #include <GL/freeglut.h>
@@ -41,25 +41,25 @@ namespace AsiaParkRides {
 class SunWheel {
 public:
     MathCG::Vec3 center           = MathCG::Vec3(0.0f, 65.0f, -38.0f);
-    float        radius           = 50.0f;  // R = 50m (Diameter 100m)
-    int          numSpokes        = 32;     // 32 structural radial spokes
-    int          numCabins        = 64;     // 64 passenger gondola cabins (5.625 deg interval)
-    float        rotationSpeed    = 12.0f;  // Rotation speed in deg/s
-    float        currentAngleDeg  = 0.0f;   // Current wheel rotation angle alpha
+    float        radius           = 50.0f;  // R = 50m (Đường kính 100m)
+    int          numSpokes        = 32;     // 32 nan hoa chịu lực hướng tâm
+    int          numCabins        = 64;     // 64 cabin chở khách (cách đều 5.625 độ)
+    float        rotationSpeed    = 12.0f;  // Tốc độ quay tính bằng độ/giây
+    float        currentAngleDeg  = 0.0f;   // Góc quay hiện tại của vòng quay alpha
 
     SunWheel() = default;
 
     /**
-     * @brief Advance simulation timer
+     * @brief Cập nhật bộ đếm thời gian mô phỏng
      */
     void update(float dt) {
         currentAngleDeg = std::fmod(currentAngleDeg + rotationSpeed * dt, 360.0f);
     }
 
     /**
-     * @brief Chapter 4: Compute exact 3D World Position of cabin #index
+     * @brief Chương 4: Tính toán chính xác vị trí 3D trong hệ tọa độ thế giới của cabin thứ #index
      *        P_cabin = I + R * (cos(beta_k + alpha), sin(beta_k + alpha), 0) + offset
-     *        Used for First-Person POV Ride Camera in Camera.h
+     *        Dùng cho Camera góc nhìn thứ nhất (POV) trên trò chơi trong Camera.h
      */
     MathCG::Vec3 getCabinWorldPosition(int cabinIndex = 0) const {
         if (numCabins <= 0) return center;
@@ -75,19 +75,19 @@ public:
     }
 
     /**
-     * @brief Render the complete Sun Wheel assembly
-     * @param ledHueDeg Hue angle H in [0, 360) for HSV to RGB color transitions
-     * @param isNightOrSunset Controls nighttime LED glow and neon lighting
-     * @param showNormals Debug visualization of surface normals
+     * @brief Vẽ toàn bộ tổ hợp Vòng quay Mặt Trời (Sun Wheel)
+     * @param ledHueDeg Góc màu H trong khoảng [0, 360) cho hiệu ứng chuyển màu HSV sang RGB
+     * @param isNightOrSunset Điều khiển hiệu ứng phát sáng LED ban đêm và đèn neon
+     * @param showNormals Hiển thị trực quan vector pháp tuyến bề mặt để gỡ lỗi
      */
     void draw(float ledHueDeg, bool isNightOrSunset, bool showNormals = false) const {
         glPushMatrix();
 
-        // 1. Static Space-Truss A-Frame Tower, Pedestals & "SUN WHEEL" Sign
+        // 1. Tháp đỡ chữ A giàn không gian tĩnh, bệ móng & biển hiệu "SUN WHEEL"
         drawSupportTower(isNightOrSunset);
         drawNeonSign(isNightOrSunset);
 
-        // 2. Hierarchical Rotating Wheel Assembly: M = T(I) * R_z(alpha) * T(-I)
+        // 2. Tổ hợp vòng quay phân cấp: M = T(I) * R_z(alpha) * T(-I)
         MathCG::Mat4 wheelRot = MathCG::Mat4::rotateZAroundPoint(center, currentAngleDeg);
         glMultMatrixf(wheelRot.m);
         glTranslatef(center.x, center.y, center.z);
@@ -100,7 +100,7 @@ public:
 
 private:
     /**
-     * @brief Space-Truss A-frame support tower & concrete lakebed foundation piers
+     * @brief Tháp đỡ chữ A giàn không gian & các trụ móng bê tông dưới lòng hồ
      */
     void drawSupportTower(bool isNightOrSunset) const {
         (void)isNightOrSunset;
@@ -118,7 +118,7 @@ private:
             );
         };
 
-        // Reinforced concrete foundation piers
+        // Các trụ móng bê tông cốt thép
         LightingSystem::setMaterial(0.20f, 16.0f);
         glColor3f(0.48f, 0.50f, 0.54f);
         for (int sz = -1; sz <= 1; sz += 2) {
@@ -129,7 +129,7 @@ private:
             }
         }
 
-        // Space-truss steel A-frame legs & cross girders (front & back planes)
+        // Chân tháp chữ A bằng thép giàn không gian & các thanh giằng ngang (mặt phẳng trước & sau)
         LightingSystem::setMaterial(0.65f, 48.0f);
         glColor3f(0.84f, 0.86f, 0.90f);
         for (int sz = -1; sz <= 1; sz += 2) {
@@ -137,11 +137,11 @@ private:
             MathCG::Vec3 leftBase  = legPointAtY(sz, -1, baseY);
             MathCG::Vec3 rightBase = legPointAtY(sz,  1, baseY);
 
-            // Main inclined legs
+            // Các cột chân nghiêng chính
             ParametricShapes::drawCylinderBetween(leftBase,  hubEnd, 1.05f, 0.78f, 10, false);
             ParametricShapes::drawCylinderBetween(rightBase, hubEnd, 1.05f, 0.78f, 10, false);
 
-            // Cross-girders & X-bracing bays
+            // Các dầm ngang & nhịp giằng chéo chữ X
             const float tierY[] = { 12.0f, 25.0f, 38.0f, 51.0f };
             for (int t = 0; t < 4; ++t) {
                 MathCG::Vec3 pL = legPointAtY(sz, -1, tierY[t]);
@@ -157,7 +157,7 @@ private:
             }
         }
 
-        // Main steel central axle connecting front and back bearings
+        // Trục thép trung tâm chính nối ổ đỡ phía trước và phía sau
         ParametricShapes::drawCylinderBetween(
             MathCG::Vec3(center.x, center.y, center.z - topSpreadZ - 1.2f),
             MathCG::Vec3(center.x, center.y, center.z + topSpreadZ + 1.2f),
@@ -167,7 +167,7 @@ private:
     }
 
     /**
-     * @brief 3D Neon "SUN WHEEL" sign mounted on the front A-frame girder
+     * @brief Biển hiệu 3D Neon "SUN WHEEL" gắn trên dầm ngang khung chữ A phía trước
      */
     void drawNeonSign(bool isNightOrSunset) const {
         const float signY = 39.2f;
@@ -183,7 +183,7 @@ private:
         const float stepX = 2.32f;
         const float startX = center.x - 10.155f;
 
-        // Backing structural bar
+        // Thanh khung đỡ phía sau biển hiệu
         glColor3f(0.14f, 0.16f, 0.22f);
         drawBox(center.x, signY + charH * 0.5f, signZ - 0.32f, 22.8f, 0.55f, 0.35f);
 
@@ -200,10 +200,10 @@ private:
     }
 
     /**
-     * @brief Rotating wheel structure: Hub, Rims, Concentric LED rings, 32 Spokes
+     * @brief Kết cấu phần quay của vòng quay: Trục trung tâm, Vành ngoài, Vòng LED đồng tâm, 32 Nan hoa
      */
     void drawWheelStructure(float ledHueDeg, bool isNightOrSunset, bool showNormals) const {
-        // 1. Central illuminated hub discs
+        // 1. Đĩa trục trung tâm phát sáng
         if (isNightOrSunset) {
             float hr = 1.0f, hg = 1.0f, hb = 1.0f;
             MathCG::HSVtoRGB(ledHueDeg, 0.85f, 1.0f, hr, hg, hb);
@@ -220,7 +220,7 @@ private:
         }
         LightingSystem::resetMaterial();
 
-        // 2. Twin outer structural rims (Radius = 49.45m, front & back z = +/- 2.1m)
+        // 2. Cặp vành chịu lực ngoài cùng (Bán kính = 49.45m, mặt trước & mặt sau z = +/- 2.1m)
         float ledR = 1.0f, ledG = 0.5f, ledB = 0.1f;
         MathCG::HSVtoRGB(ledHueDeg, 0.90f, 1.0f, ledR, ledG, ledB);
         if (isNightOrSunset) {
@@ -237,7 +237,7 @@ private:
         }
         LightingSystem::resetMaterial();
 
-        // 3. Concentric Rainbow LED Structural Rings (Chapter 1 & 5)
+        // 3. Các vòng kết cấu LED cầu vồng đồng tâm (Chương 1 & 5)
         const float innerRingRadii[] = { 13.5f, 23.0f, 32.5f, 41.5f };
         for (int rIdx = 0; rIdx < 4; ++rIdx) {
             for (int side = -1; side <= 1; side += 2) {
@@ -257,7 +257,7 @@ private:
             }
         }
 
-        // 4. 32 Radial Spokes with cascading HSV LEDs
+        // 4. 32 Nan hoa hướng tâm với dải đèn LED HSV chuyển màu nối tiếp
         const float spokeBands[] = { 4.8f, 13.5f, 23.0f, 32.5f, 41.5f, radius - 0.55f };
         for (int k = 0; k < numSpokes; ++k) {
             float spokeAngleDeg = (360.0f / numSpokes) * k;
@@ -288,7 +288,7 @@ private:
                 }
             }
 
-            // Cross-brace joining front & back rims at each spoke
+            // Thanh giằng ngang nối vành trước & vành sau tại mỗi nan hoa
             LightingSystem::resetMaterial();
             glColor3f(0.82f, 0.85f, 0.90f);
             ParametricShapes::drawCylinderBetween(
@@ -300,20 +300,20 @@ private:
     }
 
     /**
-     * @brief 64 Gondola Cabins with Chapter 4 Hierarchical Counter-Rotation -(beta_k + alpha)
+     * @brief 64 Cabin chở khách áp dụng phép quay ngược phân cấp Chương 4 -(beta_k + alpha)
      */
     void drawCabins(float alpha, bool isNightOrSunset, bool showNormals) const {
         for (int k = 0; k < numCabins; ++k) {
             float cabinAngleDeg = (360.0f / numCabins) * k;
 
             glPushMatrix();
-            // Step 1: Position cabin along spoke at distance R
+            // Bước 1: Định vị cabin dọc theo nan hoa tại khoảng cách R
             glRotatef(cabinAngleDeg, 0.0f, 0.0f, 1.0f);
             glTranslatef(radius, 0.0f, 0.0f);
 
-            // Step 2: MANDATORY HIERARCHICAL COUNTER-ROTATION:
-            // Cancel both cabin's spoke angle (beta_k) and wheel rotation (alpha)
-            // so every cabin hangs perfectly vertical relative to world gravity!
+            // Bước 2: PHÉP QUAY NGƯỢC PHÂN CẤP BẮT BUỘC:
+            // Triệt tiêu cả góc nan hoa của cabin (beta_k) lẫn góc quay của bánh xe (alpha)
+            // để mọi cabin luôn treo thẳng đứng hoàn hảo theo phương trọng lực thế giới!
             glRotatef(-(cabinAngleDeg + alpha), 0.0f, 0.0f, 1.0f);
 
             drawSingleCabin(isNightOrSunset, showNormals);
@@ -323,25 +323,25 @@ private:
     }
 
     /**
-     * @brief Detailed 3D Gondola Passenger Cabin
+     * @brief Mô hình 3D chi tiết của một Cabin chở khách
      */
     void drawSingleCabin(bool isNightOrSunset, bool showNormals) const {
         (void)showNormals;
 
-        // Suspension hanger bar & pivot pin
+        // Thanh treo cabin & chốt trục xoay
         glColor3f(0.78f, 0.80f, 0.85f);
         drawBox(0.0f, -0.65f, 0.0f, 0.14f, 1.30f, 0.14f);
 
-        // Aerodynamic roof cap
-        glColor3f(0.95f, 0.72f, 0.15f); // Golden trim
+        // Nắp mui khí động học
+        glColor3f(0.95f, 0.72f, 0.15f); // Viền vàng kim
         drawBox(0.0f, -1.05f, 0.0f, 1.75f, 0.22f, 1.40f);
 
-        // Main Crimson-red Gondola Cabin Body
+        // Thân chính của cabin màu đỏ thẫm
         LightingSystem::setMaterial(0.55f, 40.0f);
         glColor3f(0.86f, 0.12f, 0.14f);
         drawBox(0.0f, -1.95f, 0.0f, 1.85f, 1.75f, 1.50f);
 
-        // Panoramic Glass Windows (Warm amber glow at night)
+        // Cửa sổ kính toàn cảnh (Phát ánh sáng vàng ấm áp vào ban đêm)
         if (isNightOrSunset) {
             LightingSystem::setMaterial(0.85f, 48.0f, 0.72f, 0.56f, 0.26f);
             glColor3f(1.0f, 0.86f, 0.52f);
@@ -354,49 +354,49 @@ private:
     }
 
     // ========================================================================
-    // PROCEDURAL BOX & NEON CHARACTERS HELPERS
+    // CÁC HÀM HỖ TRỢ VẼ HÌNH HỘP THỦ TỤC & KÝ TỰ ĐÈN NEON
     // ========================================================================
 
     static void drawBox(float cx, float cy, float cz, float sx, float sy, float sz) {
         float hx = sx * 0.5f, hy = sy * 0.5f, hz = sz * 0.5f;
 
         glBegin(GL_QUADS);
-        // +Z Front
+        // Mặt trước +Z
         glNormal3f(0.0f, 0.0f, 1.0f);
         glVertex3f(cx - hx, cy - hy, cz + hz);
         glVertex3f(cx + hx, cy - hy, cz + hz);
         glVertex3f(cx + hx, cy + hy, cz + hz);
         glVertex3f(cx - hx, cy + hy, cz + hz);
 
-        // -Z Back
+        // Mặt sau -Z
         glNormal3f(0.0f, 0.0f, -1.0f);
         glVertex3f(cx + hx, cy - hy, cz - hz);
         glVertex3f(cx - hx, cy - hy, cz - hz);
         glVertex3f(cx - hx, cy + hy, cz - hz);
         glVertex3f(cx + hx, cy + hy, cz - hz);
 
-        // +Y Top
+        // Mặt trên +Y
         glNormal3f(0.0f, 1.0f, 0.0f);
         glVertex3f(cx - hx, cy + hy, cz + hz);
         glVertex3f(cx + hx, cy + hy, cz + hz);
         glVertex3f(cx + hx, cy + hy, cz - hz);
         glVertex3f(cx - hx, cy + hy, cz - hz);
 
-        // -Y Bottom
+        // Mặt dưới -Y
         glNormal3f(0.0f, -1.0f, 0.0f);
         glVertex3f(cx - hx, cy - hy, cz - hz);
         glVertex3f(cx + hx, cy - hy, cz - hz);
         glVertex3f(cx + hx, cy - hy, cz + hz);
         glVertex3f(cx - hx, cy - hy, cz + hz);
 
-        // -X Left
+        // Mặt trái -X
         glNormal3f(-1.0f, 0.0f, 0.0f);
         glVertex3f(cx - hx, cy - hy, cz - hz);
         glVertex3f(cx - hx, cy - hy, cz + hz);
         glVertex3f(cx - hx, cy + hy, cz + hz);
         glVertex3f(cx - hx, cy + hy, cz - hz);
 
-        // +X Right
+        // Mặt phải +X
         glNormal3f(1.0f, 0.0f, 0.0f);
         glVertex3f(cx + hx, cy - hy, cz + hz);
         glVertex3f(cx + hx, cy - hy, cz - hz);

@@ -3,26 +3,26 @@
 
 /**
  * @file SkyTower.h
- * @brief Chapter 4 & 5: Simulation of the Golden Sky Tower (Tháp Rơi Tự Do 47m Asia Park)
+ * @brief Chương 4 & 5: Mô phỏng Tháp Rơi Tự Do Golden Sky Tower cao 47m tại Asia Park
  *
- * Implements:
- *  - Real Golden Sky Tower specifications:
- *      * Height H = 47m, Base coordinate: (76.0, 0.0, -22.0) on the East Adventure Plaza
- *      * Tower column: Parametric cylinder with vertical steel guide tracks & top machinery cap
- *      * Aviation warning strobe beacon at tower peak
- *  - Chapter 4 Hierarchical Modeling & Kinematic Physics Cycle:
- *      * Level 1: Static central structural column & octagonal foundation pedestal
- *      * Level 2: Passenger Gondola Ring (Toroid + 16 outward-facing bucket seats)
- *        undergoing multi-phase cyclic vertical translation Y(t) and azimuth rotation:
- *          1. Slow Winch Ascent   (0.0s -> 13.0s): Clings upward at ~3 m/s with 360-deg panoramic yaw
- *          2. Apex Thrill Hold    (13.0s -> 15.5s): Suspended at 42m height (anticipation pause)
- *          3. Free Fall Plunge    (15.5s -> 18.0s): Gravity drop under downward acceleration
- *          4. Magnetic Braking    (18.0s -> 20.0s): Smooth eddy-current deceleration
- *          5. Boarding Pause      (20.0s -> 22.0s): Rest at platform before next cycle
- *  - Chapter 5 Parametric Surfaces:
- *      * Central tower column: ParametricShapes::drawCylinderY
- *      * Gondola structural collar: ParametricShapes::drawToroidY
- *      * Machinery pinnacle & canopy: ParametricShapes::drawConeY
+ * Triển khai:
+ *  - Thông số thực tế của Golden Sky Tower:
+ *      * Chiều cao H = 47m, Tọa độ chân tháp: (76.0, 0.0, -22.0) tại Quảng trường Phiêu lưu phía Đông
+ *      * Cột tháp: Hình trụ tham số với các thanh ray dẫn hướng bằng thép thẳng đứng & nắp chụp máy móc trên đỉnh
+ *      * Đèn chớp cảnh báo hàng không tại đỉnh tháp
+ *  - Chương 4 Mô hình hóa phân cấp & Chu kỳ vật lý động học:
+ *      * Cấp 1: Cột trụ chịu lực trung tâm tĩnh & bệ móng hình bát giác
+ *      * Cấp 2: Vòng Gondola chở khách (Toroid + 16 ghế ngồi hướng ra ngoài)
+ *        thực hiện chuyển động tịnh tiến thẳng đứng tuần hoàn đa pha Y(t) và quay phương vị:
+ *          1. Kéo tời lên chậm        (0.0s -> 13.0s): Leo lên với tốc độ ~3 m/s kèm góc quay toàn cảnh 360 độ
+ *          2. Giữ hồi hộp ở đỉnh      (13.0s -> 15.5s): Treo lơ lửng ở độ cao 42m (tạm dừng tạo kịch tính)
+ *          3. Rơi tự do tốc độ cao    (15.5s -> 18.0s): Lao xuống dưới gia tốc trọng trường
+ *          4. Hãm phanh từ trường     (18.0s -> 20.0s): Giảm tốc êm ái bằng dòng điện xoáy (eddy-current)
+ *          5. Tạm dừng đón trả khách  (20.0s -> 22.0s): Nghỉ tại sàn ga trước khi bắt đầu chu kỳ tiếp theo
+ *  - Chương 5 Mặt cong tham số:
+ *      * Cột tháp trung tâm: ParametricShapes::drawCylinderY
+ *      * Đai kết cấu vòng Gondola: ParametricShapes::drawToroidY
+ *      * Chóp đỉnh máy móc & mái vòm: ParametricShapes::drawConeY
  */
 
 #include <GL/freeglut.h>
@@ -41,14 +41,14 @@ public:
     float        towerRadius    = 1.65f;
     float        gondolaRadius  = 3.35f;
     int          numSeats       = 16;
-    float        cycleTime      = 0.0f;  // Internal animation clock
-    float        currentY       = 3.5f;  // Gondola height
-    float        currentYawDeg  = 0.0f;  // Gondola rotation angle
+    float        cycleTime      = 0.0f;  // Đồng hồ hoạt ảnh nội bộ
+    float        currentY       = 3.5f;  // Độ cao hiện tại của vòng Gondola
+    float        currentYawDeg  = 0.0f;  // Góc quay hiện tại của vòng Gondola
 
     SkyTower() = default;
 
     /**
-     * @brief Physics update: Drives the multi-phase freefall drop cycle
+     * @brief Cập nhật vật lý: Điều khiển chu kỳ rơi tự do đa pha
      */
     void update(float dt) {
         cycleTime = std::fmod(cycleTime + dt, 22.0f);
@@ -63,43 +63,43 @@ public:
         float t = cycleTime;
 
         if (t < liftDuration) {
-            // Phase 1: Slow Winch Ascent with panoramic 360-degree rotation
+            // Pha 1: Kéo tời lên chậm kèm xoay toàn cảnh 360 độ
             float u = t / liftDuration;
-            // Smooth-step ease-in / ease-out
+            // Nội suy trơn (Smooth-step ease-in / ease-out)
             float ease = u * u * (3.0f - 2.0f * u);
             currentY = minY + (maxY - minY) * ease;
             currentYawDeg = u * 360.0f * 1.5f;
         }
         else if (t < liftDuration + holdDuration) {
-            // Phase 2: Apex Thrill Hold (suspended high in the sky)
+            // Pha 2: Giữ hồi hộp ở đỉnh (treo lơ lửng trên cao)
             currentY = maxY;
-            // Gentle idle sway
+            // Xoay nhẹ tại chỗ khi chờ rơi
             float holdT = t - liftDuration;
             currentYawDeg += holdT * 4.0f * dt;
         }
         else if (t < liftDuration + holdDuration + dropDuration) {
-            // Phase 3: Free Fall Plunge under gravity: y(t) = maxY - 0.5 * g_eff * dt^2
+            // Pha 3: Rơi tự do dưới tác dụng trọng lực: y(t) = maxY - 0.5 * g_eff * dt^2
             float dropT = t - (liftDuration + holdDuration);
             float u = dropT / dropDuration;
-            // Quadratic downward acceleration
+            // Gia tốc rơi bậc hai hướng xuống
             float fallDist = (maxY - (minY + 6.0f)) * (u * u);
             currentY = maxY - fallDist;
         }
         else if (t < liftDuration + holdDuration + dropDuration + brakeDuration) {
-            // Phase 4: Magnetic Eddy-Current Braking cushion
+            // Pha 4: Đệm hãm phanh từ trường bằng dòng điện xoáy
             float brakeT = t - (liftDuration + holdDuration + dropDuration);
             float u = brakeT / brakeDuration;
             float ease = 1.0f - (1.0f - u) * (1.0f - u);
             currentY = (minY + 6.0f) - 6.0f * ease;
         }
         else {
-            // Phase 5: Boarding Pause at platform
+            // Pha 5: Tạm dừng đón trả khách tại sàn ga
             currentY = minY;
         }
     }
 
     /**
-     * @brief Get passenger seat world coordinates (for ride camera)
+     * @brief Lấy tọa độ thế giới của ghế hành khách (phục vụ camera góc nhìn trên trò chơi)
      */
     MathCG::Vec3 getPassengerWorldPosition(int seatIndex = 0) const {
         float seatAngleDeg = currentYawDeg + (360.0f / numSeats) * seatIndex;
@@ -112,22 +112,22 @@ public:
     }
 
     /**
-     * @brief Render the Golden Sky Tower
+     * @brief Vẽ Tháp Rơi Tự Do Golden Sky Tower
      */
     void draw(bool isNightOrSunset, bool showNormals = false) const {
         glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
 
         // ====================================================================
-        // 1. Static Foundation Base & Queue Platform
+        // 1. Bệ móng tĩnh & Sàn chờ đón khách
         // ====================================================================
-        // Concrete octagonal podium
+        // Bục bê tông hình bát giác
         glColor3f(0.42f, 0.44f, 0.48f);
         ParametricShapes::drawCylinderY(7.2f, 1.2f, 8, 2, true, showNormals);
-        glColor3f(0.85f, 0.70f, 0.18f); // Golden perimeter trim ring
+        glColor3f(0.85f, 0.70f, 0.18f); // Vòng viền mạ vàng quanh chu vi
         ParametricShapes::drawToroidY(7.25f, 0.15f, 16, 8, showNormals);
 
-        // Boarding deck stairs & perimeter railing pillars
+        // Bậc thang sàn lên tàu & các cột lan can bảo vệ xung quanh
         glColor3f(0.35f, 0.38f, 0.42f);
         for (int i = 0; i < 8; ++i) {
             float u = (static_cast<float>(i) / 8) * MathCG::TWO_PI;
@@ -141,14 +141,14 @@ public:
         }
 
         // ====================================================================
-        // 2. Central Structural Tower Column (H = 47m)
+        // 2. Cột tháp kết cấu trung tâm (H = 47m)
         // ====================================================================
-        // Main white-and-gold column body (Parametric cylinder)
+        // Thân cột chính tông màu trắng-vàng (Hình trụ tham số)
         LightingSystem::setMaterial(0.60f, 48.0f);
         glColor3f(0.92f, 0.94f, 0.96f);
         ParametricShapes::drawCylinderY(towerRadius, totalHeight, 24, 16, true, showNormals);
 
-        // 4 Vertical Steel Guide Rails running full height
+        // 4 Thanh ray dẫn hướng bằng thép chạy dọc toàn bộ chiều cao tháp
         glColor3f(0.24f, 0.26f, 0.30f);
         for (int i = 0; i < 4; ++i) {
             float u = (static_cast<float>(i) / 4) * MathCG::TWO_PI;
@@ -159,7 +159,7 @@ public:
             ParametricShapes::drawCylinderBetween(railBase, railTop, 0.14f, 0.14f, 6, false);
         }
 
-        // Decorative golden spiral rings around the tower
+        // Các vòng tròn trang trí mạ vàng bao quanh thân tháp
         glColor3f(0.95f, 0.76f, 0.12f);
         const float ringY[] = { 10.0f, 20.0f, 30.0f, 40.0f };
         for (float y : ringY) {
@@ -170,24 +170,24 @@ public:
         }
 
         // ====================================================================
-        // 3. Top Crown Machinery Cap & Aviation Warning Strobe
+        // 3. Mũ chụp buồng máy trên đỉnh & Đèn chớp cảnh báo hàng không
         // ====================================================================
         glPushMatrix();
         glTranslatef(0.0f, totalHeight, 0.0f);
 
-        // Machinery housing collar
-        glColor3f(0.88f, 0.72f, 0.16f); // Golden crown
+        // Cổ trụ bao quanh buồng máy
+        glColor3f(0.88f, 0.72f, 0.16f); // Vương miện vàng
         ParametricShapes::drawCylinderY(towerRadius + 0.45f, 2.4f, 16, 2, true, showNormals);
 
-        // Conical spire top cap
+        // Chóp nón trên đỉnh tháp
         glTranslatef(0.0f, 2.4f, 0.0f);
         glColor3f(0.95f, 0.32f, 0.14f);
         ParametricShapes::drawConeY(towerRadius + 0.45f, 0.0f, 3.2f, 16, 4, true, showNormals);
 
-        // Aviation Strobe Light Beacon at apex
+        // Đèn hiệu nhấp nháy cảnh báo hàng không tại điểm cao nhất
         glTranslatef(0.0f, 3.35f, 0.0f);
         if (isNightOrSunset) {
-            // Pulsing red strobe flash
+            // Chớp sáng đỏ theo chu kỳ
             float strobe = std::fmod(cycleTime * 3.0f, 1.0f);
             float intensity = (strobe < 0.25f) ? 1.0f : 0.15f;
             GLfloat emit[4] = { 1.0f * intensity, 0.1f * intensity, 0.1f * intensity, 1.0f };
@@ -205,12 +205,12 @@ public:
         glPopMatrix();
 
         // ====================================================================
-        // 4. Hierarchical Kinematic Passenger Gondola Carriage
+        // 4. Khung Gondola chở khách động học phân cấp
         // ====================================================================
         glPushMatrix();
-        // Step 1: Vertical translation Y(t)
+        // Bước 1: Tịnh tiến theo phương thẳng đứng Y(t)
         glTranslatef(0.0f, currentY, 0.0f);
-        // Step 2: Azimuth rotation Yaw(t)
+        // Bước 2: Quay phương vị quanh trục đứng Yaw(t)
         glRotatef(currentYawDeg, 0.0f, 1.0f, 0.0f);
 
         drawGondolaRing(isNightOrSunset, showNormals);
@@ -222,36 +222,36 @@ public:
 
 private:
     /**
-     * @brief Gondola ring: Toroid collar, 16 outward passenger seats, sunshade canopy
+     * @brief Vòng Gondola: Đai Toroid, 16 ghế hành khách hướng ra ngoài, mái che nắng
      */
     void drawGondolaRing(bool isNightOrSunset, bool showNormals) const {
-        // 1. Structural inner collar sleeve sliding along the tower
+        // 1. Ống lót kết cấu bên trong trượt dọc theo cột tháp
         glColor3f(0.18f, 0.20f, 0.24f);
         ParametricShapes::drawCylinderY(towerRadius + 0.22f, 2.1f, 20, 2, true, false);
 
-        // 2. Main passenger floor ring (Parametric Toroid)
+        // 2. Vòng đỡ sàn hành khách chính (Hình xuyến tham số Toroid)
         LightingSystem::setMaterial(0.70f, 48.0f);
-        glColor3f(0.96f, 0.78f, 0.12f); // Vibrant Golden Ring
+        glColor3f(0.96f, 0.78f, 0.12f); // Vòng vàng rực rỡ
         glPushMatrix();
         glTranslatef(0.0f, 0.35f, 0.0f);
         ParametricShapes::drawToroidY(gondolaRadius, 0.32f, 32, 10, showNormals);
         glPopMatrix();
 
-        // 3. Overhead circular sunshade canopy ring
-        glColor3f(0.92f, 0.28f, 0.14f); // Asian vermilion canopy
+        // 3. Vòng mái che nắng hình tròn phía trên đầu
+        glColor3f(0.92f, 0.28f, 0.14f); // Mái vòm đỏ son Á Đông
         glPushMatrix();
         glTranslatef(0.0f, 2.35f, 0.0f);
         ParametricShapes::drawToroidY(gondolaRadius + 0.15f, 0.22f, 32, 8, false);
         glPopMatrix();
 
-        // 4. 16 Outward-Facing Passenger Seats around the ring
+        // 4. 16 Ghế hành khách hướng mặt ra ngoài bố trí quanh vòng tròn
         for (int i = 0; i < numSeats; ++i) {
             float angleDeg = (360.0f / numSeats) * i;
             glPushMatrix();
             glRotatef(angleDeg, 0.0f, 1.0f, 0.0f);
             glTranslatef(0.0f, 0.0f, gondolaRadius);
 
-            // Seat support bracket connecting to inner collar
+            // Giá đỡ ghế nối vào đai ống lót bên trong
             glColor3f(0.35f, 0.38f, 0.42f);
             ParametricShapes::drawCylinderBetween(
                 MathCG::Vec3(0.0f, 0.35f, -gondolaRadius + towerRadius + 0.25f),
@@ -259,28 +259,28 @@ private:
                 0.08f, 0.08f, 6, false
             );
 
-            // Molded bucket seat cushion (Crimson)
+            // Đệm ghế thể thao đúc khuôn (Màu đỏ thẫm)
             glColor3f(0.85f, 0.14f, 0.12f);
-            // Seat base
+            // Mặt ghế ngồi
             drawLocalBox(0.0f, 0.55f, 0.0f, 0.65f, 0.14f, 0.55f);
-            // Seat back
+            // Tựa lưng ghế
             drawLocalBox(0.0f, 1.05f, -0.24f, 0.62f, 0.90f, 0.12f);
-            // Headrest
+            // Tựa đầu
             drawLocalBox(0.0f, 1.62f, -0.22f, 0.42f, 0.28f, 0.14f);
 
-            // Over-the-shoulder safety harness (Yellow)
+            // Đai an toàn vắt qua vai (Màu vàng)
             glColor3f(0.98f, 0.82f, 0.15f);
             drawLocalBox(-0.16f, 1.08f, -0.04f, 0.09f, 0.72f, 0.28f);
             drawLocalBox( 0.16f, 1.08f, -0.04f, 0.09f, 0.72f, 0.28f);
 
-            // Footrest bar dangling below
+            // Thanh gác chân treo bên dưới
             glColor3f(0.50f, 0.52f, 0.56f);
             drawLocalBox(0.0f, 0.05f, 0.12f, 0.50f, 0.06f, 0.20f);
 
             glPopMatrix();
         }
 
-        // Night under-glow LED lights beneath the gondola ring
+        // Đèn LED chiếu gầm ban đêm bên dưới vòng Gondola
         if (isNightOrSunset) {
             GLfloat emit[4] = { 0.2f, 0.8f, 1.0f, 1.0f };
             glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, emit);

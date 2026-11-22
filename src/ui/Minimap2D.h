@@ -3,29 +3,29 @@
 
 /**
  * @file Minimap2D.h
- * @brief Chapter 1 & 3: 2D Radar Minimap, Cohen-Sutherland Line Clipping & Bresenham/Midpoint Algorithms
+ * @brief Chương 1 & 3: Bản đồ nhỏ Radar 2D, Thuật toán xén đoạn thẳng Cohen-Sutherland & Thuật toán Bresenham/Midpoint
  *
- * Implements explicit Computer Graphics syllabus algorithms:
- *  - Chapter 1: WCS -> NCS -> DCS 2D Coordinate Transformation Pipeline:
- *      * WCS: World 3D horizontal ground coordinates (x, z) in [-135m, 135m]
- *      * NCS: Normalized Device Coordinates x0, y0 in [0, 1]
- *      * DCS: Device Viewport Screen Coordinates (xd, yd) in pixels
- *  - Chapter 3: 4-bit Cohen-Sutherland Line Clipping Algorithm:
- *      * Outcodes: INSIDE (0000), LEFT (0001), RIGHT (0010), BOTTOM (0100), TOP (1000)
- *      * Bitwise tests: (c1 | c2) == 0 (Trivial Accept), (c1 & c2) != 0 (Trivial Reject)
- *      * Analytical boundary edge intersections for non-trivial segments
- *  - Chapter 3: Midpoint Circle Algorithm (Bresenham Circle):
- *      * Integer decision parameter p_0 = 1 - R
- *      * 8-way octant symmetry point plotting via GL_POINTS
- *      * Used for concentric radar range rings (25m, 50m, 75m, 100m)
- *  - Chapter 3: Bresenham Line Algorithm:
- *      * Integer arithmetic line rasterization using error accumulator d
- *      * Used for rotating radar sweeping beam and radar reticle crosshairs
- *  - Park Features Overlay:
- *      * Central Lake boundary
- *      * Sun Wheel, Sky Tower, Carousel, Ngo Mon Gate, Lakeside Pavilion
- *      * Bezier Roller Coaster & Monorail tracks (clipped with Cohen-Sutherland)
- *      * Camera position & viewing orientation FOV wedge
+ * Triển khai tường minh các thuật toán trong đề cương Đồ họa Máy tính:
+ *  - Chương 1: Đường ống biến đổi tọa độ 2D WCS -> NCS -> DCS:
+ *      * WCS: Tọa độ mặt đất ngang trong thế giới 3D (x, z) thuộc [-135m, 135m]
+ *      * NCS: Tọa độ thiết bị chuẩn hóa x0, y0 thuộc [0, 1]
+ *      * DCS: Tọa độ màn hình vùng nhìn thiết bị (xd, yd) tính bằng điểm ảnh (pixel)
+ *  - Chương 3: Thuật toán xén đoạn thẳng Cohen-Sutherland 4-bit:
+ *      * Mã vùng (Outcodes): INSIDE (0000), LEFT (0001), RIGHT (0010), BOTTOM (0100), TOP (1000)
+ *      * Kiểm tra bit: (c1 | c2) == 0 (Chấp nhận tầm thường), (c1 & c2) != 0 (Loại bỏ tầm thường)
+ *      * Tính giao điểm giải tích với các cạnh biên cho các đoạn thẳng không tầm thường
+ *  - Chương 3: Thuật toán đường tròn Midpoint (Bresenham Circle):
+ *      * Tham số quyết định nguyên p_0 = 1 - R
+ *      * Vẽ điểm đối xứng 8 phần tám (octant) qua GL_POINTS
+ *      * Dùng cho các vòng tròn cự ly đồng tâm của radar (25m, 50m, 75m, 100m)
+ *  - Chương 3: Thuật toán đoạn thẳng Bresenham:
+ *      * Rời rạc hóa đoạn thẳng bằng số học nguyên sử dụng biến tích lũy sai số d
+ *      * Dùng cho tia quét radar xoay tròn và đường chữ thập tâm ngắm radar
+ *  - Lớp phủ các hạng mục công viên:
+ *      * Ranh giới hồ trung tâm
+ *      * Sun Wheel, Sky Tower, Carousel, Cổng Ngọ Môn, Thủy đình ven hồ
+ *      * Đường ray tàu lượn Bezier & tàu điện Monorail (được xén bằng thuật toán Cohen-Sutherland)
+ *      * Vị trí Camera & hình quạt thể hiện hướng nhìn (FOV)
  */
 
 #include <GL/freeglut.h>
@@ -38,7 +38,7 @@
 namespace AsiaParkUI {
 
 // ============================================================================
-// 1. COHEN-SUTHERLAND 4-BIT OUTCODES & CLIPPING (Chapter 3)
+// 1. MÃ VÙNG 4-BIT & XÉN ĐOẠN THẲNG COHEN-SUTHERLAND (Chương 3)
 // ============================================================================
 
 namespace CohenSutherland {
@@ -58,8 +58,8 @@ namespace CohenSutherland {
     }
 
     /**
-     * @brief Clips a line segment (x0, y0) -> (x1, y1) against rectangular box [xmin, ymin, xmax, ymax]
-     * @return true if part of line is visible, false if entirely rejected
+     * @brief Xén một đoạn thẳng (x0, y0) -> (x1, y1) theo khung hình chữ nhật [xmin, ymin, xmax, ymax]
+     * @return true nếu một phần đoạn thẳng nhìn thấy được, false nếu bị loại bỏ hoàn toàn
      */
     inline bool clipLine(
         float& x0, float& y0,
@@ -72,14 +72,14 @@ namespace CohenSutherland {
 
         while (true) {
             if ((code0 | code1) == 0) {
-                // Trivial Accept: Both endpoints inside
+                // Chấp nhận tầm thường: Cả hai đầu mút đều nằm bên trong
                 accept = true;
                 break;
             } else if (code0 & code1) {
-                // Trivial Reject: Both endpoints share an outside zone
+                // Loại bỏ tầm thường: Cả hai đầu mút cùng nằm ở một vùng bên ngoài
                 break;
             } else {
-                // Calculate intersection with bounding edge
+                // Tính giao điểm với cạnh biên của khung xén
                 float x = 0.0f, y = 0.0f;
                 int outcodeOut = code0 ? code0 : code1;
 
@@ -113,17 +113,17 @@ namespace CohenSutherland {
 } // namespace CohenSutherland
 
 // ============================================================================
-// 2. BRESENHAM / MIDPOINT RASTERIZATION (Chapter 3)
+// 2. RỜI RẠC HÓA BRESENHAM / MIDPOINT (Chương 3)
 // ============================================================================
 
 namespace RasterAlgorithms {
     /**
-     * @brief Chapter 3 Midpoint Circle Algorithm plotting 8-way symmetric points
+     * @brief Thuật toán đường tròn Midpoint (Chương 3) vẽ các điểm đối xứng 8 hướng
      */
     inline void drawMidpointCircle(int cx, int cy, int radius) {
         int x = 0;
         int y = radius;
-        int p = 1 - radius; // Initial decision parameter p0 = 1 - R
+        int p = 1 - radius; // Tham số quyết định ban đầu p0 = 1 - R
 
         auto plot8 = [&](int px, int py) {
             glVertex2i(cx + px, cy + py);
@@ -153,7 +153,7 @@ namespace RasterAlgorithms {
     }
 
     /**
-     * @brief Chapter 3 Bresenham Line Algorithm with integer error accumulator
+     * @brief Thuật toán đoạn thẳng Bresenham (Chương 3) với biến tích lũy sai số nguyên
      */
     inline void drawBresenhamLine(int x0, int y0, int x1, int y1) {
         int dx = std::abs(x1 - x0);
@@ -181,16 +181,16 @@ namespace RasterAlgorithms {
 } // namespace RasterAlgorithms
 
 // ============================================================================
-// 3. MINIMAP 2D CLASS (RADAR SYSTEM)
+// 3. LỚP MINIMAP 2D (HỆ THỐNG RADAR)
 // ============================================================================
 
 class Minimap2D {
 public:
-    // Viewport position & size in screen pixels
+    // Vị trí & kích thước vùng nhìn (viewport) tính bằng điểm ảnh màn hình
     float vpSize   = 220.0f;
     float margin   = 16.0f;
 
-    // Park World Coordinate Bounds (X: West <-> East, Z: North <-> South)
+    // Giới hạn tọa độ thế giới của công viên (X: Tây <-> Đông, Z: Bắc <-> Nam)
     float wcsMinX  = -135.0f;
     float wcsMaxX  =  135.0f;
     float wcsMinZ  = -135.0f;
@@ -205,7 +205,7 @@ public:
     }
 
     /**
-     * @brief Chapter 1: Map 3D World (x, z) -> 2D Viewport DCS (xd, yd)
+     * @brief Chương 1: Ánh xạ tọa độ thế giới 3D (x, z) -> Tọa độ vùng nhìn thiết bị 2D DCS (xd, yd)
      */
     MathCG::Vec2 worldToScreen(float wx, float wz, int screenWidth) const {
         float vpX = screenWidth - vpSize - margin;
@@ -213,8 +213,8 @@ public:
 
         // WCS -> NCS [0, 1]
         float nx = (wx - wcsMinX) / (wcsMaxX - wcsMinX);
-        float ny = (wz - wcsMinZ) / (wcsMaxZ - wcsMinZ); // North (-Z) at top or bottom? Invert for North up!
-        ny = 1.0f - ny; // North (-Z) maps to upper DCS
+        float ny = (wz - wcsMinZ) / (wcsMaxZ - wcsMinZ); // Đảo ngược để hướng Bắc (-Z) nằm ở phía trên
+        ny = 1.0f - ny; // Hướng Bắc (-Z) ánh xạ lên phần trên của DCS
 
         // NCS -> DCS
         float sx = vpX + nx * vpSize;
@@ -223,7 +223,7 @@ public:
     }
 
     /**
-     * @brief Render the complete 2D Minimap radar overlay
+     * @brief Hiển thị toàn bộ lớp phủ bản đồ nhỏ radar 2D
      */
     void draw(
         int screenWidth, int screenHeight,
@@ -250,7 +250,7 @@ public:
         glDisable(GL_LIGHTING);
         glDisable(GL_DEPTH_TEST);
 
-        // 1. Semi-transparent radar background circle
+        // 1. Hình tròn nền radar bán trong suốt
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glColor4f(0.02f, 0.06f, 0.12f, 0.82f);
@@ -262,7 +262,7 @@ public:
         }
         glEnd();
 
-        // 2. Chapter 3: Midpoint Circle Algorithm for Range Rings (25m, 50m, 75m, 100m)
+        // 2. Chương 3: Thuật toán đường tròn Midpoint cho các vòng cự ly (25m, 50m, 75m, 100m)
         glColor4f(0.18f, 0.55f, 0.75f, 0.45f);
         glPointSize(1.2f);
         int ring25  = static_cast<int>(radarRadius * 0.25f);
@@ -274,7 +274,7 @@ public:
         RasterAlgorithms::drawMidpointCircle(static_cast<int>(centerX), static_cast<int>(centerY), ring75);
         RasterAlgorithms::drawMidpointCircle(static_cast<int>(centerX), static_cast<int>(centerY), ring100);
 
-        // Outer neon border ring
+        // Vòng viền neon phía ngoài
         glColor4f(0.35f, 0.85f, 1.0f, 0.85f);
         glLineWidth(2.0f);
         glBegin(GL_LINE_LOOP);
@@ -284,7 +284,7 @@ public:
         }
         glEnd();
 
-        // 3. Chapter 3: Bresenham Crosshairs (North-South & East-West)
+        // 3. Chương 3: Đường chữ thập tâm ngắm Bresenham (Bắc-Nam & Đông-Tây)
         glColor4f(0.25f, 0.65f, 0.85f, 0.40f);
         RasterAlgorithms::drawBresenhamLine(
             static_cast<int>(centerX - radarRadius), static_cast<int>(centerY),
@@ -295,14 +295,14 @@ public:
             static_cast<int>(centerX), static_cast<int>(centerY + radarRadius)
         );
 
-        // 4. Rotating Radar Sweeping Beam (Bresenham Line)
+        // 4. Tia quét radar xoay tròn (Thuật toán đoạn thẳng Bresenham)
         float sweepRad = radarSweepAngleDeg * MathCG::DEG2RAD;
         int sweepX = static_cast<int>(centerX + radarRadius * std::cos(sweepRad));
         int sweepY = static_cast<int>(centerY + radarRadius * std::sin(sweepRad));
         glColor4f(0.40f, 1.0f, 0.65f, 0.75f);
         RasterAlgorithms::drawBresenhamLine(static_cast<int>(centerX), static_cast<int>(centerY), sweepX, sweepY);
 
-        // Faint sweep fan trail
+        // Vệt sáng hình quạt mờ phía sau tia quét
         glColor4f(0.20f, 0.90f, 0.50f, 0.15f);
         glBegin(GL_TRIANGLE_FAN);
         glVertex2f(centerX, centerY);
@@ -312,7 +312,7 @@ public:
         }
         glEnd();
 
-        // 5. Draw Central Lake on Minimap
+        // 5. Vẽ Hồ trung tâm trên Minimap
         MathCG::Vec2 lakeNW = worldToScreen(-58.0f, -62.0f, screenWidth);
         MathCG::Vec2 lakeSW = worldToScreen(-58.0f,  16.0f, screenWidth);
         MathCG::Vec2 lakeSE = worldToScreen( 58.0f,  16.0f, screenWidth);
@@ -332,12 +332,12 @@ public:
         glVertex2f(lakeNE.x, lakeNE.y);
         glEnd();
 
-        // 6. Draw Tracks clipped with Chapter 3 Cohen-Sutherland Clipping
+        // 6. Vẽ các đường ray được xén bằng thuật toán Cohen-Sutherland (Chương 3)
         drawClippedPolyline(queenCobraSamples, screenWidth, vpX, vpY, vpX + vpSize, vpY + vpSize, 0.95f, 0.35f, 0.15f);
         drawClippedPolyline(monorailSamples,  screenWidth, vpX, vpY, vpX + vpSize, vpY + vpSize, 0.30f, 0.85f, 0.95f);
 
-        // 7. Park Architecture Blips
-        // Sun Wheel
+        // 7. Các điểm đánh dấu (Blip) công trình trong công viên
+        // Vòng quay Sun Wheel
         MathCG::Vec2 swPt = worldToScreen(sunWheelCenter.x, sunWheelCenter.z, screenWidth);
         float swRScreen = (sunWheelRadius / (wcsMaxX - wcsMinX)) * vpSize;
         glColor4f(1.0f, 0.85f, 0.15f, 0.85f);
@@ -348,29 +348,29 @@ public:
         glEnd();
         drawBlip(swPt.x, swPt.y, 4.0f, 1.0f, 0.85f, 0.15f);
 
-        // Sky Tower
+        // Tháp rơi tự do Sky Tower
         MathCG::Vec2 stPt = worldToScreen(skyTowerPos.x, skyTowerPos.z, screenWidth);
         drawBlip(stPt.x, stPt.y, 3.5f, 0.95f, 0.35f, 0.85f);
 
-        // Carousel
+        // Vòng quay ngựa gỗ Carousel
         MathCG::Vec2 crPt = worldToScreen(carouselPos.x, carouselPos.z, screenWidth);
         drawBlip(crPt.x, crPt.y, 3.5f, 0.95f, 0.65f, 0.20f);
 
-        // Ngo Mon Gate
+        // Cổng Ngọ Môn
         MathCG::Vec2 nmPt = worldToScreen(ngoMonGatePos.x, ngoMonGatePos.z, screenWidth);
         drawBlip(nmPt.x, nmPt.y, 4.0f, 0.90f, 0.20f, 0.15f);
 
-        // Train Positions Blips
+        // Điểm đánh dấu vị trí các đoàn tàu
         MathCG::Vec2 qcTrainPt = worldToScreen(queenCobraTrainPos.x, queenCobraTrainPos.z, screenWidth);
-        drawBlip(qcTrainPt.x, qcTrainPt.y, 4.5f, 1.0f, 0.20f, 0.10f); // Red train
+        drawBlip(qcTrainPt.x, qcTrainPt.y, 4.5f, 1.0f, 0.20f, 0.10f); // Đoàn tàu màu đỏ
         MathCG::Vec2 mrTrainPt = worldToScreen(monorailTrainPos.x, monorailTrainPos.z, screenWidth);
-        drawBlip(mrTrainPt.x, mrTrainPt.y, 4.5f, 0.20f, 1.0f, 0.40f); // Green train
+        drawBlip(mrTrainPt.x, mrTrainPt.y, 4.5f, 0.20f, 1.0f, 0.40f); // Đoàn tàu màu xanh lá
 
-        // 8. Camera Position & Viewing Cone Wedge
+        // 8. Vị trí Camera & Hình quạt thể hiện góc nhìn
         MathCG::Vec2 camPt = worldToScreen(camEye.x, camEye.z, screenWidth);
-        drawBlip(camPt.x, camPt.y, 4.5f, 1.0f, 1.0f, 1.0f); // White camera dot
+        drawBlip(camPt.x, camPt.y, 4.5f, 1.0f, 1.0f, 1.0f); // Chấm trắng biểu thị Camera
 
-        // Camera viewing cone (FOV = 60 deg, looking along -camThetaDeg)
+        // Hình nón góc nhìn Camera (FOV = 60 độ, hướng dọc theo -camThetaDeg)
         float camLookAngleRad = (-camThetaDeg + 90.0f) * MathCG::DEG2RAD;
         float coneLen = 22.0f;
         float fovHalfRad = 28.0f * MathCG::DEG2RAD;
@@ -388,14 +388,14 @@ public:
         glVertex2f(camPt.x + (coneLen + 4.0f) * std::cos(camLookAngleRad), camPt.y + (coneLen + 4.0f) * std::sin(camLookAngleRad));
         glEnd();
 
-        // 9. Cardinal Direction Labels (N, S, E, W)
+        // 9. Nhãn 4 hướng chính (N, S, E, W)
         glColor3f(0.95f, 0.95f, 1.0f);
         drawText(centerX - 4.0f, vpY + vpSize - 18.0f, "N");
         drawText(centerX - 4.0f, vpY + 6.0f, "S");
         drawText(vpX + vpSize - 14.0f, centerY - 5.0f, "E");
         drawText(vpX + 6.0f, centerY - 5.0f, "W");
 
-        // Title tag
+        // Nhãn tiêu đề
         glColor3f(0.35f, 0.85f, 1.0f);
         drawText(vpX + 12.0f, vpY + vpSize + 6.0f, "RADAR MINIMAP (2D)");
 
