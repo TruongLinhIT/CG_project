@@ -641,7 +641,9 @@ static void displayCallback() {
         glLoadIdentity();
 
         std::vector<MathCG::Vec3> qcPoints;
-        for (const auto& s : gCurves.queenCobraTrack.samples) qcPoints.push_back(s.position);
+        for (const auto& s : gCurves.queenCobraTrack.samples) {
+            qcPoints.push_back(AsiaParkCurvesSystem::transformQueenCobraPoint(s.position));
+        }
         std::vector<MathCG::Vec3> mrPoints;
         for (const auto& s : gCurves.monorailTrack.samples) mrPoints.push_back(s.position);
 
@@ -657,9 +659,9 @@ static void displayCallback() {
             activeEye, activeLook
         );
         MathCG::Vec3 radarEye(
-            std::clamp(activeEye.x, -132.0f, 132.0f),
+            std::clamp(activeEye.x, gMinimap.wcsMinX + 12.0f, gMinimap.wcsMaxX - 12.0f),
             activeEye.y,
-            std::clamp(activeEye.z, -132.0f, 132.0f)
+            std::clamp(activeEye.z, gMinimap.wcsMinZ + 12.0f, gMinimap.wcsMaxZ - 12.0f)
         );
 
         gMinimap.draw(
@@ -1220,7 +1222,8 @@ static bool renderHeadlessTopDownPPM(const char* outPpmPath) {
         queenFrame.tangent
     );
 
-    // 4. Vẽ toàn bộ cảnh 3D của Đợt 1
+    // 4. Vẽ toàn bộ cảnh 3D
+    gHumans = AsiaParkActors::createDefaultCrowd();
     drawParkGroundAndLake();
     drawLakesidePavilionMesh();
     drawHierarchicalSunWheelPreview();
@@ -1228,6 +1231,10 @@ static bool renderHeadlessTopDownPPM(const char* outPpmPath) {
     gSkyTower.draw(false, false);
     gCarousel.draw(false, false);
     gNgoMonGate.draw(false, false, true);
+    gPlayground.draw(false, false);
+    gBumperCars.draw(false, false);
+    gPirateShip.draw(false, false);
+    for (const auto& h : gHumans) h.draw(false);
 
     // 5. Vẽ thêm lưới tọa độ mét (bước 50m / 100m theo Local X, Z) để dễ đối chiếu trực tiếp với layout_overlay.png
     glDisable(GL_LIGHTING);

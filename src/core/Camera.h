@@ -61,19 +61,19 @@ public:
     float droneSpeed;     // Tốc độ bay hành trình (m/s): 12 (Chi tiết), 35 (Bình thường), 75 (Nhanh)
 
     Camera()
-        : thetaDeg(35.0f),
-          phiDeg(18.0f),
-          distanceR(195.0f),
+        : thetaDeg(28.0f),
+          phiDeg(22.0f),
+          distanceR(320.0f),
           viewPlaneD(50.0f),
-          target(0.0f, 36.0f, -12.0f),
+          target(0.0f, 36.0f, -25.0f),
           cameraMode(CameraMode::FREE_ORBIT),
           projectionMode(ProjectionMode::PERSPECTIVE),
-          orthoSize(115.0f),
-          dronePos(60.0f, 48.0f, 95.0f),
+          orthoSize(360.0f),
+          dronePos(60.0f, 56.0f, 145.0f),
           droneVelocity(0.0f, 0.0f, 0.0f),
-          droneYawDeg(-25.0f),
-          dronePitchDeg(-8.0f),
-          droneSpeed(35.0f) {}
+          droneYawDeg(-22.0f),
+          dronePitchDeg(-10.0f),
+          droneSpeed(40.0f) {}
 
     /**
      * @brief Tính vị trí đặt mắt O'(x, y, z) từ tọa độ cầu (R, theta, Phi)
@@ -106,12 +106,12 @@ public:
             // Chuyển đổi khoảng cách mặt phẳng chiếu D (với nửa chiều cao cảm biến = 25.0) sang góc mở dọc FOV
             float fovY = 2.0f * std::atan(25.0f / std::max(5.0f, viewPlaneD)) * MathCG::RAD2DEG;
             fovY = std::clamp(fovY, 20.0f, 110.0f);
-            gluPerspective(fovY, aspect, 0.5f, 1000.0f);
+            gluPerspective(fovY, aspect, 1.0f, 2200.0f);
         } else {
             // Phép chiếu song song / trực giao (Orthographic projection)
             float halfW = orthoSize * aspect;
             float halfH = orthoSize;
-            glOrtho(-halfW, halfW, -halfH, halfH, -500.0f, 500.0f);
+            glOrtho(-halfW, halfW, -halfH, halfH, -1200.0f, 1200.0f);
         }
 
         glMatrixMode(GL_MODELVIEW);
@@ -136,13 +136,13 @@ public:
 
         // Các góc nhìn kỹ thuật trực giao dọc theo trục tọa độ (Chương 4: Phép chiếu song song)
         if (projectionMode == ProjectionMode::ORTHO_TOP) {
-            gluLookAt(0.0, 260.0, 0.0,   0.0, 0.0, 0.0,   0.0, 0.0, -1.0);
+            gluLookAt(0.0, 620.0, -140.0,   0.0, 0.0, -140.0,   0.0, 0.0, -1.0);
             return;
         } else if (projectionMode == ProjectionMode::ORTHO_FRONT) {
-            gluLookAt(0.0, 50.0, 260.0,  0.0, 50.0, 0.0,  0.0, 1.0, 0.0);
+            gluLookAt(0.0, 55.0, 620.0,     0.0, 55.0, -100.0,  0.0, 1.0, 0.0);
             return;
         } else if (projectionMode == ProjectionMode::ORTHO_SIDE) {
-            gluLookAt(260.0, 50.0, 0.0,  0.0, 50.0, 0.0,  0.0, 1.0, 0.0);
+            gluLookAt(620.0, 55.0, -140.0,  0.0, 55.0, -140.0,  0.0, 1.0, 0.0);
             return;
         }
 
@@ -217,9 +217,9 @@ public:
     }
 
     void clampDroneBounds() {
-        dronePos.x = std::clamp(dronePos.x, -220.0f, 220.0f);
-        dronePos.y = std::clamp(dronePos.y,    1.2f, 220.0f);
-        dronePos.z = std::clamp(dronePos.z, -220.0f, 220.0f);
+        dronePos.x = std::clamp(dronePos.x, -560.0f, 560.0f);
+        dronePos.y = std::clamp(dronePos.y,    1.2f, 360.0f);
+        dronePos.z = std::clamp(dronePos.z, -560.0f, 360.0f);
     }
 
     void droneLook(float dYawDeg, float dPitchDeg) {
@@ -247,16 +247,16 @@ public:
 
     void cycleDroneSpeed() {
         if (droneSpeed < 20.0f) {
-            droneSpeed = 35.0f;
-        } else if (droneSpeed < 55.0f) {
-            droneSpeed = 75.0f;
+            droneSpeed = 40.0f;
+        } else if (droneSpeed < 65.0f) {
+            droneSpeed = 100.0f;
         } else {
             droneSpeed = 12.0f;
         }
     }
 
     void adjustDroneSpeed(float delta) {
-        droneSpeed = std::clamp(droneSpeed + delta, 5.0f, 140.0f);
+        droneSpeed = std::clamp(droneSpeed + delta, 5.0f, 220.0f);
     }
 
     void droneNudgeForward(float dist) {
@@ -344,17 +344,17 @@ public:
             if (cameraMode == CameraMode::DRONE_FREE) {
                 droneNudgeForward(-dR * 0.65f);
             } else {
-                distanceR = std::clamp(distanceR + dR, 15.0f, 380.0f);
+                distanceR = std::clamp(distanceR + dR, 15.0f, 880.0f);
             }
         } else {
-            orthoSize = std::clamp(orthoSize + dR * 0.5f, 15.0f, 260.0f);
+            orthoSize = std::clamp(orthoSize + dR * 1.2f, 20.0f, 620.0f);
         }
     }
 
     void panTarget(float dx, float dy, float dz) {
-        target.x = std::clamp(target.x + dx, -120.0f, 120.0f);
-        target.y = std::clamp(target.y + dy,   2.0f,  90.0f);
-        target.z = std::clamp(target.z + dz, -120.0f, 120.0f);
+        target.x = std::clamp(target.x + dx, -420.0f, 420.0f);
+        target.y = std::clamp(target.y + dy,   2.0f,  160.0f);
+        target.z = std::clamp(target.z + dz, -480.0f, 250.0f);
     }
 
     const char* getCameraModeName() const {

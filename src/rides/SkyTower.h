@@ -29,6 +29,7 @@
 #include <cmath>
 #include <vector>
 #include "core/MathCG.h"
+#include "core/ParkLayout.h"
 #include "core/Lighting.h"
 #include "geometry/ParametricShapes.h"
 
@@ -36,7 +37,7 @@ namespace AsiaParkRides {
 
 class SkyTower {
 public:
-    MathCG::Vec3 position       = MathCG::Vec3(76.0f, 0.0f, -22.0f);
+    MathCG::Vec3 position       = ParkLayout::SKY_TOWER_POS; // (-260.0, 0.0, -54.6) [Ước lượng từ ảnh vệ tinh] ±10m
     float        totalHeight    = 47.0f;
     float        towerRadius    = 1.65f;
     float        gondolaRadius  = 3.35f;

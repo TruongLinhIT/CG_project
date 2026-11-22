@@ -34,6 +34,7 @@
 #include <string>
 #include <algorithm>
 #include "core/MathCG.h"
+#include "core/ParkLayout.h"
 
 namespace AsiaParkUI {
 
@@ -190,11 +191,11 @@ public:
     float vpSize   = 220.0f;
     float margin   = 16.0f;
 
-    // Giới hạn tọa độ thế giới của công viên (X: Tây <-> Đông, Z: Bắc <-> Nam)
-    float wcsMinX  = -135.0f;
-    float wcsMaxX  =  135.0f;
-    float wcsMinZ  = -135.0f;
-    float wcsMaxZ  =  135.0f;
+    // Giới hạn tọa độ thế giới của công viên trên radar (khung vuông 880x880m giữ tỷ lệ 1:1 tránh méo hình)
+    float wcsMinX  = -440.0f;
+    float wcsMaxX  =  440.0f;
+    float wcsMinZ  = -560.0f;
+    float wcsMaxZ  =  320.0f;
 
     float radarSweepAngleDeg = 0.0f;
 
@@ -312,24 +313,44 @@ public:
         }
         glEnd();
 
-        // 5. Vẽ Hồ trung tâm trên Minimap
-        MathCG::Vec2 lakeNW = worldToScreen(-58.0f, -62.0f, screenWidth);
-        MathCG::Vec2 lakeSW = worldToScreen(-58.0f,  16.0f, screenWidth);
-        MathCG::Vec2 lakeSE = worldToScreen( 58.0f,  16.0f, screenWidth);
-        MathCG::Vec2 lakeNE = worldToScreen( 58.0f, -62.0f, screenWidth);
-        glColor4f(0.08f, 0.35f, 0.65f, 0.50f);
-        glBegin(GL_QUADS);
-        glVertex2f(lakeNW.x, lakeNW.y);
-        glVertex2f(lakeSW.x, lakeSW.y);
-        glVertex2f(lakeSE.x, lakeSE.y);
-        glVertex2f(lakeNE.x, lakeNE.y);
-        glEnd();
-        glColor4f(0.20f, 0.65f, 0.95f, 0.70f);
+        // 5. Vẽ Ranh giới công viên & Hồ nước phía Bắc Sun Wheel trên Minimap
+        glColor4f(0.28f, 0.75f, 0.35f, 0.55f);
+        glLineWidth(1.2f);
         glBegin(GL_LINE_LOOP);
-        glVertex2f(lakeNW.x, lakeNW.y);
-        glVertex2f(lakeSW.x, lakeSW.y);
-        glVertex2f(lakeSE.x, lakeSE.y);
-        glVertex2f(lakeNE.x, lakeNE.y);
+        for (int i = 0; i < ParkLayout::NUM_PARK_BOUNDARY_PTS; ++i) {
+            MathCG::Vec2 bp = worldToScreen(
+                ParkLayout::PARK_BOUNDARY_POLY[i].x,
+                ParkLayout::PARK_BOUNDARY_POLY[i].z,
+                screenWidth
+            );
+            glVertex2f(bp.x, bp.y);
+        }
+        glEnd();
+
+        glColor4f(0.08f, 0.38f, 0.72f, 0.52f);
+        glBegin(GL_QUADS);
+        for (int q = 0; q < ParkLayout::NUM_LAKE_CONVEX_QUADS; ++q) {
+            for (int k = 0; k < 4; ++k) {
+                MathCG::Vec2 lp = worldToScreen(
+                    ParkLayout::LAKE_CONVEX_QUADS[q].v[k].x,
+                    ParkLayout::LAKE_CONVEX_QUADS[q].v[k].z,
+                    screenWidth
+                );
+                glVertex2f(lp.x, lp.y);
+            }
+        }
+        glEnd();
+
+        glColor4f(0.25f, 0.70f, 1.0f, 0.78f);
+        glBegin(GL_LINE_LOOP);
+        for (int i = 0; i < ParkLayout::NUM_LAKE_OUTLINE_PTS; ++i) {
+            MathCG::Vec2 lp = worldToScreen(
+                ParkLayout::LAKE_OUTLINE_POLY[i].x,
+                ParkLayout::LAKE_OUTLINE_POLY[i].z,
+                screenWidth
+            );
+            glVertex2f(lp.x, lp.y);
+        }
         glEnd();
 
         // 6. Vẽ các đường ray được xén bằng thuật toán Cohen-Sutherland (Chương 3)
@@ -356,9 +377,11 @@ public:
         MathCG::Vec2 crPt = worldToScreen(carouselPos.x, carouselPos.z, screenWidth);
         drawBlip(crPt.x, crPt.y, 3.5f, 0.95f, 0.65f, 0.20f);
 
-        // Cổng Ngọ Môn
+        // Cổng Ngọ Môn & Tháp Đồng Hồ (2019)
         MathCG::Vec2 nmPt = worldToScreen(ngoMonGatePos.x, ngoMonGatePos.z, screenWidth);
         drawBlip(nmPt.x, nmPt.y, 4.0f, 0.90f, 0.20f, 0.15f);
+        MathCG::Vec2 ctPt = worldToScreen(ParkLayout::CLOCK_TOWER_POS.x, ParkLayout::CLOCK_TOWER_POS.z, screenWidth);
+        drawBlip(ctPt.x, ctPt.y, 3.2f, 0.98f, 0.80f, 0.20f);
 
         // Điểm đánh dấu vị trí các đoàn tàu
         MathCG::Vec2 qcTrainPt = worldToScreen(queenCobraTrainPos.x, queenCobraTrainPos.z, screenWidth);

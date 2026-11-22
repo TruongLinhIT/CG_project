@@ -19,6 +19,7 @@
 #include <cmath>
 #include <algorithm>
 #include "core/MathCG.h"
+#include "core/ParkLayout.h"
 #include "core/Lighting.h"
 #include "curves/BezierTrack.h"
 
@@ -502,21 +503,11 @@ public:
         queenCobraTrack.buildFromClosedWaypoints(queenCobraWaypoints, 0.45f, qcCfg);
         queenCobraTrain.init(queenCobraTrack, CoasterStyle::QUEEN_COBRA, 6, 2.75f, 0.32f);
 
-        // 2. Tàu điện một ray Ngắm cảnh Asia Park Monorail (Vòng tuyến trên cao bao quanh công viên)
-        std::vector<MathCG::Vec3> monorailWaypoints = {
-            MathCG::Vec3(   0.0f, 12.0f,  108.0f), // 0: Cầu vượt mặt tiền phía Nam
-            MathCG::Vec3(  72.0f, 12.5f,  102.0f), // 1: Khúc cua Đông Nam
-            MathCG::Vec3( 114.0f, 13.0f,   58.0f), // 2: Nhánh quảng trường phía Đông
-            MathCG::Vec3( 116.0f, 14.0f,    0.0f), // 3: Điểm giữa phía Đông (Nhà ga Monorail)
-            MathCG::Vec3( 114.0f, 13.5f,  -60.0f), // 4: Khúc cua Đông Bắc
-            MathCG::Vec3(  72.0f, 13.0f,  -98.0f), // 5: Phía Bắc sau lưng Sun Wheel (nhánh Đông)
-            MathCG::Vec3(   0.0f, 14.5f, -102.0f), // 6: Phía Bắc chính giữa sau lưng Sun Wheel
-            MathCG::Vec3( -72.0f, 13.0f,  -98.0f), // 7: Phía Bắc sau lưng Sun Wheel (nhánh Tây)
-            MathCG::Vec3(-114.0f, 12.5f,  -60.0f), // 8: Khúc cua Tây Bắc
-            MathCG::Vec3(-116.0f, 12.0f,    0.0f), // 9: Vành đai phía Tây (bên ngoài khu Queen Cobra)
-            MathCG::Vec3(-114.0f, 12.0f,   58.0f), // 10: Khúc cua Tây Nam
-            MathCG::Vec3( -72.0f, 12.0f,  102.0f)  // 11: Đoạn quay về phía Nam
-        };
+        // 2. Tàu điện một ray Ngắm cảnh Asia Park Monorail (Vòng tuyến ~1.87 km qua 20 điểm thực tế trên ảnh vệ tinh 2019)
+        std::vector<MathCG::Vec3> monorailWaypoints(
+            std::begin(ParkLayout::MONORAIL_WAYPOINTS),
+            std::end(ParkLayout::MONORAIL_WAYPOINTS)
+        );
 
         TrackConfig mrCfg;
         mrCfg.trackGauge        = 1.08f;
@@ -545,8 +536,38 @@ public:
         monorailTrain.update(dt, monorailTrack);
     }
 
+    static MathCG::Vec3 transformQueenCobraPoint(const MathCG::Vec3& p) {
+        const float rad = ParkLayout::QUEEN_COBRA_ROT_Y_DEG * MathCG::DEG2RAD;
+        const float c   = std::cos(rad);
+        const float s   = std::sin(rad);
+        const float dx  = p.x - ParkLayout::QUEEN_COBRA_ORIG_CENTER.x;
+        const float dz  = p.z - ParkLayout::QUEEN_COBRA_ORIG_CENTER.z;
+        return MathCG::Vec3(
+            ParkLayout::QUEEN_COBRA_TARGET_CENTER.x + (dx * c + dz * s),
+            p.y,
+            ParkLayout::QUEEN_COBRA_TARGET_CENTER.z + (-dx * s + dz * c)
+        );
+    }
+
+    static MathCG::Vec3 transformQueenCobraDir(const MathCG::Vec3& v) {
+        const float rad = ParkLayout::QUEEN_COBRA_ROT_Y_DEG * MathCG::DEG2RAD;
+        const float c   = std::cos(rad);
+        const float s   = std::sin(rad);
+        return MathCG::Vec3(
+            v.x * c + v.z * s,
+            v.y,
+            -v.x * s + v.z * c
+        ).normalized();
+    }
+
     TrackFrame getQueenCobraCameraFrame() const {
-        return queenCobraTrain.getLeadFrame(queenCobraTrack);
+        TrackFrame f = queenCobraTrain.getLeadFrame(queenCobraTrack);
+        f.position = transformQueenCobraPoint(f.position);
+        f.tangent  = transformQueenCobraDir(f.tangent);
+        f.right    = transformQueenCobraDir(f.right);
+        f.up       = transformQueenCobraDir(f.up);
+        f.yawDeg  += ParkLayout::QUEEN_COBRA_ROT_Y_DEG;
+        return f;
     }
 
     TrackFrame getMonorailCameraFrame() const {
@@ -556,16 +577,27 @@ public:
     void draw(bool showNormalsAndCtrl, bool lightingEnabled, TimeOfDay timeOfDay) const {
         bool isNightOrSunset = (timeOfDay != TimeOfDay::DAY);
 
-        // Vẽ các Nhà ga Đón khách
+        // 1. Vẽ cụm Tàu lượn Queen Cobra (Phương án B: chỉ tịnh tiến + xoay -25°, KHÔNG scale, giữ nguyên 100% hình học & animation)
+        glPushMatrix();
+        glTranslatef(
+            ParkLayout::QUEEN_COBRA_TARGET_CENTER.x,
+            0.0f,
+            ParkLayout::QUEEN_COBRA_TARGET_CENTER.z
+        );
+        glRotatef(ParkLayout::QUEEN_COBRA_ROT_Y_DEG, 0.0f, 1.0f, 0.0f);
+        glTranslatef(
+            -ParkLayout::QUEEN_COBRA_ORIG_CENTER.x,
+            0.0f,
+            -ParkLayout::QUEEN_COBRA_ORIG_CENTER.z
+        );
         drawQueenCobraStation(isNightOrSunset);
-        drawMonorailStation(isNightOrSunset);
-
-        // Vẽ Đường ray + Lớp phủ Kiểm tra Đa giác Điều khiển / Tiếp tuyến
         queenCobraTrack.draw(showNormalsAndCtrl, lightingEnabled);
-        monorailTrack.draw(showNormalsAndCtrl, lightingEnabled);
-
-        // Vẽ các Đoàn tàu Nhiều toa Chuyển động
         queenCobraTrain.draw(queenCobraTrack, showNormalsAndCtrl, lightingEnabled, isNightOrSunset);
+        glPopMatrix();
+
+        // 2. Vẽ cụm Tàu điện Monorail (~1.87 km) cùng 2 nhà ga (Ga Nam & Ga Nepal)
+        drawMonorailStation(isNightOrSunset);
+        monorailTrack.draw(showNormalsAndCtrl, lightingEnabled);
         monorailTrain.draw(monorailTrack, showNormalsAndCtrl, lightingEnabled, isNightOrSunset);
     }
 
@@ -604,36 +636,46 @@ private:
         }
     }
 
-    static void drawMonorailStation(bool isNightOrSunset) {
-        // Nhà ga đón khách Monorail trên cao phía Đông gần vị trí đường ray (116, 14, 0)
-        const float cx = 116.0f;
-        const float cz = 0.0f;
+    static void drawSingleMonorailStationBuilding(
+        const MathCG::Vec3& stationPos,
+        float rotYDeg,
+        bool isNightOrSunset
+    ) {
+        glPushMatrix();
+        glTranslatef(stationPos.x, stationPos.y, stationPos.z);
+        glRotatef(rotYDeg, 0.0f, 1.0f, 0.0f);
 
-        // Tháp sảnh nhà ga & sàn đón khách trên cao tách biệt an toàn với toa tàu monorail (x >= 117.4)
+        // Tháp sảnh nhà ga & sàn đón khách trên cao tách biệt an toàn với toa tàu monorail (cách tim ray +4.6m)
         glColor3f(0.56f, 0.60f, 0.65f);
-        CoasterMesh::drawBox(cx + 4.6f, 6.2f, cz, 5.0f, 12.4f, 22.0f);
+        CoasterMesh::drawBox(4.6f, 6.2f, 0.0f, 5.0f, 12.4f, 22.0f);
 
         // Sàn viền màu xanh cổ vịt của nhà ga
         glColor3f(0.06f, 0.54f, 0.66f);
-        CoasterMesh::drawBox(cx + 4.4f, 12.55f, cz, 5.8f, 0.40f, 23.0f);
+        CoasterMesh::drawBox(4.4f, 12.55f, 0.0f, 5.8f, 0.40f, 23.0f);
 
         // Các cột đỡ mái vòm hiện đại cắm xuống đất ở cả hai bên dầm dẫn hướng
         glColor3f(0.84f, 0.86f, 0.90f);
         for (int zSide = -1; zSide <= 1; ++zSide) {
-            // Cột cao phía bên trong công viên cách an toàn với toa tàu (phía -X: x = 113.8)
-            CoasterMesh::drawBox(cx - 2.2f,  8.90f, cz + zSide * 9.0f, 0.42f, 17.8f, 0.42f);
-            // Cột mép ngoài sàn ga (phía +X: x = 122.8)
-            CoasterMesh::drawBox(cx + 6.8f, 15.20f, cz + zSide * 9.0f, 0.42f,  5.2f, 0.42f);
+            CoasterMesh::drawBox(-2.2f,  8.90f, zSide * 9.0f, 0.42f, 17.8f, 0.42f);
+            CoasterMesh::drawBox( 6.8f, 15.20f, zSide * 9.0f, 0.42f,  5.2f, 0.42f);
         }
         glColor3f(0.92f, 0.94f, 0.96f);
-        CoasterMesh::drawBox(cx + 2.3f, 17.8f, cz, 9.8f, 0.38f, 24.0f);
+        CoasterMesh::drawBox(2.3f, 17.8f, 0.0f, 9.8f, 0.38f, 24.0f);
 
         if (isNightOrSunset) {
             LightingSystem::setMaterial(0.8f, 48.0f, 0.25f, 0.88f, 1.0f);
             glColor3f(0.30f, 0.90f, 1.0f);
-            CoasterMesh::drawBox(cx + 2.3f, 17.55f, cz, 8.2f, 0.12f, 21.0f);
+            CoasterMesh::drawBox(2.3f, 17.55f, 0.0f, 8.2f, 0.12f, 21.0f);
             LightingSystem::resetMaterial();
         }
+        glPopMatrix();
+    }
+
+    static void drawMonorailStation(bool isNightOrSunset) {
+        // 1. Nhà ga Monorail Nam (gần Cổng chính Ngọ Môn: (-24.6, 0, +128.0), dầm chạy hướng Đông-Tây -> xoay -90 độ)
+        drawSingleMonorailStationBuilding(ParkLayout::MONORAIL_SOUTH_STATION_POS, -90.0f, isNightOrSunset);
+        // 2. Nhà ga Monorail Nepal (khu Tây-Bắc: (-290.0, 0, -220.6) dọc dầm hướng Bắc-Nam)
+        drawSingleMonorailStationBuilding(MathCG::Vec3(-290.0f, 0.0f, -220.6f), 180.0f, isNightOrSunset);
     }
 };
 

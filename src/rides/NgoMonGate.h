@@ -32,6 +32,7 @@
 #include <string>
 #include <vector>
 #include "core/MathCG.h"
+#include "core/ParkLayout.h"
 #include "core/Lighting.h"
 #include "geometry/ParametricShapes.h"
 #include "geometry/MeshModel.h"
@@ -40,7 +41,10 @@ namespace AsiaParkRides {
 
 class NgoMonGate {
 public:
-    MathCG::Vec3 position       = MathCG::Vec3(0.0f, 0.0f, 86.0f);
+    MathCG::Vec3 position       = ParkLayout::NGO_MON_GATE_POS; // (+16.1, 0.0, +139.1) [Ước lượng từ ảnh vệ tinh] ±8m
+    float        gateScale      = ParkLayout::NGO_MON_GATE_SCALE; // 0.76f (bề rộng thực tế ~35m)
+    MathCG::Vec3 clockTowerPos  = ParkLayout::CLOCK_TOWER_POS;    // (+10.7, 0.0, +61.6) Tháp Đồng Hồ (2019), scale 1.0f
+    float        clockTowerScale= ParkLayout::CLOCK_TOWER_SCALE;  // 1.00f
     float        width          = 46.0f;
     float        depth          = 15.0f;
     float        bastionHeight  = 6.8f;
@@ -51,26 +55,39 @@ public:
     }
 
     /**
-     * @brief Vẽ Cổng Ngọ Môn & Tháp Đồng Hồ Trung Tâm
+     * @brief Vẽ Cổng Ngọ Môn (+16.1, 0, +139.1, scale 0.76) & Tháp Đồng Hồ tách riêng (+10.7, 0, +61.6, scale 1.0)
      */
     void draw(bool isNightOrSunset, bool showNormals = false, bool smoothShading = true) const {
+        // A. Vẽ Cổng Thành Ngọ Môn & Lầu Ngũ Phụng tại lối vào phía Nam (+16.1, 0.0, +139.1), scale = 0.76
         glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
+        glScalef(gateScale, gateScale, gateScale);
 
-        // 1. Vẽ lưới đa giác kiến trúc (PolygonMesh) đã được dựng sẵn
+        // 1. Vẽ lưới đa giác kiến trúc Cổng Ngọ Môn (PolygonMesh)
         gateMesh.draw(smoothShading, showNormals);
 
-        // 2. Vẽ 4 mặt đồng hồ phát sáng trên Tháp Trung Tâm
-        drawClockFaces(isNightOrSunset);
-
-        // 3. Vẽ dàn đèn lồng đỏ cung đình treo dưới hiên Lầu Ngũ Phụng
+        // 2. Vẽ dàn đèn lồng đỏ cung đình treo dưới hiên Lầu Ngũ Phụng
         drawLanterns(isNightOrSunset, showNormals);
+
+        glPopMatrix();
+
+        // B. Vẽ Tháp Đồng Hồ Trung Tâm tách riêng tại Quảng trường Tháp Đồng Hồ (+10.7, 0.0, +61.6), scale = 1.0
+        glPushMatrix();
+        glTranslatef(clockTowerPos.x, clockTowerPos.y, clockTowerPos.z);
+        glScalef(clockTowerScale, clockTowerScale, clockTowerScale);
+
+        // 1. Vẽ lưới đa giác Tháp Đồng Hồ (đặt tiếp đất nguyên khối)
+        clockTowerMesh.draw(smoothShading, showNormals);
+
+        // 2. Vẽ 4 mặt đồng hồ phát sáng trên 4 phía thân tháp
+        drawClockFaces(isNightOrSunset);
 
         glPopMatrix();
     }
 
 private:
     mutable Geometry::PolygonMesh gateMesh;
+    mutable Geometry::PolygonMesh clockTowerMesh;
 
     /**
      * @brief Khởi tạo thủ tục toàn bộ lưới đa giác (PolygonMesh) của Cổng Ngọ Môn & Tháp Đồng Hồ
@@ -231,19 +248,32 @@ private:
         gateMesh.append(upperRoof);
 
         // ====================================================================
-        // 5. THÁP ĐỒNG HỒ TRUNG TÂM
+        // 5. THÁP ĐỒNG HỒ TRUNG TÂM (Tách sang clockTowerMesh tại (+10.7, 0.0, +61.6), scale 1.0)
         // ====================================================================
-        float towerBaseY = upPavY + 2.8f + 1.2f;
+        clockTowerMesh.clear();
+        clockTowerMesh.name = "CentralClockTower2019";
+
+        // Giữ nguyên hoàn toàn cấu trúc hình học của Tháp Đồng Hồ:
+        // Chân đế tháp nối từ mặt đất (y = 0..17.15m) + Thân tháp + Gờ phào chỉ + Mái đao cong + Chóp đỉnh mạ vàng (cao 27.5m)
+        float towerBaseY = upPavY + 2.8f + 1.2f; // 17.15m
         float towerSideW = 6.4f;
         float towerBodyH = 7.5f;
 
-        // Thân Tháp Đồng Hồ (Vươn cao phía trên cổng chính)
+        // Bệ móng & Thân trụ dưới của Tháp Đồng Hồ (từ mặt đất y = 0 lên tới y = towerBaseY)
+        auto towerPedestal = Geometry::PolygonMesh::createBox(
+            0.0f, towerBaseY * 0.5f, 0.0f,
+            towerSideW + 1.6f, towerBaseY, towerSideW + 1.6f,
+            stoneCol
+        );
+        clockTowerMesh.append(towerPedestal);
+
+        // Thân Tháp Đồng Hồ nơi gắn 4 mặt đồng hồ (y = 17.15 .. 24.65m)
         auto clockBody = Geometry::PolygonMesh::createBox(
             0.0f, towerBaseY + towerBodyH * 0.5f, 0.0f,
             towerSideW, towerBodyH, towerSideW,
             stoneCol
         );
-        gateMesh.append(clockBody);
+        clockTowerMesh.append(clockBody);
 
         // Gờ phào chỉ và diềm mái mạ vàng trên đỉnh thân tháp
         auto towerCornice = Geometry::PolygonMesh::createBox(
@@ -251,7 +281,7 @@ private:
             towerSideW + 1.2f, 0.50f, towerSideW + 1.2f,
             goldRoofCol
         );
-        gateMesh.append(towerCornice);
+        clockTowerMesh.append(towerCornice);
 
         // Chóp Mái Tháp Đồng Hồ đao cong cổ truyền
         auto towerRoof = Geometry::PolygonMesh::createCurvedAsianRoof(
@@ -260,7 +290,7 @@ private:
             2.6f, 1.8f,
             goldRoofCol
         );
-        gateMesh.append(towerRoof);
+        clockTowerMesh.append(towerRoof);
 
         // Chóp nhọn mạ vàng tại đỉnh cao nhất (H = 27.5m)
         float peakY = towerBaseY + towerBodyH + 0.50f + 2.6f;
@@ -269,10 +299,11 @@ private:
             1.2f, 1.2f, 2.4f,
             MathCG::ColorRGB(0.98f, 0.85f, 0.20f)
         );
-        gateMesh.append(spire);
+        clockTowerMesh.append(spire);
 
-        // Tính toán toàn bộ vector pháp tuyến cho tổng thể cổng sau khi ghép nối
+        // Tính toán toàn bộ vector pháp tuyến cho cả Cổng Ngọ Môn và Tháp Đồng Hồ
         gateMesh.computeNormals();
+        clockTowerMesh.computeNormals();
     }
 
     /**

@@ -29,6 +29,7 @@
 #include <cmath>
 #include <vector>
 #include "core/MathCG.h"
+#include "core/ParkLayout.h"
 #include "core/Lighting.h"
 #include "geometry/ParametricShapes.h"
 #include "geometry/MeshModel.h"
@@ -37,7 +38,8 @@ namespace AsiaParkRides {
 
 class Carousel {
 public:
-    MathCG::Vec3 position       = MathCG::Vec3(45.0f, 0.0f, 48.0f);
+    // Vị trí dùng tạm từ ứng viên mái nón kẻ sọc 16.03923°N, 108.22689°E [Chưa xác minh]
+    MathCG::Vec3 position       = ParkLayout::CAROUSEL_POS_UNVERIFIED; // (-159.4, 0.0, +102.5)
     float        platformRadius = 8.5f;
     float        canopyHeight   = 8.8f;
     float        rotationSpeed  = 35.0f; // độ/giây
