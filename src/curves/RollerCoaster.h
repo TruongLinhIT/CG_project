@@ -171,7 +171,7 @@ public:
 
         if (style == CoasterStyle::MONORAIL) {
             useGravityPhysics = false;
-            cruiseSpeedMps    = 17.5f;
+            cruiseSpeedMps    = ParkLayout::MONORAIL_CRUISE_SPEED_MPS; // 9.2 m/s (~3.45 phút / vòng 1.90 km)
             lastSpeedMps      = cruiseSpeedMps;
         } else {
             useGravityPhysics = true;
@@ -672,10 +672,18 @@ private:
     }
 
     static void drawMonorailStation(bool isNightOrSunset) {
-        // 1. Nhà ga Monorail Nam (gần Cổng chính Ngọ Môn: (-24.6, 0, +128.0), dầm chạy hướng Đông-Tây -> xoay -90 độ)
-        drawSingleMonorailStationBuilding(ParkLayout::MONORAIL_SOUTH_STATION_POS, -90.0f, isNightOrSunset);
-        // 2. Nhà ga Monorail Nepal (khu Tây-Bắc: (-290.0, 0, -220.6) dọc dầm hướng Bắc-Nam)
-        drawSingleMonorailStationBuilding(MathCG::Vec3(-290.0f, 0.0f, -220.6f), 180.0f, isNightOrSunset);
+        // 1. Nhà ga Monorail Nam (gần Cổng chính Ngọ Môn: MONORAIL_SOUTH_STATION_POS (-24.6, 0, +128.0))
+        drawSingleMonorailStationBuilding(
+            ParkLayout::MONORAIL_SOUTH_STATION_POS,
+            ParkLayout::MONORAIL_SOUTH_STATION_ROT_Y_DEG,
+            isNightOrSunset
+        );
+        // 2. Nhà ga Monorail Nepal (khu Tây-Bắc: MONORAIL_NEPAL_STATION_POS (-217.2, 0, -220.6))
+        drawSingleMonorailStationBuilding(
+            ParkLayout::MONORAIL_NEPAL_STATION_POS,
+            ParkLayout::MONORAIL_NEPAL_STATION_ROT_Y_DEG,
+            isNightOrSunset
+        );
     }
 };
 

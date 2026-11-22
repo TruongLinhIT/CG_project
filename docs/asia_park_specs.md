@@ -212,41 +212,58 @@ Vùng bao khép kín trên [`layout_overlay.png`](img/layout_overlay.png) (nét 
 
 ---
 
-## 10. Kế hoạch chỉnh sửa code theo 3 đợt (Bước 3 — Chờ duyệt, CHƯA SỬA CODE)
+## 10. Bảng tổng hợp cuối cùng sau Đợt 3 & Danh mục các điểm đơn giản hóa / khác thực tế
 
-> **Nguyên tắc bắt buộc:** Giữ nguyên cấu trúc hình học, lưới đa giác (`PolygonMesh` / `ParametricShapes`) và logic animation đang chạy tốt của mọi trò chơi. Tách toàn bộ thông số vị trí, tỷ lệ, hướng xoay và ranh giới ra thành struct/namespace hằng số riêng (ví dụ `src/core/ParkLayout.h`) để dễ chỉnh sửa và đối chiếu báo cáo.
+### 10.1. Bảng thông số vị trí, góc xoay, tỷ lệ (Scale) & độ tin cậy cuối cùng (trong `ParkLayout.h`)
 
-### Đợt 1 — Gom hằng số, chuẩn hóa Hồ nước, Mặt đất bối cảnh & Tốc độ Sun Wheel
-- **Tạo `src/core/ParkLayout.h`** (chỉ chứa `constexpr` tọa độ, góc xoay, scale, đa giác hồ thật, đa giác ranh giới công viên ~36.1 ha, vị trí các tuyến đường bao quanh & sông Hàn, và hệ số quy đổi GPS để tiện giải thích trong code).
-- **`src/rides/SunWheel.h` & `src/main.cpp`**:
-  - Tham chiếu tâm Sun Wheel tới `ParkLayout::SUN_WHEEL_CENTER` `(0, 65, −38)`.
-  - Cập nhật `rotationSpeed` theo phương án bạn chọn ở mục 9 (`0.4f` deg/s nếu chuẩn 15 phút/vòng).
-- **`src/main.cpp` (`drawParkGroundAndLake`, `drawLakesidePavilionMesh`, `displayCallback`)**:
-  - Sửa vùng mặt hồ từ hình chữ nhật `[-58..58, -62..16]` (đè qua chân Sun Wheel) sang **bờ hồ thực tế phía Bắc Sun Wheel** (`Z_eng <= -74 m`), tách riêng phần nền cỏ để không đè Z-fighting với mặt nước.
-  - Bổ sung dải **Sông Hàn** ở phía Đông (`X_eng >= +430 m`), **ranh giới công viên / vỉa hè bao quanh** và **3 trục đường chính** (Phan Đăng Lưu ở Nam, đường nội bộ/Bạch Đằng ở Tây, Đỗ Pháp Thuận / Thuận Yến ở Đông), kèm **trục lối đi lát gạch** nối từ Cổng chính tới Quảng trường Sun Wheel và sang khu trò chơi phía Tây.
-  - Dời `drawLakesidePavilionMesh()` từ `(0, 0, 28)` sang vị trí thủy đình thật phía Bắc Sun Wheel `(−5.4, 0, −107.7)` kèm cầu nối ra bờ Nam của hồ; dời 10 trụ đèn lồng dọc bờ kè quảng trường/hồ mới để không đứng dưới nước.
+| STT | Công trình / Hạng mục | Hằng số trong `ParkLayout.h` | Tọa độ Engine `(X, Y, Z)` (m) | Góc xoay `Y` | Scale | Độ tin cậy & Sai số |
+|:---:|:---|:---|:---|:---:|:---:|:---|
+| 1 | **Vòng quay Mặt Trời (Sun Wheel)** | `SUN_WHEEL_CENTER` | `(0.0, 65.0, −38.0)` *(ĐK 100 m, cao 115 m, tốc độ `0.4°/s` + tua `×5`)* | `0°` | `1.00` | **[Đã xác minh]** kích thước & tốc độ; tọa độ gốc **[Ước lượng từ ảnh vệ tinh] ±8 m** |
+| 2 | **Thủy đình trên mặt hồ Bắc** | `LAKESIDE_PAVILION_POS` | `(−5.4, 0.0, −107.7)` *(kèm cầu gỗ dài 35.9 m, `y = 0.25 m`)* | `0°` | `1.00` | **[Ước lượng từ ảnh vệ tinh] ±8 m** |
+| 3 | **Tháp rơi tự do Golden Sky Tower** | `SKY_TOWER_POS` | `(−260.0, 0.0, −54.6)` *(cao 47 m)* | `0°` | `1.00` | **[Đã xác minh]** chiều cao 47 m; vị trí **[Ước lượng từ ảnh vệ tinh] ±10 m** |
+| 4 | **Tàu lượn Queen Cobra (cả cụm ray + ga)** | `QUEEN_COBRA_TARGET_CENTER` | Tâm cụm tại `(−255.0, 0.0, −358.0)` *(tịnh tiến từ `(−85.35, 0, −2.15)`)* | `−25.0°` | **`1.00` (Không scale)** | Vị trí thật nhà ga **[Đã xác minh]** (RCDB `#14194`); vị trí đặt theo Phương án B để 100% chân trụ nằm trên đất khô |
+| 5 | **Tàu điện Monorail (~1.87 km)** | `MONORAIL_WAYPOINTS[20]` | `X ∈ [−294.3, +368.1]`, `Z ∈ [−300.3, +128.0]` *(dài 1 904 m, `v = 9.2 m/s` ≈ 3.45 phút/vòng)* | Theo tiếp tuyến `P'(t)` | `1.00` (1:1 theo GPS) | **[Ước lượng từ ảnh vệ tinh] ±10 m** |
+| 6 | **Ga Monorail Nam (Cổng chính)** | `MONORAIL_SOUTH_STATION_POS` | `(−24.6, 0.0, +128.0)` | `−90.0°` | `1.00` | **[Ước lượng từ ảnh vệ tinh] ±12 m** (khớp biển chỉ dẫn Commons) |
+| 7 | **Ga Monorail Nepal (Khu Tây-Bắc)** | `MONORAIL_NEPAL_STATION_POS` | `(−217.2, 0.0, −220.6)` | `0.0°` | `1.00` | **[Ước lượng từ ảnh vệ tinh] ±10 m** (khớp ảnh GPS trong ga Commons) |
+| 8 | **Cổng Thành chính (Ngọ Môn)** | `NGO_MON_GATE_POS` | `(+16.1, 0.0, +139.1)` *(rộng thực tế ~35 m)* | `0.0°` | `0.76` | **[Ước lượng từ ảnh vệ tinh] ±8 m** (khớp ảnh chính diện Commons) |
+| 9 | **Tháp Đồng Hồ Trung Tâm (2019)** | `CLOCK_TOWER_POS` | `(+10.7, 0.0, +61.6)` *(tách rời cách Cổng Ngọ Môn ~77.5 m về phía Bắc)* | `0.0°` | `1.00` | **[Ước lượng từ ảnh vệ tinh] ±8 m** (ảnh Wayback 2019) |
+| 10 | **Đu quay Ngựa gỗ (Festival Carousel)** | `CAROUSEL_POS_UNVERIFIED` | `(−159.4, 0.0, +102.5)` *(mái nón kẻ sọc ĐK ~16.5 m)* | `0.0°` | `1.00` | **[Không tìm thấy / Chưa xác minh]** (dùng tạm ứng viên ảnh vệ tinh) |
+| 11 | **Hồ nước phía Bắc Sun Wheel** | `LAKE_OUTLINE_POLY[11]` | `Z_eng ∈ [−513.8, −73.4]`, `X_eng ∈ [−297.5, +57.8]` (`y = 0.0 m`) | — | `1.00` | **[Ước lượng từ ảnh vệ tinh] ±10 m** |
+| 12 | **Ranh giới nền cỏ công viên (~36.1 ha)** | `PARK_BOUNDARY_POLY[16]` | `X_eng ∈ [−381.0, +403.4]`, `Z_eng ∈ [−486.2, +188.9]` (`y = −0.04 m`) | — | `1.00` | **[Ước lượng từ ảnh vệ tinh] ±15 m** |
+| 13 | **Hệ thống lối đi nội bộ (6 tuyến)** | `PATH_MAIN_SPINE`, `PATH_WEST_SPINE`, ... | Rộng `5–6 m` (chính), `3–3.5 m` (phụ), `y = 0.035–0.04 m` (cầu Thủy đình `y = 0.25 m`) | — | `1.00` | **[Ước lượng từ ảnh vệ tinh] ±5 m** |
 
-### Đợt 2 — Mở rộng Mặt phẳng nền, Camera, Drone & Minimap 2D
-- **`src/core/Camera.h`**:
-  - Mở rộng `gluPerspective` `zNear = 1.0f`, `zFar = 2200.0f` để nhìn xuyên suốt công viên dài ~750 m mà không mất nền/công trình ở xa.
-  - Nới `orbit` `distanceR` tối đa từ `380.0f` lên `850.0f`; nới `panTarget` theo biên `ParkLayout` (`X ∈ [−420, 420]`, `Z ∈ [−480, 250]`, `Y ∈ [2, 160]`).
-  - Cập nhật camera mặc định lúc mở app (`distanceR ~ 380–440 m`, `target` hướng vào vùng trung tâm Sun Wheel & hồ) để thấy toàn cảnh hợp lý.
-  - Cập nhật các góc chiếu trực giao `ORTHO_TOP / FRONT / SIDE` (`orthoSize ~ 380 m`, `glOrtho(..., -1200, 1200)`, mắt cách tâm ~`550–650 m`) để không bị cắt đầu/đuôi công viên.
-  - Nới vùng bay Drone (`X ∈ [−550, 550]`, `Z ∈ [−560, 360]`, `Y ∈ [1.2, 360]`) và nâng dải tốc độ (`12 / 40 / 100 m/s`, `adjustDroneSpeed` tối đa `220 m/s`).
-- **`src/ui/Minimap2D.h` & `src/main.cpp`**:
-  - Mở rộng khung WCS của radar Minimap (từ `[-135, 135]` sang vuông bao trùm công viên, ví dụ `wcsMinX = -460, wcsMaxX = 460, wcsMinZ = -520, wcsMaxZ = 400` giữ tỷ lệ 1:1 tránh méo hình).
-  - Vẽ đúng đa giác hồ mới và đường bao công viên trên Minimap; nới kẹp `radarEye` trong `main.cpp` tương ứng.
+---
 
-### Đợt 3 — Cập nhật vị trí, hướng xoay & scale các công trình còn lại
-- **`src/rides/SkyTower.h`**:
-  - Chỉ cập nhật `position = ParkLayout::SKY_TOWER_POS` `(−260.0, 0, −54.6)` (chiều cao 47 m đã chuẩn 1:1, giữ nguyên hình học & chu kỳ 5 pha rơi tự do).
-- **`src/rides/NgoMonGate.h`** *(theo lựa chọn của bạn ở mục 9)*:
-  - Cập nhật `position` về vị trí Cổng chính `(+16.1, 0, +139.1)` và điều chỉnh `glScalef` đồng nhất (~`0.76` theo bề rộng ~35 m thực tế, hoặc giữ 1.0 tùy bạn chốt) + hướng quay `0°` (đang quay mặt về Nam `+Z` ra Đường Phan Đăng Lưu — khớp thực tế!).
-- **`src/curves/RollerCoaster.h` (`AsiaParkCurvesSystem::init`)**:
-  - **Monorail**: thay `monorailWaypoints` bằng **20 điểm thực tế** đã đo dọc dầm bê tông khép kín trên ảnh vệ tinh (`~1.87 km`), giữ nguyên chiều cao `12–14.5 m`, cấu hình dầm `isMonorailBeam = true`, hình học toa và animation; cập nhật vị trí 2 nhà ga về **Ga Nam** `(−24.6, 0, +128.0)` và **Ga Nepal** `(−217.2, 0, −220.6)` (xoay khớp tiếp tuyến tại ga).
-  - **Queen Cobra**: **KHÔNG scale**, giữ nguyên `queenCobraWaypoints` gốc + `track` + `CoasterTrain`; chỉ áp dụng phép tịnh tiến + xoay cho toàn bộ cụm (cả đường ray + nhà ga) theo phương án **(A)** hoặc **(B)** bạn chọn ở mục 9.
-- **`src/rides/Carousel.h`**:
-  - Giữ nguyên cho tới khi bạn xác nhận câu hỏi #1 ở mục 9 (`16.03923, 108.22689` hay giữ nguyên/cung cấp khác).
+### 10.2. Danh sách các điểm đơn giản hóa / khác biệt so với thực tế (phục vụ thuyết minh báo cáo đồ án)
+
+1. **Mốc thời gian hiện trạng mô hình (`SNAPSHOT_YEAR = 2019`):**
+   - Toàn bộ bố cục đại diện cho hiện trạng công viên khoảng **năm 2019** (thời điểm còn nguyên **Tháp Đồng Hồ** tại quảng trường trung tâm và cây cối chưa che khuất tuyến dầm Monorail). Trên thực tế, Tháp Đồng Hồ đã được tháo dỡ trước tháng 12/2022 để mở rộng quảng trường sự kiện.
+   - Khu vực **nửa phía Đông của ranh giới công viên** (nơi tuyến Monorail vươn ra sát Đường Đỗ Pháp Thuận) được biểu diễn đúng như ảnh vệ tinh 2019 là **mặt phẳng nền cỏ đơn giản**, không dựng thêm công trình giả định.
+2. **Tàu lượn Queen Cobra — Giữ nguyên hình học & KHÔNG scale (Phương án B):**
+   - Để bảo toàn 100% đường cong Bézier bậc 3 khép kín $C^1$, cấu trúc khung ray và thuật toán chuyển động theo bảo toàn cơ năng đã xây dựng, cụm mô hình Queen Cobra (`35.3 × 147.7 m`, dài ray `359.2 m`, cao đỉnh `47.0 m`) **không bị co giãn (scale = 1.0)** so với mặt bằng thực tế của Vekoma SLC 689m (`~50 × 104 m`, dài ray `689 m`, cao `34 m`).
+   - Do khung bao mô hình dài hơn bán đảo thực tế ~43 m, cụm Queen Cobra được **tịnh tiến về `Engine (−255.0, 0, −358.0)` và xoay `−25°` quanh trục Y** để toàn bộ `280 / 280` điểm đường ray, chân trụ đỡ và nhà ga đều nằm hoàn toàn trên đất khô (cách mép hồ tối thiểu `5.48 m`).
+   - **Kiểu tàu (Train Style):** Mô hình trong code là dạng **tàu lượn chạy bên trên đường ray** (sit-down coaster có bogie bánh xe lăn trên 2 thanh ray), trong khi Queen Cobra thực tế tại Asia Park là dạng **tàu lượn treo dưới đường ray** (Suspended Looping Coaster - ghế treo dưới dầm ray và có 5 vòng đảo ngược).
+3. **Tàu điện Monorail — Làm mượt tiếp tuyến $C^1$ & nhịp cầu vượt mặt hồ:**
+   - Tuyến Monorail thực tế là dạng tàu điện treo dưới dầm (Suspended Monorail), còn trong mô hình đồ họa được biểu diễn dưới dạng **tàu điện một ray kiểu straddle-beam ôm trên dầm hộp bê tông** để minh họa rõ hình học tiết diện dầm và 4 toa tàu khớp nối trên cao.
+   - Do 20 điểm điều khiển số hóa từ ảnh vệ tinh có khoảng cách nhịp không đều (`28.7 m` ở các góc cua đến `177.6 m` ở các đoạn thẳng dài), bộ tạo spline Bézier trong `BezierTrack.h` đã **chuẩn hóa độ dài tay đòn tiếp tuyến theo nhịp ngắn hơn lân cận** ($\|P_1 - P_0\| \le 0.36 \min(d_{\text{prev}}, d_{\text{next}})$) trong khi giữ nguyên phương tiếp tuyến chung tại mỗi đỉnh. Nhờ đó đường ray đạt liên tục $C^0, C^1$ tuyệt đối mà không bị uốn chữ S thừa ở các góc cua hẹp.
+   - Tại đoạn dầm Monorail vượt qua mặt hồ trung tâm (`X_eng ∈ [−132, +41]`, `Z_eng ≈ −298 m`), chương trình **tự động lược bỏ các trụ cột bê tông rơi vào lòng hồ** (`ParkLayout::isPointInLake`) và thay bằng **2 trụ mố cầu gia cường trên hai bờ Đông – Tây cùng dầm hộp cầu vượt chịu lực dưới đáy ray**, đảm bảo không có chân trụ nào cắm xuống giữa mặt nước.
+   - Vận tốc hành trình được đặt ở `9.2 m/s` (`~33.1 km/h`), hoàn thành 1 vòng `1 904 m` trong khoảng **`3.45 phút`** (`~207 giây`).
+4. **Đu quay Ngựa gỗ (Festival Carousel) — Vị trí `"chưa xác minh"`:**
+   - Đặt tại `Engine (−159.4, 0.0, +102.5)` tương ứng với công trình mái bạt hình nón kẻ sọc đường kính `~16.5 m` ở khu trò chơi Tây-Nam trên ảnh vệ tinh (`16.03923°N, 108.22689°E`). Do chưa tìm thấy ảnh chụp mặt đất có biển tên xác nhận chính xác đây là Festival Carousel, vị trí này được đánh dấu rõ là **`[Chưa xác minh]`** trong cả mã nguồn và tài liệu.
+5. **Tốc độ Vòng quay Mặt Trời (Sun Wheel) — Thực tế `0.4°/s` kèm phím tua nhanh trình diễn `×5`:**
+   - Tốc độ góc mặc định tuân thủ đúng thực tế `15 phút/vòng` (`0.4°/s`). Vì tốc độ thật quay rất chậm khi thuyết trình đồ án trực tiếp, mô phỏng cung cấp phím tắt **`[V]`** (và mục menu chuột phải) để bật/tắt chế độ tua nhanh trình diễn **`×5` (`2.0°/s`)**.
+6. **Phạm vi cảnh quan & các trò chơi phụ trợ:**
+   - Mặt nền công viên được giản lược thành mặt phẳng cỏ một màu theo đúng biên đa giác `~36.1 ha`, kết hợp hồ nước phía Bắc, dải Sông Hàn, 3 trục đường bao quanh và hệ thống lối đi phẳng nâng cao `3.5–4 cm` (không dựng cây cối hay tiểu cảnh trang trí).
+   - Ba mô hình trò chơi phụ trợ từ nhánh thành viên nhóm (`Playground`, `BumperCars`, `PirateShip`) và các nhân vật đi bộ (`Human`) được giữ nguyên hình học & animation ở khu vực sân chơi trung tâm để phục vụ chấm điểm hoạt ảnh phân cấp của nhóm.
+
+---
+
+### 10.3. Hình ảnh kết quả sau Đợt 3
+
+- [`img/wave3_vs_overlay.png`](img/wave3_vs_overlay.png) — Ảnh chụp trực giao từ trên xuống của scene 3D sau Đợt 3 chồng trực tiếp lên ảnh vệ tinh Wayback 2019 có lưới mét `50 m / 100 m` và nhãn tọa độ từng công trình.
+- [`img/wave3_overview_high.png`](img/wave3_overview_high.png) — Ảnh chụp phối cảnh toàn cảnh công viên từ góc cao phía Nam-Tây-Nam.
+- [`img/wave3_sunwheel_lake.png`](img/wave3_sunwheel_lake.png) — Ảnh chụp cận cảnh Sun Wheel, hồ nước phía Bắc, Thủy đình kèm cầu gỗ, 10 trụ đèn lồng và ảnh phản xạ qua mặt hồ `y = 0`.
+- [`img/wave3_queencobra_closeup.png`](img/wave3_queencobra_closeup.png) — Ảnh chụp cận cảnh cụm tàu lượn Queen Cobra tại bán đảo Tây-Bắc `(−255, 0, −358)`, xoay `−25°`, nằm trọn trên đất khô sát bờ Tây hồ nước.
 
 ---
 

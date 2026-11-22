@@ -84,6 +84,9 @@ constexpr float        QUEEN_COBRA_ROT_Y_DEG         = -25.0f;
 // [Ước lượng từ ảnh vệ tinh] ±10m
 constexpr MathCG::Vec3 MONORAIL_SOUTH_STATION_POS(-24.6f, 0.0f, 128.0f);   // Ga Nam (16.03900°N, 108.22815°E)
 constexpr MathCG::Vec3 MONORAIL_NEPAL_STATION_POS(-217.2f, 0.0f, -220.6f); // Ga Nepal (16.04215°N, 108.22635°E)
+constexpr float        MONORAIL_SOUTH_STATION_ROT_Y_DEG = -90.0f;          // Dầm chạy hướng Đông -> Tây tại Ga Nam
+constexpr float        MONORAIL_NEPAL_STATION_ROT_Y_DEG =   0.0f;          // Sảnh Ga Nepal nằm bên Đông (+X) của hành lang
+constexpr float        MONORAIL_CRUISE_SPEED_MPS        =   9.2f;          // ~1904m / 9.2 m/s = ~207s (~3.45 phút/vòng)
 
 constexpr int NUM_MONORAIL_WAYPOINTS = 20;
 constexpr MathCG::Vec3 MONORAIL_WAYPOINTS[NUM_MONORAIL_WAYPOINTS] = {
@@ -149,6 +152,23 @@ constexpr PointXZ LAKE_OUTLINE_POLY[NUM_LAKE_OUTLINE_PTS] = {
     { -153.0f, -303.6f }, // 9: Bờ hồ khu quảng trường Angkor (16.04290, 108.22695)
     {  -83.5f, -198.5f }  // 10: Bờ Tây hồ đoạn giữa (16.04195, 108.22760)
 };
+
+/**
+ * @brief Kiểm tra điểm mặt bằng (x, z) có nằm trong lòng hồ nước phía Bắc Sun Wheel hay không
+ *        (Thuật toán Ray-Casting trên đa giác 11 đỉnh LAKE_OUTLINE_POLY).
+ */
+inline bool isPointInLake(float x, float z) {
+    bool inside = false;
+    for (int i = 0; i < NUM_LAKE_OUTLINE_PTS; ++i) {
+        const PointXZ& p1 = LAKE_OUTLINE_POLY[i];
+        const PointXZ& p2 = LAKE_OUTLINE_POLY[(i + 1) % NUM_LAKE_OUTLINE_PTS];
+        if (((p1.z > z) != (p2.z > z)) &&
+            (x < (p2.x - p1.x) * (z - p1.z) / (p2.z - p1.z + 1e-7f) + p1.x)) {
+            inside = !inside;
+        }
+    }
+    return inside;
+}
 
 // Chia đa giác hồ lõm 11 đỉnh thành 5 hình tứ giác lồi (thứ tự đỉnh CCW khi nhìn từ +Y xuống:
 // trên mặt phẳng ảnh chụp từ trên xuống (X tăng sang phải, Z tăng xuống dưới), thứ tự CCW trong không gian 3D

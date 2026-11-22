@@ -1144,6 +1144,21 @@ static void createGLUTMenus() {
 // ============================================================================
 
 #ifndef _WIN32
+static bool saveFramebufferPPM(const char* outPpmPath, int w, int h) {
+    std::vector<unsigned char> pixels(static_cast<size_t>(w) * h * 3);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glReadPixels(0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+
+    FILE* fp = std::fopen(outPpmPath, "wb");
+    if (!fp) return false;
+    std::fprintf(fp, "P6\n%d %d\n255\n", w, h);
+    for (int y = h - 1; y >= 0; --y) {
+        std::fwrite(&pixels[static_cast<size_t>(y) * w * 3], 1, static_cast<size_t>(w) * 3, fp);
+    }
+    std::fclose(fp);
+    return true;
+}
+
 static bool renderHeadlessTopDownPPM(const char* outPpmPath) {
     const int capW = 2258;
     const int capH = 1869;
@@ -1260,19 +1275,147 @@ static bool renderHeadlessTopDownPPM(const char* outPpmPath) {
     glFlush();
     glFinish();
 
-    // 6. Đọc framebuffer và ghi file PPM
-    std::vector<unsigned char> pixels(static_cast<size_t>(capW) * capH * 3);
-    glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    glReadPixels(0, 0, capW, capH, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+    bool saved = saveFramebufferPPM(outPpmPath, capW, capH);
+    eglMakeCurrent(dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    eglDestroyContext(dpy, ctx);
+    eglDestroySurface(dpy, surf);
+    eglTerminate(dpy);
+    return saved;
+}
 
-    FILE* fp = std::fopen(outPpmPath, "wb");
-    if (!fp) return false;
-    std::fprintf(fp, "P6\n%d %d\n255\n", capW, capH);
-    // Lật trục dọc từ gốc dưới-trái của OpenGL sang trên-trái của ảnh PPM
-    for (int y = capH - 1; y >= 0; --y) {
-        std::fwrite(&pixels[static_cast<size_t>(y) * capW * 3], 1, static_cast<size_t>(capW) * 3, fp);
+static bool renderHeadlessPerspectiveShots() {
+    const int capW = 1600;
+    const int capH = 1000;
+
+    constexpr EGLenum kPlatformSurfacelessMesa = 0x31DD;
+    EGLDisplay dpy = eglGetPlatformDisplay(kPlatformSurfacelessMesa, nullptr, nullptr);
+    if (dpy == EGL_NO_DISPLAY) dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+    if (dpy == EGL_NO_DISPLAY) return false;
+
+    EGLint major = 0, minor = 0;
+    if (!eglInitialize(dpy, &major, &minor)) return false;
+    if (!eglBindAPI(EGL_OPENGL_API)) return false;
+
+    const EGLint cfgAttribs[] = {
+        EGL_SURFACE_TYPE,    EGL_PBUFFER_BIT,
+        EGL_RED_SIZE,        8,
+        EGL_GREEN_SIZE,      8,
+        EGL_BLUE_SIZE,       8,
+        EGL_ALPHA_SIZE,      8,
+        EGL_DEPTH_SIZE,      24,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+        EGL_NONE
+    };
+    EGLConfig cfg = nullptr;
+    EGLint numCfgs = 0;
+    if (!eglChooseConfig(dpy, cfgAttribs, &cfg, 1, &numCfgs) || numCfgs < 1) return false;
+
+    const EGLint pbufAttribs[] = { EGL_WIDTH, capW, EGL_HEIGHT, capH, EGL_NONE };
+    EGLSurface surf = eglCreatePbufferSurface(dpy, cfg, pbufAttribs);
+    if (surf == EGL_NO_SURFACE) return false;
+
+    EGLContext ctx = eglCreateContext(dpy, cfg, EGL_NO_CONTEXT, nullptr);
+    if (ctx == EGL_NO_CONTEXT) return false;
+    if (!eglMakeCurrent(dpy, surf, surf, ctx)) return false;
+
+    gCurves.init();
+    gHumans = AsiaParkActors::createDefaultCrowd();
+
+    struct ShotSpec {
+        const char* outPath;
+        MathCG::Vec3 eye;
+        MathCG::Vec3 center;
+        float fovY;
+        TimeOfDay tod;
+    };
+
+    const ShotSpec shots[3] = {
+        // 1. Toàn cảnh góc cao (nhìn từ phía Nam-Tây-Nam bao quát Cổng Ngọ Môn, Tháp Đồng Hồ, Sun Wheel, Hồ Bắc, Monorail & khu Tây)
+        {
+            "/tmp/shot_overview.ppm",
+            MathCG::Vec3(-260.0f, 240.0f, 310.0f),
+            MathCG::Vec3( -35.0f,  15.0f, -95.0f),
+            52.0f,
+            TimeOfDay::DAY
+        },
+        // 2. Cận cảnh Sun Wheel cùng hồ nước phía Bắc và Thủy đình (nhìn từ bờ Tây-Bắc hồ hướng về Thủy đình & Sun Wheel kèm phản xạ mặt nước)
+        {
+            "/tmp/shot_sunwheel_lake.ppm",
+            MathCG::Vec3( -88.0f,  36.0f, -185.0f),
+            MathCG::Vec3(  -2.0f,  32.0f,  -55.0f),
+            50.0f,
+            TimeOfDay::SUNSET
+        },
+        // 3. Cận cảnh cụm tàu lượn Queen Cobra tại bán đảo Tây-Bắc (-255, 0, -358, xoay -25 độ, cạnh hồ nước)
+        {
+            "/tmp/shot_queencobra.ppm",
+            MathCG::Vec3(-175.0f,  46.0f, -275.0f),
+            MathCG::Vec3(-255.0f,  18.0f, -358.0f),
+            50.0f,
+            TimeOfDay::DAY
+        }
+    };
+
+    for (const auto& sh : shots) {
+        glViewport(0, 0, capW, capH);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        glFrontFace(GL_CCW);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+        gLighting.timeOfDay = sh.tod;
+        gLighting.applyClearColor();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        gluPerspective(sh.fovY, static_cast<double>(capW) / capH, 1.0, 2400.0);
+
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        gluLookAt(
+            sh.eye.x,    sh.eye.y,    sh.eye.z,
+            sh.center.x, sh.center.y, sh.center.z,
+            0.0,         1.0,         0.0
+        );
+
+        TrackFrame queenFrame = gCurves.getQueenCobraCameraFrame();
+        gLighting.applyLights(gState.sunWheelCenter);
+        gLighting.applyCoasterHeadlight(
+            queenFrame.position + queenFrame.up * 0.8f + queenFrame.tangent * 1.5f,
+            queenFrame.tangent
+        );
+
+        // Lượt vẽ phản xạ mặt hồ y = 0
+        if (gState.lakeReflection) {
+            glPushMatrix();
+            MathCG::Mat4 reflectMat = MathCG::Mat4::reflectionAcrossYPlane(0.0f);
+            glMultMatrixf(reflectMat.m);
+            glFrontFace(GL_CW);
+            drawHierarchicalSunWheelPreview();
+            drawLakesidePavilionMesh();
+            glFrontFace(GL_CCW);
+            glPopMatrix();
+        }
+
+        drawParkGroundAndLake();
+        drawLakesidePavilionMesh();
+        drawHierarchicalSunWheelPreview();
+        gCurves.draw(false, gLighting.lightingEnabled, gLighting.timeOfDay);
+        bool isNightOrSunset = (gLighting.timeOfDay != TimeOfDay::DAY);
+        gSkyTower.draw(isNightOrSunset, false);
+        gCarousel.draw(isNightOrSunset, false);
+        gNgoMonGate.draw(isNightOrSunset, false, true);
+        gPlayground.draw(isNightOrSunset, false);
+        gBumperCars.draw(isNightOrSunset, false);
+        gPirateShip.draw(isNightOrSunset, false);
+        for (const auto& h : gHumans) h.draw(isNightOrSunset);
+
+        glFlush();
+        glFinish();
+        if (!saveFramebufferPPM(sh.outPath, capW, capH)) return false;
     }
-    std::fclose(fp);
 
     eglMakeCurrent(dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     eglDestroyContext(dpy, ctx);
@@ -1296,6 +1439,16 @@ int main(int argc, char** argv) {
                 return 0;
             } else {
                 std::fprintf(stderr, "Failed to capture headless top-down scene\n");
+                return 1;
+            }
+        }
+        if (std::strcmp(argv[i], "--capture-shots") == 0) {
+            bool ok = renderHeadlessPerspectiveShots();
+            if (ok) {
+                std::printf("Captured 3 perspective shots to /tmp/shot_*.ppm\n");
+                return 0;
+            } else {
+                std::fprintf(stderr, "Failed to capture perspective shots\n");
                 return 1;
             }
         }

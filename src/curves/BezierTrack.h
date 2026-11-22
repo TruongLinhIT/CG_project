@@ -19,6 +19,7 @@
 #include <cmath>
 #include <algorithm>
 #include "core/MathCG.h"
+#include "core/ParkLayout.h"
 #include "core/Lighting.h"
 
 struct CubicBezierSegment {
@@ -90,8 +91,24 @@ public:
         std::vector<MathCG::Vec3> tangents(n);
         for (int i = 0; i < n; ++i) {
             const MathCG::Vec3& prevW = waypoints[(i - 1 + n) % n];
+            const MathCG::Vec3& curW  = waypoints[i];
             const MathCG::Vec3& nextW = waypoints[(i + 1) % n];
-            tangents[i] = (nextW - prevW) * tension;
+            MathCG::Vec3 rawT = (nextW - prevW) * tension;
+
+            // Với tuyến Monorail có chênh lệch độ dài các nhịp lớn (28m .. 177m),
+            // kẹp độ dài tay đòn tiếp tuyến theo nhịp ngắn hơn ở hai bên đỉnh i để khử hiện tượng
+            // vòng xoắn thừa (overshoot) ở khúc cua hẹp, trong khi vẫn giữ cùng 1 vector tiếp tuyến
+            // cho cả nhịp vào và nhịp ra => bảo toàn tuyệt đối tính liên tục C^1: P_1^(i) = 2*P_3^(i-1) - P_2^(i-1).
+            if (cfg.isMonorailBeam) {
+                float dPrev = (curW - prevW).length();
+                float dNext = (nextW - curW).length();
+                float maxTangentLen = 1.08f * std::min(dPrev, dNext); // tương ứng tay đòn P1-P0 <= 0.36 * min(dPrev, dNext)
+                float rawLen = rawT.length();
+                if (rawLen > maxTangentLen && rawLen > 1e-6f) {
+                    rawT = rawT * (maxTangentLen / rawLen);
+                }
+            }
+            tangents[i] = rawT;
         }
 
         segments.reserve(n);
@@ -285,8 +302,11 @@ public:
     void draw(bool showDebugCtrlAndTangents, bool lightingEnabled) const {
         if (samples.size() < 3) return;
 
-        // 1. Hệ thống cột trụ đỡ nối xuống mặt đất y = 0
+        // 1. Hệ thống cột trụ đỡ nối xuống mặt đất y = 0 (và dàn cầu vượt nếu bắc qua mặt hồ)
         drawSupportPillars();
+        if (config.isMonorailBeam) {
+            drawLakeOverpassTruss();
+        }
 
         // 2. Các thanh tà-vẹt ngang hoặc đai đỡ dầm
         drawCrossTies();
@@ -622,6 +642,12 @@ private:
 
             if (attachPt.y < 1.2f) continue;
 
+            // Nếu là dầm Monorail đi qua nhịp cầu vượt mặt hồ thì KHÔNG cắm trụ bê tông xuống giữa mặt nước
+            // (đoạn này được đỡ bởi dàn cầu vượt và hai trụ mố cầu trên bờ Đông - Tây)
+            if (config.isMonorailBeam && ParkLayout::isPointInLake(attachPt.x, attachPt.z)) {
+                continue;
+            }
+
             // Bệ móng bê tông dưới mặt đất
             glColor3f(0.45f, 0.47f, 0.50f);
             drawOrientedBox(
@@ -646,6 +672,70 @@ private:
                 f.right, f.up, f.tangent,
                 config.pillarRadius * 1.25f, 0.25f, config.pillarRadius * 1.25f
             );
+        }
+    }
+
+    /**
+     * @brief Vẽ kết cấu dàn cầu thép chịu lực phía dưới đoạn dầm Monorail vượt qua mặt hồ
+     *        và 2 trụ mố cầu đặt ngay trên bờ Tây & bờ Đông của hồ (không có chân trụ nào cắm xuống lòng hồ).
+     */
+    void drawLakeOverpassTruss() const {
+        const int n = static_cast<int>(samples.size());
+        if (n < 3) return;
+
+        const MathCG::Vec3 worldX(1.0f, 0.0f, 0.0f);
+        const MathCG::Vec3 worldY(0.0f, 1.0f, 0.0f);
+        const MathCG::Vec3 worldZ(0.0f, 0.0f, 1.0f);
+
+        auto drawBankAbutmentPillar = [&](const TrackFrame& f) {
+            MathCG::Vec3 attachPt = f.position - f.up * 1.05f;
+            if (attachPt.y < 1.2f) return;
+
+            glColor3f(0.45f, 0.47f, 0.50f);
+            drawOrientedBox(
+                MathCG::Vec3(attachPt.x, 0.45f, attachPt.z),
+                worldX, worldY, worldZ,
+                config.pillarRadius * 2.6f, 0.45f, config.pillarRadius * 2.6f
+            );
+            glColor3f(config.pillarColor.r, config.pillarColor.g, config.pillarColor.b);
+            drawParametricVerticalCylinder(
+                attachPt.x, attachPt.z,
+                0.85f, attachPt.y,
+                config.pillarRadius * 1.45f, config.pillarRadius * 1.15f,
+                12
+            );
+            glColor3f(config.tieColor.r, config.tieColor.g, config.tieColor.b);
+            drawOrientedBox(
+                attachPt,
+                f.right, f.up, f.tangent,
+                config.pillarRadius * 1.6f, 0.35f, config.pillarRadius * 1.6f
+            );
+        };
+
+        for (int i = 0; i < n; ++i) {
+            const TrackFrame& f0 = samples[i];
+            const TrackFrame& f1 = samples[(i + 1) % n];
+            bool in0 = ParkLayout::isPointInLake(f0.position.x, f0.position.z);
+            bool in1 = ParkLayout::isPointInLake(f1.position.x, f1.position.z);
+
+            // Đặt trụ mố cầu tại điểm mẫu trên bờ khô ngay sát mép nước trước và sau khi vượt hồ
+            if (!in0 && in1) {
+                drawBankAbutmentPillar(f0);
+            } else if (in0 && !in1) {
+                drawBankAbutmentPillar(f1);
+            }
+
+            // Vẽ dầm hộp cầu vượt tăng cường bên dưới dầm Monorail suốt nhịp vượt mặt nước
+            if (in0 || in1) {
+                MathCG::Vec3 mid = (f0.position + f1.position) * 0.5f - f0.up * 1.85f;
+                float segLen = (f1.position - f0.position).length();
+                glColor3f(0.50f, 0.54f, 0.60f);
+                drawOrientedBox(
+                    mid,
+                    f0.right, f0.up, f0.tangent,
+                    1.25f, 0.55f, segLen * 0.52f
+                );
+            }
         }
     }
 
