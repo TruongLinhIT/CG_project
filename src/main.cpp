@@ -46,6 +46,7 @@
 #include "rides/BumperCars.h"
 #include "rides/PirateShip.h"
 #include "rides/MiniCoaster.h"
+#include "rides/MasterPlan8c.h"
 
 // ============================================================================
 // MÁY TRẠNG THÁI MÔ PHỎNG & ĐƯỜNG ỐNG ĐỒ HỌA TOÀN CỤC
@@ -112,6 +113,7 @@ static AsiaParkRides::Playground  gPlayground;
 static AsiaParkRides::BumperCars  gBumperCars;
 static AsiaParkRides::PirateShip  gPirateShip;
 static std::array<AsiaParkRides::MiniCoaster, 4> gMiniCoasters;
+static AsiaParkRides::MasterPlan8c gMasterPlan8c;
 static std::vector<AsiaParkActors::Human> gHumans;
 
 // ============================================================================
@@ -147,6 +149,7 @@ enum MenuOption {
     MENU_ANIM_FASTER,
     MENU_ANIM_SLOWER,
     MENU_TOGGLE_SUNWHEEL_FAST,
+    MENU_TOGGLE_MASTERPLAN_8C,
     MENU_TOGGLE_HUD,
     MENU_TOGGLE_MINIMAP,
     MENU_EXIT = 99
@@ -709,6 +712,7 @@ static void displayCallback() {
     for (const auto& mc : gMiniCoasters) {
         mc.draw(isNightOrSunset, gState.showNormalsAndCtrl, smooth);
     }
+    gMasterPlan8c.draw(isNightOrSunset, gState.showNormalsAndCtrl, smooth);
     for (const auto& h : gHumans) h.draw(isNightOrSunset);
 
     // 6. Vẽ các lớp phủ giao diện 2D (Luôn ở chế độ tô đặc GL_FILL)
@@ -787,7 +791,8 @@ static void displayCallback() {
             gCurves.queenCobraTrain.paramT,
             gCurves.queenCobraTrain.lastSpeedMps,
             gSunWheel.getEffectiveSpeedDeg(),
-            gSunWheel.fastDemoMode
+            gSunWheel.fastDemoMode,
+            gMasterPlan8c.enabled
         );
     }
 
@@ -842,6 +847,7 @@ static void timerCallback(int value) {
         gBumperCars.update(dt);
         gPirateShip.update(dt);
         for (auto& mc : gMiniCoasters) mc.update(dt);
+        gMasterPlan8c.update(dt);
         for (auto& h : gHumans) h.update(dt);
         gState.coasterParamT    = gCurves.queenCobraTrain.paramT;
     }
@@ -934,6 +940,9 @@ static void applyMenuSelection(int option) {
         case MENU_TOGGLE_SUNWHEEL_FAST:
             gSunWheel.fastDemoMode = !gSunWheel.fastDemoMode;
             break;
+        case MENU_TOGGLE_MASTERPLAN_8C:
+            gMasterPlan8c.enabled = !gMasterPlan8c.enabled;
+            break;
         case MENU_TOGGLE_HUD:
             gState.showHUD = !gState.showHUD;
             break;
@@ -1018,6 +1027,9 @@ static void keyboardCallback(unsigned char key, int x, int y) {
             break;
         case 'v': case 'V':
             applyMenuSelection(MENU_TOGGLE_SUNWHEEL_FAST);
+            break;
+        case 'k': case 'K':
+            applyMenuSelection(MENU_TOGGLE_MASTERPLAN_8C);
             break;
         case 'l': case 'L': {
             int nextTime = (static_cast<int>(gLighting.timeOfDay) + 1) % 3;
@@ -1210,6 +1222,7 @@ static void createGLUTMenus() {
     int animSubMenu = glutCreateMenu(applyMenuSelection);
     glutAddMenuEntry("Tam dung / Tiep tuc Hoat anh [SPACE]",    MENU_ANIM_TOGGLE);
     glutAddMenuEntry("Bat/Tat Tua nhanh Sun Wheel x5 (2.0 do/s) [V]", MENU_TOGGLE_SUNWHEEL_FAST);
+    glutAddMenuEntry("Bat/Tat Quy hoach tong the Dot 8c (khong phai 2019) [K]", MENU_TOGGLE_MASTERPLAN_8C);
     glutAddMenuEntry("Tang toc hoat anh",                       MENU_ANIM_FASTER);
     glutAddMenuEntry("Giam toc hoat anh",                       MENU_ANIM_SLOWER);
     glutAddMenuEntry("Bat/Tat Ban do nho 2D [M]",               MENU_TOGGLE_MINIMAP);

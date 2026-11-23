@@ -498,10 +498,10 @@ private:
             { -4.8f, 5.0f, -0.8f,  16.0f, -6.0f,  5.0f,  8.8f, 4.6f,  7.6f, stoneWarm  },
             {  3.6f, 4.8f, -0.5f, -21.0f,  5.0f, -6.0f,  8.4f, 4.4f,  7.4f, stoneLight },
             { -0.6f, 5.4f,  1.4f,   8.0f,  4.0f,  4.0f,  9.2f, 4.8f,  6.4f, stoneMid   },
-            // Tầng 3 - các mỏm đỉnh núi cao (y lên tới ~10.8m)
-            { -3.2f, 7.6f, -1.2f, -19.0f,  7.0f, -5.0f,  6.4f, 4.2f,  5.6f, stoneLight },
-            {  2.4f, 7.2f,  0.8f,  24.0f, -5.0f,  6.0f,  5.8f, 3.8f,  5.2f, stoneWarm  },
-            { -0.4f, 8.6f, -0.2f,  11.0f,  3.0f, -4.0f,  5.0f, 3.6f,  4.6f, stoneMid   }
+            // Tầng 3 - các mỏm đá đỡ dưới nền sàn lầu nhà ga (y <= 4.75m, không đâm xuyên qua mái lầu)
+            { -6.2f, 4.1f, -1.2f, -19.0f,  5.0f, -4.0f,  6.4f, 2.2f,  5.6f, stoneLight },
+            {  6.0f, 4.0f,  0.8f,  24.0f, -4.0f,  5.0f,  5.8f, 2.2f,  5.2f, stoneWarm  },
+            { -0.4f, 3.8f, -0.2f,  11.0f,  2.0f, -3.0f,  8.0f, 2.0f,  6.6f, stoneMid   }
         };
 
         for (const auto& b : blocks) {
@@ -515,13 +515,12 @@ private:
             glPopMatrix();
         }
 
-        // 3 chỏm đá nhọn (createPyramid) trên đỉnh núi tạo đường viền núi đá tự nhiên
-        const float peaks[3][6] = {
-            { -3.4f, 9.2f, -1.2f,  4.8f, 4.4f, 3.2f },
-            {  2.5f, 8.7f,  0.8f,  4.4f, 4.2f, 2.8f },
-            { -0.4f,10.0f, -0.2f,  4.2f, 4.0f, 3.4f }
+        // 3 chỏm đá nhọn (createPyramid) ở hai sườn Đông-Tây núi đá (không đâm xuyên qua mái lầu nhà ga ở giữa)
+        const float peaks[2][6] = {
+            { -7.4f, 6.2f, -2.2f,  4.2f, 3.8f, 2.4f },
+            {  7.2f, 6.0f,  1.8f,  4.0f, 3.6f, 2.2f }
         };
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < 2; ++i) {
             auto pk = Geometry::PolygonMesh::createPyramid(
                 peaks[i][0], peaks[i][1], peaks[i][2],
                 peaks[i][3], peaks[i][4], peaks[i][5],
@@ -557,6 +556,52 @@ private:
         glRotatef(90.0f, 0.0f, 1.0f, 0.0f);
         archWest.draw(smoothShading, showNormals);
         glPopMatrix();
+
+        // 4. ĐỢT 8c (BP11 - 1795453385446_image.png): Lầu Nhà Ga Cổ Điển 2 tầng mái cong + cầu thang chia 2 nhánh đối xứng
+        //    gắn liền trên nền núi đá Paradise Fall (nằm gọn trong khung bao 24 x 14 m, cao lên ~13.0m)
+        {
+            namespace MB = Geometry::MeshBuilders;
+            Geometry::PolygonMesh pavilion;
+            const MathCG::ColorRGB redPillar(0.74f, 0.20f, 0.14f);
+            const MathCG::ColorRGB goldTrim (0.94f, 0.78f, 0.22f);
+            const MathCG::ColorRGB tileRoof (0.78f, 0.26f, 0.14f);
+            const MathCG::ColorRGB creamWall(0.90f, 0.84f, 0.72f);
+
+            // Sàn đón khách trên cao (+4.80m) & lan can gỗ-vàng
+            MB::appendBoxByYRange(pavilion, 0.0f, 4.50f, 4.95f, 0.0f, 15.6f, 9.6f, stoneLight);
+            MB::appendBoxByYRange(pavilion, 0.0f, 4.88f, 5.05f, 0.0f, 16.0f, 10.0f, goldTrim);
+            // Cầu thang trung tâm mặt Nam (+Z) và hai nhánh thang phụ hai bên dẫn từ sân lên sàn +4.80m (gói gọn trong Z <= 7.0m)
+            MB::appendStaircase(pavilion, 0.0f, 4.8f, 0, 1, 0.0f, 3.2f, 2.1f, 4.85f, 10, stoneLight, goldTrim, 0.28f);
+
+            // 8 cột trụ gỗ đỏ đỡ mái tầng 1 (y = 4.95 .. 8.35m) + vách sảnh giữa
+            MB::appendBoxByYRange(pavilion, 0.0f, 4.95f, 8.20f, -1.2f, 9.2f, 3.8f, creamWall);
+            const float pxList[4] = { -6.8f, -2.4f, 2.4f, 6.8f };
+            const float pzList[2] = { -4.1f,  4.1f };
+            for (float px : pxList) {
+                for (float pz : pzList) {
+                    MB::appendBoxByYRange(pavilion, px, 4.95f, 8.35f, pz, 0.44f, 0.44f, redPillar);
+                }
+            }
+            for (float px : pxList) {
+                MB::appendBoxByYRange(pavilion, px, 4.95f, 5.75f, 4.1f, 0.56f, 0.56f, goldTrim);
+            }
+            // Dầm cổ diềm & Mái ngói cong tầng 1 (y = 8.25 .. 10.35m)
+            MB::appendBoxByYRange(pavilion, 0.0f, 8.20f, 8.50f, 0.0f, 15.2f, 9.2f, goldTrim);
+            pavilion.append(Geometry::PolygonMesh::createCurvedAsianRoof(
+                0.0f, 8.45f, 0.0f, 16.6f, 10.6f, 1.95f, 1.6f, tileRoof
+            ));
+
+            // Cổ lầu tầng 2 & Mái ngói cong tầng 2 (y = 9.60 .. 12.85m) + đầu đao bờ nóc vàng
+            MB::appendBoxByYRange(pavilion, 0.0f, 9.60f, 11.05f, 0.0f, 9.4f, 5.4f, redPillar);
+            MB::appendBoxByYRange(pavilion, 0.0f, 10.95f, 11.22f, 0.0f, 9.8f, 5.8f, goldTrim);
+            pavilion.append(Geometry::PolygonMesh::createCurvedAsianRoof(
+                0.0f, 11.18f, 0.0f, 11.2f, 7.2f, 1.65f, 1.4f, tileRoof
+            ));
+            MB::appendBoxByYRange(pavilion, 0.0f, 12.72f, 12.98f, 0.0f, 4.6f, 0.32f, goldTrim);
+
+            pavilion.computeNormals();
+            pavilion.draw(smoothShading, showNormals);
+        }
 
         glPopMatrix();
     }

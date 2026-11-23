@@ -446,12 +446,13 @@ constexpr MathCG::Vec3 PORT_SKY_TREASURE_LOCAL_WPS[NUM_MINI_COASTER_WAYPOINTS] =
     {  12.0f,  4.8f,  20.0f }, {  -4.0f,  3.2f,  19.0f }
 };
 
-// 3) Paradise Fall (vòng ray số 8 thắt eo ở giữa, cao 8.8m, kết nối cụm Tòa nhà đá PARADISE_FALL_BLDG_POS)
+// 3) Paradise Fall (vòng ray số 8 thắt eo ở giữa, Đợt 8c: giữ nguyên 100% tọa độ mặt bằng X,Z trong khung 34x24m,
+//    nâng đỉnh đồi kéo lên ~14.6m theo BP11, kết nối cụm Tòa nhà đá & Nhà ga cổ điển 2 tầng mái cong PARADISE_FALL_BLDG_POS)
 constexpr MathCG::Vec3 PARADISE_FALL_LOCAL_WPS[NUM_MINI_COASTER_WAYPOINTS] = {
-    {  14.0f, 3.0f,   4.0f }, {  15.0f, 7.5f,  -7.0f },
-    {   3.0f, 8.8f,  -9.5f }, {  -5.0f, 6.2f,  -2.5f },
-    { -15.0f, 7.2f,  -8.5f }, { -16.0f, 4.5f,   4.0f },
-    {  -5.0f, 3.2f,   8.5f }, {   4.0f, 4.2f,   2.5f }
+    {  14.0f,  4.8f,   4.0f }, {  15.0f, 11.2f,  -7.0f },
+    {   3.0f, 14.4f,  -9.5f }, {  -5.0f,  8.6f,  -2.5f },
+    { -15.0f, 12.2f,  -8.5f }, { -16.0f,  6.5f,   4.0f },
+    {  -5.0f,  3.8f,   8.5f }, {   4.0f,  5.2f,   2.5f }
 };
 
 // 4) Highway Boat (vòng lượn tàu thuyền khu Tây-Bắc cạnh Ga Monorail Nepal, cao 8.5m)
@@ -635,6 +636,72 @@ constexpr TreePlacement PARK_TREES[NUM_PARK_TREES] = {
     { -124.0f, -198.0f, 1, 0.88f }, { -144.0f, -204.0f, 2, 0.90f },
     { -152.0f, -220.0f, 0, 1.05f }, { -160.0f, -256.0f, 1, 1.18f },
     { -212.0f, -252.0f, 2, 0.96f }
+};
+
+// ============================================================================
+// 9. ĐỢT 8c: QUY HOẠCH TỔNG THỂ NỬA PHÍA ĐÔNG & BỜ ĐÔNG HỒ NƯỚC (8 HẠNG MỤC BP6, BP7, BP8, BP9, BP13, BP14, BP16, BP17)
+//    Nhãn hiển thị bắt buộc: "Quy hoạch tổng thể, không phải hiện trạng 2019"
+//    Có phím tắt [K] / menu chuột phải để bật/tắt nhanh so sánh với hiện trạng SNAPSHOT_YEAR = 2019.
+//    Đã kiểm chứng hình học: 0 va chạm với dầm/trụ Monorail, hồ nước, Sun Wheel, Ngọ Môn và các tuyến lối đi 2019.
+// ============================================================================
+
+// 9.1. Tọa độ & kích thước chuẩn hóa của 8 công trình Đợt 8c (lọc bỏ mâu thuẫn số liệu trên bản vẽ AI):
+//  - BP8 (1795453369127): Thuyền Rồng Hoàng Gia (Dragon Boat) nổi trên mặt hồ phía Đông Thủy đình (22.0 x 7.0 x 11.5m)
+constexpr MathCG::Vec3 W8C_DRAGON_BOAT_POS(18.0f, 0.0f, -152.0f);
+constexpr float        W8C_DRAGON_BOAT_ROT_Y_DEG = -15.0f;
+
+//  - BP7 (1795453365678): Tượng & Hồ phun nước Merlion (Phân khu Singapore) phía Đông-Bắc Sun Wheel (ĐK hồ 28.0m, cao 10.0m)
+constexpr MathCG::Vec3 W8C_MERLION_POOL_POS(102.0f, 0.0f, -45.0f);
+constexpr float        W8C_MERLION_POOL_RADIUS   = 14.0f; // ĐK 28.0m
+
+//  - BP14 (1795453395295): Nhà hát Âu Cơ - Múa rối nước Việt (24.0 x 18.0 x 12.0m) ở phía Nam-Đông
+constexpr MathCG::Vec3 W8C_AU_CO_THEATER_POS(135.0f, 0.0f, 12.0f);
+constexpr float        W8C_AU_CO_THEATER_ROT_Y_DEG = -18.0f;
+
+//  - BP6 (1795453362382): Nhà hàng Panda 2 tầng mái cong đầu củng (26.0 x 18.0 x 14.0m) ở khu trung tâm nửa Đông
+constexpr MathCG::Vec3 W8C_PANDA_RESTAURANT_POS(148.0f, 0.0f, -86.0f);
+constexpr float        W8C_PANDA_RESTAURANT_ROT_Y_DEG = 0.0f;
+
+//  - BP17 (1795453403998): Vườn Trúc Nhật Bản - Cổng Torii, Suối Koi, Cầu gỗ đỏ & Trà thất (24.0 x 20.0 x 9.0m)
+constexpr MathCG::Vec3 W8C_BAMBOO_GARDEN_POS(226.0f, 0.0f, -35.0f);
+constexpr float        W8C_BAMBOO_GARDEN_ROT_Y_DEG = 0.0f;
+
+//  - BP16 (1795453400510): Đảo Khủng Long (Dino Island) - Cổng gỗ, Núi lửa 10m, T-Rex, Brachiosaurus & Triceratops (28.0 x 22.0 x 10.0m)
+constexpr MathCG::Vec3 W8C_DINO_ISLAND_POS(268.0f, 0.0f, -72.0f);
+constexpr float        W8C_DINO_ISLAND_ROT_Y_DEG = 0.0f;
+
+//  - BP13 (1795453392187): Sân khấu nổi & Khán đài bán nguyệt Symphony of River ven bờ Đông hồ Bắc (42.0 x 20.0 x 12.0m)
+//    Đặt tại (84.0, 0.0, -238.0) để cách dầm Monorail > 30m và hướng mặt sân khấu về phía mặt nước hồ (-X)
+constexpr MathCG::Vec3 W8C_SYMPHONY_STAGE_POS(84.0f, 0.0f, -238.0f);
+constexpr float        W8C_SYMPHONY_STAGE_ROT_Y_DEG = -82.0f; // Hướng mặt sân khấu về phía lòng hồ (-X)
+
+//  - BP9 (1795453378911): Tàu lượn Thuyền Rồng Đu Đưa "The Flying Kirins" trên bến cầu cảng ven bờ Đông hồ (18.0 x 12.0 x 15.0m)
+//    (Tách biệt hoàn toàn với PirateShip.h (-172, 0, -2) ở khu Tây theo Quyết định 3)
+constexpr MathCG::Vec3 W8C_FLYING_KIRINS_POS(66.0f, 0.0f, -118.0f);
+constexpr float        W8C_FLYING_KIRINS_ROT_Y_DEG = -90.0f;
+
+// 9.2. Hệ thống lối đi dạo bộ khu Quy hoạch Tổng thể nửa phía Đông (nối từ bờ Đông hồ & Quảng trường sang 8 công trình Đợt 8c)
+constexpr float PATH_EAST_MASTERPLAN_WIDTH = 4.5f;
+constexpr int   NUM_PATH_EAST_MAIN_PTS = 8;
+constexpr PointXZ PATH_EAST_MASTERPLAN_MAIN[NUM_PATH_EAST_MAIN_PTS] = {
+    {  53.5f,  -65.7f }, // 0: Nối từ đầu Đông đường dạo bờ Nam hồ (PATH_SOUTH_LAKE_PROM[2])
+    {  78.0f,  -55.0f }, // 1: Dẫn sang quảng trường Hồ Merlion
+    { 102.0f,  -24.0f }, // 2: Mép Nam Hồ phun nước Merlion
+    { 135.0f,  -10.0f }, // 3: Sân trước Nhà hát Âu Cơ
+    { 182.0f,  -22.0f }, // 4: Hành lang dẫn sang Vườn Trúc Nhật Bản
+    { 226.0f,  -16.0f }, // 5: Cổng Nam Vườn Trúc (Torii Gate)
+    { 268.0f,  -46.0f }, // 6: Cổng chào Đảo Khủng Long (Dino Island)
+    { 226.0f,  -68.0f }  // 7: Khép vòng cảnh quan phía Bắc Vườn Trúc
+};
+
+constexpr int   NUM_PATH_EAST_NORTH_SPUR_PTS = 6;
+constexpr PointXZ PATH_EAST_MASTERPLAN_NORTH[NUM_PATH_EAST_NORTH_SPUR_PTS] = {
+    {  78.0f,  -55.0f }, // 0: Tách từ nhánh chính phía Tây Hồ Merlion
+    { 118.0f,  -72.0f }, // 1: Sân Nam Nhà hàng Panda
+    { 182.0f,  -68.0f }, // 2: Nối sang hành lang Bắc Vườn Trúc
+    { 118.0f,  -72.0f }, // 3: Quay lại ngã ba Tây Nhà hàng Panda
+    {  78.0f, -118.0f }, // 4: Dẫn ra bến cầu cảng The Flying Kirins
+    {  88.0f, -216.0f }  // 5: Dẫn lên quảng trường Sân khấu nổi Symphony of River ven bờ Đông hồ
 };
 
 } // namespace ParkLayout
