@@ -481,7 +481,7 @@ constexpr MathCG::Vec3 CENTRAL_ROTUNDA_RIDE_POS(-141.3f, 0.0f, -137.6f);    // #
 constexpr MathCG::Vec3 ROUND_SPIN_RIDE_3_POS(-143.4f, 0.0f, -179.6f);       // #14: Đu quay tròn 3 khu giữa (ĐK 15m, 14 ghế) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
 constexpr MathCG::Vec3 WEST_CANOPY_THEATER_POS(-256.0f, 0.0f, -128.7f);     // #15: Nhà mái xanh-trắng khu Tây (20x20m, mái cong vòm rộng) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
 constexpr MathCG::Vec3 ANGKOR_LAKESIDE_HALL_POS(-138.0f, 0.0f, -242.0f);    // #18: Nhà mái xanh khu Angkor ven hồ (20x14m, xoay -22°) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
-constexpr MathCG::Vec3 ANGKOR_STAR_PLAZA_POS(-185.0f, 0.0f, -254.0f);       // #19: Quảng trường Ngôi sao & 4 tháp chòi nhọn Angkor (24x24m) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
+constexpr MathCG::Vec3 ANGKOR_STAR_PLAZA_POS(-185.0f, 0.0f, -254.0f);       // #19: Quần thể Đền & Quảng trường Ngôi sao Angkor (sân 27.8x27.8m, đền 26x26m, Đợt 8a) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
 
 // ============================================================================
 // 8. ĐỢT 6A & 6B: TIỂU CẢNH ĐÈN ĐƯỜNG, GHẾ NGHỈ, BỒN HOA, CỘT CỜ, BIỂN CHỈ DẪN

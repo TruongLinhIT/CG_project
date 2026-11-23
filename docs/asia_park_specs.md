@@ -2,7 +2,7 @@
 
 > Tài liệu phục vụ chuẩn hóa bố cục và tỷ lệ dự án **Mô phỏng 3D Công viên Châu Á (Asia Park / Da Nang Downtown)**.
 > **Mốc hiện trạng mô hình:** Khoảng **năm 2019** (`SNAPSHOT_YEAR = 2019` — thời điểm công viên còn nguyên Tháp Đồng Hồ tại quảng trường trung tâm, đầy đủ các trò chơi phía Tây và khu vực nửa phía Đông ranh giới là nền cỏ đơn giản nơi tuyến Monorail chạy qua).
-> Cập nhật: 2026-11-24 (hoàn tất kiểm toán 18 ảnh trong `docs/img/ref/`, chốt Phương án 1 `SNAPSHOT_YEAR = 2019`, kiểm chứng Wayback 2019, tách Đợt 8c & lập kế hoạch Đợt 8a/8b chờ duyệt).
+> Cập nhật: 2026-11-24 (hoàn tất kiểm toán 18 ảnh trong `docs/img/ref/`, chốt Phương án 1 `SNAPSHOT_YEAR = 2019`, kiểm chứng Wayback 2019, tách Đợt 8c & **hoàn thành Đợt 8a**, Đợt 8b chờ duyệt).
 
 ## 0. Quy tắc dữ liệu & thang tin cậy
 
@@ -496,7 +496,7 @@ Theo yêu cầu điều chỉnh số 1 & 2, cả 5 hạng mục dưới đây đ
 
 ## 13. Kiểm toán 18 ảnh tham chiếu (`docs/img/ref/`), kiểm chứng Wayback 2019 & Kế hoạch Đợt 8a/8b (Chốt Phương án 1)
 
-> **Trạng thái:** Đã chốt các quyết định 1–4 theo **Phương án 1 (`SNAPSHOT_YEAR = 2019`, nửa phía Đông giữ nguyên nền cỏ)**. Tài liệu này tổng hợp kết quả đối chiếu và đề xuất **Kế hoạch Đợt 8a/8b (chờ duyệt, chưa chỉnh sửa code `src/`)**; phần mở rộng nửa Đông tách riêng thành **Đợt 8c** (chưa thực hiện).
+> **Trạng thái:** Đã chốt các quyết định 1–4 theo **Phương án 1 (`SNAPSHOT_YEAR = 2019`, nửa phía Đông giữ nguyên nền cỏ)**. **Đợt 8a đã triển khai và kiểm chứng hình học**; **Đợt 8b đang chờ duyệt**; phần mở rộng nửa Đông tách riêng thành **Đợt 8c** (chưa thực hiện).
 
 ### 13.1. Đánh giá bộ 18 ảnh `docs/img/ref/` & liệt kê mâu thuẫn số liệu bản vẽ
 
@@ -596,6 +596,17 @@ Toàn bộ 18 ảnh PNG (`1024×572 px`) trong [`docs/img/ref/`](img/ref/) đề
    - Cache phần khung toa xe trong `MiniCoaster.h` (`drawMovingTrain`) và mặt lưới caro của `ParkArchitecture::drawTiledCentralPlaza()` vào Display List để đảm bảo FPS toàn cảnh vẫn `>= 100 FPS` sau khi thêm chi tiết Carousel 2 tầng, Tháp Đồng Hồ & Angkor.
    - **Tuyệt đối không chỉnh sửa** `SunWheel.h`, `RollerCoaster.h`, `Playground.h`, `BumperCars.h`, `PirateShip.h`.
 3. *(Mục hỏi thêm khi duyệt 8a/8b — chưa tự đưa vào nếu chưa được đồng ý):* Có giữ nguyên hay muốn nâng cấp chi tiết hình dáng (trong cùng khung bao vệ tinh) cho 3 công trình đã xác minh 2019 là **Golden Sky Tower** (chóp hoa sen + sàn `+4.2m`), **Garuda Valley** (mái yên ngựa Minangkabau) và **Port of Sky Treasure** (nhà ga bến cảng gỗ) ở cuối Đợt 8b không?
+
+### 13.6. Kết quả thực hiện & kiểm chứng Đợt 8a (Đã hoàn thành)
+
+1. **Các file mã nguồn đã thêm / cập nhật:**
+   - [`src/geometry/MeshBuilders.h`](../src/geometry/MeshBuilders.h) *(mới)*: gom `appendBoxByYRange` và `appendRotatedTranslatedMesh` dùng chung (xóa trùng lặp giữa `NgoMonGate.h` & `ParkArchitecture.h`), bổ sung `appendOrientedPolygon` (Newell winding check), `appendStaircase`, `appendOctagonalPrism`, `appendOctagonalRoof` (mái bát giác cong khép kín đáy) và `appendOctagonalTieredTower`.
+   - [`src/rides/NgoMonGate.h`](../src/rides/NgoMonGate.h): nâng cấp `CentralClockTower2019` tại `CLOCK_TOWER_POS (+10.7, 0.0, +61.6)` lên bệ đá giật cấp 3 lớp + 4 cầu thang trục + lan can đá (nằm gọn trong `25.00 × 24.00 m`) và tháp bát giác 5 tầng mái cao **`28.97 m`**; điều chỉnh 4 mặt đồng hồ phát sáng (`clockFaceCenterY_`, `clockFaceOffset_`, tỷ lệ `k = 0.72f`) gắn khít lên mặt phẳng trục tầng 3; biên dịch vào Display List `clockSmoothList` / `clockFlatList`.
+   - [`src/rides/ParkArchitecture.h`](../src/rides/ParkArchitecture.h): thay `appendAngkorStarPlazaTowers` bằng `appendAngkorTempleComplex` tại `ANGKOR_STAR_PLAZA_POS (-185.0, 0.0, -254.0)` gồm nền đá 2 tầng, 4 cầu thang trục chữ thập, hành lang cột 20 trụ, 4 tháp Prang góc (`10.8 m`) và 1 tháp Prang trung tâm (`15.0 m`); mở rộng nền sân sao 8 cánh ở `drawTiledCentralPlaza()` thành **`27.8 × 27.8 m`** (4 cánh chéo tỏa ra 4 góc sân).
+   - **Không chỉnh sửa** `SunWheel.h`, `RollerCoaster.h`, `Playground.h`, `BumperCars.h`, `PirateShip.h` hay bất kỳ waypoint nào của `MONORAIL_WAYPOINTS` / `PATH_*`.
+2. **Kết quả kiểm tra hình học & va chạm 3D (đo trên đỉnh lưới thật sau chỉnh sửa cuối):**
+   - **Tháp Đồng Hồ:** `2 545` đỉnh, `1 035` mặt (`0` pháp tuyến lỗi/NaN), khung bao cục bộ `X ∈ [-12.50, +12.50]` (`25.00 m`), `Y ∈ [0.00, 28.97]`, `Z ∈ [-12.00, +12.00]` (`24.00 m`); cách tim `PATH_MAIN_SPINE` `4.84 m` (**`1.84 m`** tới mép đường), cách `PLAZA_PAVILION_WEST` **`14.20 m`**, `PLAZA_PAVILION_EAST` **`16.80 m`**, cách vòng người đi dạo `Human` tối thiểu **`6.34 m`**, cách cây `PARK_TREES` tối thiểu **`29.20 m`**.
+   - **Quần thể Angkor:** `3 234` đỉnh, `2 228` mặt (`0` pháp tuyến lỗi/NaN), khung bao thế giới `X ∈ [-198.00, -172.00]` (`26.00 m`), `Y ∈ [0.00, 15.00]`, `Z ∈ [-267.00, -241.00]` (`26.00 m`) nằm trọn trên sân sao `27.8 × 27.8 m`; cách tim đường cong Bézier Monorail **`7.15 m`**, cách `PATH_LAKESIDE_WEST` `13.10 m` (**`11.60 m`** tới mép đường), cách `PATH_WEST_SPINE` **`17.92 m`**, cách người đi dạo `Human` **`11.45 m`**, cách cây gần nhất **`12.00 m`**.
 
 ---
 
