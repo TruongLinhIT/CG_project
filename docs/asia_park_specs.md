@@ -2,7 +2,7 @@
 
 > Tài liệu phục vụ chuẩn hóa bố cục và tỷ lệ dự án **Mô phỏng 3D Công viên Châu Á (Asia Park / Da Nang Downtown)**.
 > **Mốc hiện trạng mô hình:** Khoảng **năm 2019** (`SNAPSHOT_YEAR = 2019` — thời điểm công viên còn nguyên Tháp Đồng Hồ tại quảng trường trung tâm, đầy đủ các trò chơi phía Tây và khu vực nửa phía Đông ranh giới là nền cỏ đơn giản nơi tuyến Monorail chạy qua).
-> Cập nhật: 2026-11-22 (đã cập nhật 5 quyết định duyệt kế hoạch 3 đợt & hoàn thành Đợt 1).
+> Cập nhật: 2026-11-24 (hoàn tất kiểm toán 18 ảnh trong `docs/img/ref/`, chốt Phương án 1 `SNAPSHOT_YEAR = 2019`, kiểm chứng Wayback 2019, tách Đợt 8c & lập kế hoạch Đợt 8a/8b chờ duyệt).
 
 ## 0. Quy tắc dữ liệu & thang tin cậy
 
@@ -254,7 +254,7 @@ Vùng bao khép kín trên [`layout_overlay.png`](img/layout_overlay.png) (nét 
    - Tốc độ góc mặc định tuân thủ đúng thực tế `15 phút/vòng` (`0.4°/s`). Vì tốc độ thật quay rất chậm khi thuyết trình đồ án trực tiếp, mô phỏng cung cấp phím tắt **`[V]`** (và mục menu chuột phải) để bật/tắt chế độ tua nhanh trình diễn **`×5` (`2.0°/s`)**.
 6. **Phạm vi cảnh quan & các trò chơi phụ trợ:**
    - Mặt nền công viên được giản lược thành mặt phẳng cỏ một màu theo đúng biên đa giác `~36.1 ha`, kết hợp hồ nước phía Bắc, dải Sông Hàn, 3 trục đường bao quanh và hệ thống lối đi phẳng nâng cao `3.5–4 cm` (không dựng cây cối hay tiểu cảnh trang trí).
-   - Ba mô hình trò chơi phụ trợ từ nhánh thành viên nhóm (`Playground`, `BumperCars`, `PirateShip`) và các nhân vật đi bộ (`Human`) được giữ nguyên hình học & animation ở khu vực sân chơi trung tâm để phục vụ chấm điểm hoạt ảnh phân cấp của nhóm.
+   - Ba mô hình trò chơi phụ trợ từ nhánh thành viên nhóm (`Playground`, `BumperCars`, `PirateShip`) và các nhân vật đi bộ (`Human`) được giữ nguyên hình học & animation ở khu vực sân chơi trung tâm để phục vụ chấm điểm hoạt ảnh phân cấp của nhóm. Cả 3 vị trí này đều gắn nhãn **`[Chưa xác minh]`** trên ảnh Wayback 2019; riêng **`PirateShip` (`src/rides/PirateShip.h`)** là trò thuyền lắc giữ nguyên từ PR #1, **KHÔNG phải** mô hình đại diện cho `The Flying Kirins` (`docs/img/ref/1795453378911_image.png`).
 
 ---
 
@@ -491,6 +491,111 @@ Theo yêu cầu điều chỉnh số 1 & 2, cả 5 hạng mục dưới đây đ
    - [`img/wave7_panorama_sunset.png`](img/wave7_panorama_sunset.png) — Ảnh toàn cảnh 1 (Góc cao Nam – Tây Nam lúc hoàng hôn, thấy rõ mặt đất mờ dần ra đường chân trời và màn hình sân khấu xanh dịu).
    - [`img/wave7_panorama_west_day.png`](img/wave7_panorama_west_day.png) — Ảnh toàn cảnh 2 (Góc cao khu Tây ban ngày với đường chân trời xanh dịu và toàn bộ công viên).
    - [`img/wave7_panorama_stage_sunwheel.png`](img/wave7_panorama_stage_sunwheel.png) *(kèm cận cảnh sân khấu [`img/wave7_stage_closeup.png`](img/wave7_stage_closeup.png))* — Ảnh toàn cảnh 3 (Trục Quảng trường Trung tâm nhìn về Sân khấu Sun Wheel có chữ `"ASIA PARK"` & biểu tượng vòng quay trên màn hình xanh dịu cùng đường chân trời phía Bắc).
+
+---
+
+## 13. Kiểm toán 18 ảnh tham chiếu (`docs/img/ref/`), kiểm chứng Wayback 2019 & Kế hoạch Đợt 8a/8b (Chốt Phương án 1)
+
+> **Trạng thái:** Đã chốt các quyết định 1–4 theo **Phương án 1 (`SNAPSHOT_YEAR = 2019`, nửa phía Đông giữ nguyên nền cỏ)**. Tài liệu này tổng hợp kết quả đối chiếu và đề xuất **Kế hoạch Đợt 8a/8b (chờ duyệt, chưa chỉnh sửa code `src/`)**; phần mở rộng nửa Đông tách riêng thành **Đợt 8c** (chưa thực hiện).
+
+### 13.1. Đánh giá bộ 18 ảnh `docs/img/ref/` & liệt kê mâu thuẫn số liệu bản vẽ
+
+Toàn bộ 18 ảnh PNG (`1024×572 px`) trong [`docs/img/ref/`](img/ref/) đều là ảnh **sinh bằng AI** mô phỏng tổng mặt bằng và bản vẽ kỹ thuật CAD. Do đó:
+- **Tổng mặt bằng [`1795453337010_image.png`](img/ref/1795453337010_image.png):** Chỉ mang tính minh họa tương quan phân khu, **không đúng tỷ lệ và không đúng hệ tọa độ WGS84** (lỗi văn bản `MASTEN PLAN`, `LEASNE`, `PANOA RESTAURANT`, `OANUDA VALLEY`, `PARADIBE FALL` / `PARADISE PALL`; trùng số hiệu `(2)`, `(3)`, `(8)`, `(12)` xuất hiện 2 lần, `(10)` xuất hiện 3 lần; đặt `VƯỜN TRÚC` 2 lần ở hai góc khác nhau; đánh `(1)` ở lối Tây trong khi `CỔNG THÀNH` phía Nam không số). Mọi tọa độ chuẩn vẫn lấy theo [`src/core/ParkLayout.h`](../src/core/ParkLayout.h).
+- **Quy tắc dùng 17 bản vẽ kỹ thuật:** Kích thước mặt bằng lấy theo **khung bao đo trên ảnh vệ tinh / số liệu đã xác minh trong tài liệu này**, còn **hình dáng kiến trúc và tỷ lệ chi tiết** mới lấy từ bản vẽ sau khi đã lọc bỏ các kích thước tự mâu thuẫn của AI.
+- **Liệt kê cụ thể mâu thuẫn trên bản vẽ Đền Angkor Wat ([`1795453359463_image.png`](img/ref/1795453359463_image.png)):**
+  1. **Mâu thuẫn chiều rộng (`X`):** Mặt đứng chính ghi `38.00 m` ở dải kích thước dưới nhưng ghi `36.00 m` ở dải trên; mặt đứng sau ghi `36.0 m`; mặt bằng tổng thể ghi `26.0 m` (nét mờ dễ đọc lẫn `36.0 m`) nhưng chuỗi phân đoạn trên lại cộng ra `39.0 m`; khung tên dọc ghi `36.0 m` (nét chữ mảnh dễ lẫn `96.0 m`).
+  2. **Mâu thuẫn chiều sâu (`Z`):** Khung tên ghi `24.0 m`; cạnh phải mặt bằng ghi `20–21 m`; mặt đứng bên ghi `30.0 m`.
+  3. **Mâu thuẫn chiều cao (`Y`):** Các mốc cao độ ghi tổng `+20.00 m` (nền `+4.00 m`, hành lang cột `+8.50 m`, 4 tháp góc `+14.50 m`, tháp tâm `+20.00 m`), nhưng chuỗi kích thước dọc hai bên mặt đứng lại cộng sai lên `26 m` / `31 m`.
+- **Các mâu thuẫn chính ở những bản vẽ liên quan Đợt 8a/8b khác:**
+  - **Tháp Đồng Hồ ([`1795453346086_image.png`](img/ref/1795453346086_image.png)):** Mặt đứng chính ghi đế `28.0 m` (chuỗi con `5+5+5 = 15 m`), mặt bằng ghi `550 m²` (`~23.5×23.5 m`) nhưng hai cạnh mặt bằng chỉ ghi `12.5×12.0/13.0 m`; chiều cao ghi `29.0 m` ở mặt đứng chính nhưng chuỗi con cộng ra `44.2 m` và mặt đứng bên/mặt cắt ghi `20.0 m` / `19.0–28.0 m`; mốc cao độ lẫn `0.00 / -6.00 / 0.00 / 1.00 / 5.0 / 0.0` (chữ `FROT ELEVATION`, `OROUND FLOOR PLAN`, `21/18/2018`). Khung bao chuẩn lấy từ ảnh vệ tinh Wayback 2019 ở Mục 5.5 là **`~25 × 24 m`**, cao **`~29 m`**.
+  - **Festival Carousel ([`1795453381958_image.png`](img/ref/1795453381958_image.png)):** Vẽ đu quay Venice 2 tầng `ĐK 24.0 m`, cao `14.0 m`, nhưng chuỗi dọc cộng `0.9+14+1.5+6 = 22.4 m`, chuỗi mặt bằng ghi `3.5+4.5 = 24.0 m`. Theo Quyết định 2, giữ tâm & đường kính vệ tinh **`~17.0 m`** và thu hình dạng từ bản vẽ theo tỷ lệ **`~0.71`** (cao **`~10.0 m`**).
+
+### 13.2. Bảng kiểm chứng tồn tại trên ảnh Wayback 2019 (Mốc `SNAPSHOT_YEAR = 2019`)
+
+> **Minh bạch file ảnh trong repo:** Các file tile thô `wb19_south.png`, `wb19_mid.png`, `wb19_north.png`, `wb2019_z18_park`, `wb2019_east`, `z19_south_plaza.png` được dẫn ở các mục trước không lưu rời trong thư mục repo. Trên đĩa tại `docs/img/`, ảnh vệ tinh **Esri Wayback 2019 (`release 4756`, 2019-12-12)** hiện diện trực tiếp làm nền của các ảnh ghép chuẩn hóa:
+> - [`img/layout_overlay.png`](img/layout_overlay.png) (và [`img/wave3_vs_overlay.png`](img/wave3_vs_overlay.png), [`img/wave4_topdown_overlay.png`](img/wave4_topdown_overlay.png), [`img/wave5a_topdown_overlay.png`](img/wave5a_topdown_overlay.png), [`img/wave5b_topdown_overlay.png`](img/wave5b_topdown_overlay.png), [`img/wave6_topdown_overlay.png`](img/wave6_topdown_overlay.png))
+> - [`img/step0_wave4_6_candidates.png`](img/step0_wave4_6_candidates.png) (phủ vùng khu Tây & trục Nam–Bắc 2019 với khung ứng viên `#1..#19`).
+
+| Công trình / Hạng mục | Bằng chứng Wayback 2019 có trong repo & đối chứng thực địa | Trạng thái 2019 | Ghi chú kỹ thuật |
+|:---|:---|:---|:---|
+| **Sun Wheel** (`(0, 65, -38)`) | Thấy rõ 4 móng chữ A + vành tròn trên nền Wayback 2019 của [`layout_overlay.png`](img/layout_overlay.png) & [`step0_wave4_6_candidates.png`](img/step0_wave4_6_candidates.png) + Sun World / VnExpress / Wiki. | **Có trong 2019 (Đã xác minh)** | Không sửa `SunWheel.h`. |
+| **Thủy đình & Hồ Bắc** (`(-5.4, 0, -107.7)`) | Thấy rõ chòi bát giác trên mặt nước, cầu gỗ nối bờ Nam và bờ kè hồ trên [`layout_overlay.png`](img/layout_overlay.png) & [`step0_wave4_6_candidates.png`](img/step0_wave4_6_candidates.png). | **Có trong 2019 (Đã ước lượng từ ảnh vệ tinh)** | Đã đặt đúng Đợt 1. |
+| **Cổng Ngọ Môn + 2 cánh tường thành + 2 hồ sen** (`(+16.1, 0, +139.1)`) | Thấy rõ toàn bộ cụm cổng 3 cửa, 2 cánh tường thành và 2 hồ sen trên [`layout_overlay.png`](img/layout_overlay.png) & [`step0_wave4_6_candidates.png`](img/step0_wave4_6_candidates.png) + ảnh Commons `49356303688`. | **Có trong 2019 (Đã ước lượng/xác minh)** | Code `NgoMonGate.h` tốt hơn BP2; giữ nguyên. |
+| **Tháp Đồng Hồ Trung Tâm** (`(+10.7, 0, +61.6)`) | Thấy nguyên vẹn **khối đế ~25×24 m + mái tháp + bóng đổ dài hướng NNW** giữa Quảng trường Trung tâm trên [`layout_overlay.png`](img/layout_overlay.png) & [`step0_wave4_6_candidates.png`](img/step0_wave4_6_candidates.png) (khớp ghi chú `wb19_south.png`; đã bị tháo dỡ trên ảnh 2022 và [`sat_grid.png`](img/sat_grid.png) 2026). | **Có trong 2019 (Xác nhận trên Wayback 2019)** | Code hiện tại mới là 3 hộp `8.4→6.4m`; nâng cấp lên đế `~25×24m`, cao `~29m` ở **Đợt 8a**. |
+| **Golden Sky Tower** (`(-260.0, 0, -54.6)`) | Thấy rõ chân tròn + bóng tháp trên [`layout_overlay.png`](img/layout_overlay.png) & [`step0_wave4_6_candidates.png`](img/step0_wave4_6_candidates.png) + ảnh Commons `49358003906`, `49374882021`. | **Có trong 2019 (Đã xác minh cao 47m / vị trí từ Wayback 2019)** | — |
+| **Queen Cobra** (`(-255.0, 0, -358.0)`) | Thấy rõ bán đảo đường ray thực tế ở góc Tây-Bắc trên [`layout_overlay.png`](img/layout_overlay.png) & [`step0_wave4_6_candidates.png`](img/step0_wave4_6_candidates.png) + RCDB `#14194`. | **Có trong 2019 (Đã xác minh)** | Không sửa `RollerCoaster.h`. |
+| **Tuyến Monorail + Ga Nam + Ga Nepal** | Dầm bê tông toàn tuyến (~1.87 km, kể cả đoạn vượt hồ & nhánh Đông) + 2 nhà ga thấy rõ trên [`layout_overlay.png`](img/layout_overlay.png) + Commons `49370578306`, `49373368582`, `49374702231`. | **Có trong 2019 (Đã ước lượng/xác minh)** | Không dời waypoint. |
+| **Garuda Valley** (`(-124.1, 0, +155.7)`) | Thấy rõ vòng ray + nhà ga dài trong khung `#1 (34×26m)` trên [`step0_wave4_6_candidates.png`](img/step0_wave4_6_candidates.png) + RCDB `#12676` & Commons `49374160882`, `49356303773`. | **Có trong 2019 (Đã xác minh tên/vị trí; hình dạng đơn giản hóa)** | — |
+| **Port of Sky Treasure** (`(-224.0, 0, +22.0)`) | Thấy rõ cụm ray chữ S/T và nhà ga trong khung `#2 (36×56m)` trên [`step0_wave4_6_candidates.png`](img/step0_wave4_6_candidates.png) + RCDB `#13603` & Commons `49358003766`. | **Có trong 2019 (Đã xác minh tên/vị trí; hình dạng đơn giản hóa)** | — |
+| **Tòa nhà đá Paradise Fall (`#3`) & Ray số 8 (`#4`)** | Tòa nhà `#3 (-179.8, -91.1)` thấy trên [`step0_wave4_6_candidates.png`](img/step0_wave4_6_candidates.png) + RCDB `#15548` & Commons `49358210737`; vòng ray `#4 (-199.0, -119.9)` thấy hình ray trên ảnh Wayback 2019 nhưng không có ghim RCDB riêng. | `#3`: **Có trong 2019 (Đã xác minh)**<br>`#4`: **Thấy vệt ray trên Wayback 2019 — `[Chưa xác minh]` tên riêng** | — |
+| **Highway Boat (`#5`)** (`(-176.0, 0, -214.0)`) | Thấy rõ cụm ray trong khung `#5` trên [`step0_wave4_6_candidates.png`](img/step0_wave4_6_candidates.png) + RCDB `#15549` & Commons `49374702231`. | **Có trong 2019 (Đã xác minh tên/vị trí; hình dạng đơn giản hóa)** | — |
+| **Quảng trường Ngôi sao & Cụm tháp Angkor (`#19`)** (`(-185.0, 0, -254.0)`) | Trên [`step0_wave4_6_candidates.png`](img/step0_wave4_6_candidates.png) **thấy rõ quảng trường lát ngôi sao 8 cánh (`~24–28 m`) và các khối kiến trúc/tháp tròn kề cận**; tuy nhiên chưa có ảnh mặt đất EXIF GPS hay nguồn văn bản xác nhận tên gọi chính thức `"Đền Angkor Wat"` và chi tiết bản vẽ BP5. | **`[Chưa xác minh]`** *(khung sân sao `28×28m` thấy trên Wayback 2019; tên gọi/kiến trúc đền chưa xác minh)* | Nâng cấp kiến trúc theo BP5 nằm gọn trong khung bao `28×28m` ở **Đợt 8a**. |
+| **Festival Carousel** (`(-159.4, 0, +102.5)`) | Trên [`layout_overlay.png`](img/layout_overlay.png) & [`step0_wave4_6_candidates.png`](img/step0_wave4_6_candidates.png) thấy rõ **mái nón kẻ sọc ĐK `~16.5 m`**, nhưng không có ảnh mặt đất biển tên xác nhận là Festival Carousel. | **`[Chưa xác minh]`** | Giữ tâm & `ĐK ~17 m`, thu hình dạng BP10 tỷ lệ `~0.71` (cao `~10 m`) ở **Đợt 8b**. |
+| **Các cụm nhà mái ngói & đu quay Đợt 5B** (`#6..#10, #12..#15, #18`) | Có vệt mái/đĩa tròn tương ứng trên [`step0_wave4_6_candidates.png`](img/step0_wave4_6_candidates.png) nhưng chưa có ảnh mặt đất định danh từng hạng mục. | **`[Chưa xác minh]`** | Giữ nguyên theo Đợt 5B. |
+| **3 trò chơi PR #1 (`Playground #11`, `BumperCars #16`, `PirateShip #17`)** | Trên [`step0_wave4_6_candidates.png`](img/step0_wave4_6_candidates.png), các tọa độ này không có ảnh mặt đất chứng minh khớp 3 trò chơi này trong thực tế 2019 (tọa độ `(-172,-2)` trên ảnh là sân/cây xanh). | **`[Chưa xác minh]`** | Giữ nguyên 3 file không sửa. **`PirateShip` KHÔNG phải đại diện của `The Flying Kirins`.** |
+| **8 hạng mục nửa Đông / Quy hoạch mới** (`Panda`, `Symphony of River`, `Nhà hát Âu Cơ`, `Dino Island`, `Vườn Trúc`, `Merlion`, `Dragon Boat`, `The Flying Kirins`) | Trên [`layout_overlay.png`](img/layout_overlay.png) (Wayback 2019), nửa phía Đông (`X > +65 m`, ngoài dầm Monorail) chỉ là **nền cỏ trống và đường đất**, không có công trình nào trong 8 hạng mục này (ví dụ `Symphony of River` ra mắt năm 2024). | **Không tồn tại trong hiện trạng 2019** | Tách sang **Đợt 8c** (`"quy hoạch tổng thể, không phải hiện trạng 2019"`), **chưa làm**. |
+
+### 13.3. Quy hoạch riêng Đợt 8c & Ghi chú `PirateShip` vs. `The Flying Kirins`
+
+- **Ghi chú `The Flying Kirins` vs. `PirateShip`:** Theo Quyết định 3, **không** dựng `The Flying Kirins` ([`1795453378911_image.png`](img/ref/1795453378911_image.png)) ở Đợt 8a/8b. Mô hình [`PirateShip.h`](../src/rides/PirateShip.h) (`(-172.0, 0, -2.0)`) của thành viên nhóm được giữ nguyên 100% và **chỉ là hạng mục mô phỏng phục vụ hoạt ảnh phân cấp trong đồ án, không phải đại diện cho `The Flying Kirins`**.
+- **Phạm vi Đợt 8c (tách riêng, chưa thực hiện):** Khi triển khai ở giai đoạn sau, 8 công trình trong bộ ref gồm **Nhà hàng Panda** (`1795453362382`), **Sân khấu nổi Symphony of River** (`1795453392187`), **Nhà hát Âu Cơ** (`1795453395295`), **Đảo Khủng Long / Dino Island** (`1795453400510`), **Vườn Trúc / Bamboo Garden** (`1795453403998`), **Tượng & Hồ Merlion** (`1795453365678`), **Thuyền Rồng / Dragon Boat** (`1795453369127`) và **The Flying Kirins** (`1795453378911`) sẽ được gom vào một nhánh/chế độ tách biệt có **phím bật/tắt**, mặc định TẮT ở trạng thái `SNAPSHOT_YEAR = 2019`, và gắn nhãn hiển thị rõ **`"quy hoạch tổng thể, không phải hiện trạng 2019"`**.
+
+### 13.4. Kiểm tra va chạm hình học cho Đợt 8a & 8b (đã tính trực tiếp trên `ParkLayout.h` & đường cong `BezierTrack.h`)
+
+1. **Tháp Đồng Hồ (`CLOCK_TOWER_POS = (+10.7, 0.0, +61.6)`) — khung bao `25.0 × 24.0 m`, cao `~29.0 m`:**
+   - **Với 2 nhà chòi quảng trường:** Cách mép Đông `PLAZA_PAVILION_WEST_POS (-24.0, 0, +65.0)` (`16×9 m`, mép Đông `X = -16.0`) là **`14.20 m`**; cách mép Tây `PLAZA_PAVILION_EAST_POS (+48.0, 0, +65.0)` (`16×9 m`, mép Tây `X = +40.0`) là **`16.80 m`**.
+   - **Với `PATH_MAIN_SPINE` (rộng `6.0 m`, nửa rộng `3.0 m`):**
+     - Đoạn `[2→3]` (`(16.1, 94.8) → (30.0, 74.9)`): cách khung `25×24 m` là `6.32 m` tới tim (**`3.32 m`** tới mép đường).
+     - Đoạn `[3→4]` (`(30.0, 74.9) → (30.0, 48.3)`): cách khung `25×24 m` là `6.80 m` tới tim (**`3.80 m`** tới mép đường).
+     - Đoạn `[4→5]` (`(30.0, 48.3) → (0.0, 28.4)`): điểm gần nhất tại góc Đông-Bắc khối đế `(23.2, 49.6)` cách tim đường `4.84 m` (**`1.84 m`** tới mép đường).
+   - **Với tiểu cảnh & người đi bộ (`Human.h`):** Cách bồn hoa gần nhất `PARK_FLOWER_PLANTER_POS[6] (-8.0, 42.0)` là **`9.81 m`**; cách 3 vòng tuần hoàn người đi dạo gần quảng trường (`(28, 34) R=6.5`, `(-6, 38) R=6.0`, `(16.1, 92) R=7.5`) lần lượt **`9.82 m`**, **`6.34 m`**, **`10.90 m`**; `0` cây xanh hay trụ đèn bị đè.
+   - **Ràng buộc hình học Đợt 8a:** Toàn bộ **4 cầu thang trục + bệ đá giật cấp phải nằm gọn hoàn toàn bên trong `25.0 × 24.0 m`** (lõi bệ chính `~19 × 18 m`, 4 cầu thang nhô ra tới biên `±12.5 m` theo X và `±12.0 m` theo Z; có thể vát/giật cấp góc bệ để tăng thêm khoảng thoáng tới `PATH_MAIN_SPINE[4→5]`).
+2. **Quần thể Đền & Quảng trường Angkor (`ANGKOR_STAR_PLAZA_POS = (-185.0, 0.0, -254.0)`) — khung bao vệ tinh `28.0 × 28.0 m` (`#19`):**
+   - **Với đường cong Bézier Monorail (KHÔNG dời bất kỳ waypoint nào):** Với khung bao `28.0 × 28.0 m` (`X ∈ [-199, -171], Z ∈ [-268, -240]`), khoảng cách ngang nhỏ nhất từ AABB đến tim đường cong Bézier `MONORAIL_WAYPOINTS` (`seg 9` quanh `(-200.1, 14.0, -273.9)`) là **`5.95 m`** (`~4.95 m` tới mép dầm/tàu); nếu thu lõi khối đền + cầu thang về **`26.0 × 26.0 m`** trên nền sân sao `28×28 m` khoảng cách này tăng lên **`7.08 m`** (hoặc **`8.23 m`** với `24.0 × 24.0 m`).
+   - **Với lối đi, công trình lân cận & tiểu cảnh:** Cách mép `PATH_LAKESIDE_WEST[4→5]` **`10.36 m`** (`11.86 m` tới tim); cách `PATH_WEST_SPINE[11]` (`(-214, -275.9)`) **`> 14 m`**; cách `HIGHWAY_BOAT_CENTER (-176, -214)` **`13.0 m`**; cách `ANGKOR_LAKESIDE_HALL_POS (-138, -242)` **`~21.0 m`**; cách vòng đi dạo `Human` (`(-212, -274) R=4.2`) **`10.12 m`**; cách `tree[121]` **`11.00 m`**; cách `benches[15]` **`9.22 m`**.
+   - **Ràng buộc hình học Đợt 8a:** Toàn bộ kiến trúc đền giật cấp + hành lang cột + 4 cầu thang chữ thập + 5 tháp búp sen nằm trọn trong khung `26–28 × 26–28 m` (lõi khối đền `~20 × 20 m`, 4 cầu thang nhô trong giới hạn `±13..±14 m`), tổng cao `~15.0 m` (thu tỷ lệ `~0.74` so với `36–38 m` trong bản vẽ, đồng bộ tỷ lệ với mặt bằng vệ tinh `28×28 m`).
+3. **Festival Carousel (`CAROUSEL_POS_UNVERIFIED = (-159.4, 0.0, +102.5)`) — giữ `ĐK ~17.0 m` (`platformRadius = 8.5 m`), thu tỷ lệ `~0.71`, cao `~10.0 m`:**
+   - **Với `PATH_WEST_SPINE`:** Đường chạy phía Bắc tại `Z = 86.5 m` (rộng `5.0 m` → mép Nam `Z = 89.0 m`). Vành Bắc của đu quay `R = 8.5 m` ở `Z = 94.0 m` → khe hở thoáng **`5.00 m`** (không sửa `PATH_WEST_SPINE`, không dời tâm).
+   - **Với Monorail:** Khoảng cách tới đường cong Bézier Monorail (`seg 2→3`) là **`25.10 m`** từ tâm (**`16.60 m`** từ vành ngoài `R = 8.5 m`).
+   - **Ràng buộc hình học Đợt 8b:** Toàn bộ bệ bậc, hàng rào bảo vệ, 2 tầng sàn, cầu thang lên tầng 2 và chi tiết phụ phải thu gọn trong bán kính `<= 8.8 m` (`ĐK <= 17.6 m`) để bảo toàn khe thoáng `>= 4.7 m` tới `PATH_WEST_SPINE`.
+
+### 13.5. Kế hoạch Đợt 8a & 8b (Nộp chờ duyệt — chưa chỉnh sửa mã nguồn)
+
+#### Đợt 8a — Nâng cấp Tháp Đồng Hồ & Quần thể Angkor (theo Quyết định 4)
+1. **Tái cấu trúc helper dựng lưới dùng chung (`src/geometry/MeshModel.h` hoặc `src/geometry/GeometryBuilders.h` mới):**
+   - Gom `appendBoxByYRange` và `appendRotatedTranslatedMesh` (hiện đang trùng lặp giữa `NgoMonGate.h` và `ParkArchitecture.h`) về 1 nơi dùng chung, bổ sung helper `appendStaircase` (bậc thang + tay vịn liền khối) và `appendOctagonalTieredTower` (thân tháp bát giác thu nhỏ dần kèm mái đao/mái bát giác) — tuân thủ nghiêm **không dùng `glutSolid*`**, chuẩn hóa pháp tuyến `computeNormals()`.
+2. **Nâng cấp Tháp Đồng Hồ Trung Tâm (`src/rides/NgoMonGate.h` — `buildClockTowerGeometry`):**
+   - Vị trí giữ nguyên `ParkLayout::CLOCK_TOWER_POS (+10.7, 0.0, +61.6)`, `clockTowerScale = 1.00f`.
+   - Hình học mới bám BP3 (`1795453346086_image.png`) & khung bao vệ tinh Wayback 2019:
+     - **Tầng đế đá giật cấp (`25.0 × 24.0 m` toàn cụm kể cả 4 cầu thang):** bệ dưới `~19.5 × 18.5 m` cao `1.6 m`, bệ thượng `~15.5 × 15.0 m` cao tới `3.4 m`, viền lan can đá bao quanh sân thượng bệ, **4 cầu thang trục (Bắc, Nam, Đông, Tây)** dẫn lên sân bệ và dừng đúng trong giới hạn `±12.5 m (X)` × `±12.0 m (Z)`.
+     - **Thân tháp bát giác 4 tầng, 5 lớp mái:** dựng thân tháp bát giác thu nhỏ theo từng tầng từ mặt bệ `y = 3.4 m` lên đỉnh chóp **`~29.0 m`**, mỗi tầng có gờ cổ diềm và mái ngói cong bát giác liền khối, tầng mặt đồng hồ gắn **4 mặt đồng hồ phát sáng emissive** ban đêm (giữ nguyên cơ chế không thêm `GL_LIGHTi`).
+     - Biên dịch toàn bộ hình học tĩnh vào `clockSmoothList` / `clockFlatList` để không làm giảm FPS.
+3. **Nâng cấp Quần thể Đền & Quảng trường Angkor (`src/rides/ParkArchitecture.h` — `appendAngkorStarPlazaTowers` & `drawTiledCentralPlaza`):**
+   - Vị trí giữ nguyên `ParkLayout::ANGKOR_STAR_PLAZA_POS (-185.0, 0.0, -254.0)`. Giữ nhãn **`[Chưa xác minh tên/kiến trúc chính thức; khung sao 28×28m thấy trên Wayback 2019]`**.
+   - Giữ nền quảng trường lát sao 8 cánh phía ngoài/dưới (`28.0 × 28.0 m`), bên trên dựng tổ hợp đền giật cấp theo hình dạng BP5 (`1795453359463_image.png`) thu gọn vừa khung `26.0 × 26.0 m` (toàn khối + cầu thang nằm lọt trong `28.0 × 28.0 m`):
+     - **Nền đá giật cấp 2 tầng** (`~20 × 20 m` → `~15 × 15 m`, cao tổng `~3.0 m`) + **4 cầu thang chữ thập** vươn tới `±13.0 m` (cách tim Monorail `>= 5.95 m`).
+     - **Hành lang cột bao quanh** (`colonnade gallery` cao tới `~6.3 m`) bằng cột đá + xà mái đá liền khối.
+     - **5 tháp búp sen (Prang Khmer)** nhiều tầng thuôn nhọn: 4 tháp góc cao `~10.8 m` và 1 tháp trung tâm cao `~15.0 m` gắn chóp vàng.
+     - Biên dịch toàn bộ vào `archSmoothList` / `archFlatList`.
+4. **Kiểm tra & nghiệm thu Đợt 8a:**
+   - Biên dịch không lỗi/cảnh báo với `g++ -std=c++17 -O2 -Wall -Wextra`; script kiểm tra 0 điểm giao cắt với `PLAZA_PAVILION_WEST/EAST`, `PATH_MAIN_SPINE`, `PATH_LAKESIDE_WEST`, `MONORAIL_WAYPOINTS` và `Human`; chụp ảnh cận cảnh + toàn cảnh + đối chiếu FPS (`>= 100 FPS` ở `1280×768`).
+
+#### Đợt 8b — Nâng cấp Carousel 2 tầng tỷ lệ ~0.71 & Tối ưu hiệu năng (theo Quyết định 2)
+1. **Nâng cấp Festival Carousel (`src/rides/Carousel.h`) — giữ `(-159.4, 0.0, +102.5)`, `ĐK ~17 m` (`R = 8.5 m`), cao `~10.0 m`:**
+   - **Giữ nguyên hoàn toàn:** `position = ParkLayout::CAROUSEL_POS_UNVERIFIED`, `platformRadius = 8.5f`, không sửa `PATH_WEST_SPINE`, không đụng Monorail, giữ ghi chú `[Chưa xác minh]`.
+   - **Cấu trúc mới lấy theo bản vẽ BP10 (`1795453381958_image.png`) thu tỷ lệ `~0.71` (`17 / 24`):**
+     - **Phần tĩnh ngoài (`R <= 8.8 m`):** Bệ bậc tròn ngoài, hàng rào bảo vệ thấp chia lối vào và **quầy vé nhỏ** đặt sát rìa Nam-Đông (giữ toàn bộ trong `R <= 8.8 m` để bảo toàn khe `>= 4.7 m` tới `PATH_WEST_SPINE`).
+     - **Phần quay 2 tầng (biến đổi phân cấp cha → con giữ đúng nguyên lý Chương 4):**
+       - Sàn tầng 1 (`R = 8.5 m`, `y = 0..0.55 m`) + trụ lõi trung tâm trang trí (`R ≈ 1.6 m`) + **2 cầu thang cong đối xứng** nối từ sàn tầng 1 lên **sàn tầng 2 (`R ≈ 6.2 m`, `y ≈ 4.1 m`)** kèm lan can tầng 2.
+       - **Tầng 1:** `12` ngựa gỗ chia 2 vòng quay + cột đồng thẳng đứng, nhấp nhô sin `y(t)`.
+       - **Tầng 2:** `8` ngựa gỗ vòng nhỏ hơn (`R ≈ 4.5 m`) di chuyển cùng sàn tầng 2 + chuyển động nhấp nhô ngược pha.
+       - **Hệ mái 2 tầng kiểu Venice (`y ≈ 7.2..10.0 m`):** Cổ diềm trang trí + mái nón đa múi/sọc tầng 2 (`ParametricShapes`) + vương miện/đỉnh cầu vương miện chạm mốc **`~10.0 m`**, kèm dải đèn LED `GL_EMISSION` quanh cả 2 vành diềm mái tầng 1 và tầng 2 khi trời tối/hoàng hôn.
+     - Biên dịch các phần tĩnh của mái/trụ/hàng rào vào **OpenGL Display List** cục bộ trong `Carousel` để bù chi phí đa giác khi lên 2 tầng.
+2. **Tối ưu hiệu năng bổ sung & Bảo toàn quy tắc nhóm:**
+   - Cache phần khung toa xe trong `MiniCoaster.h` (`drawMovingTrain`) và mặt lưới caro của `ParkArchitecture::drawTiledCentralPlaza()` vào Display List để đảm bảo FPS toàn cảnh vẫn `>= 100 FPS` sau khi thêm chi tiết Carousel 2 tầng, Tháp Đồng Hồ & Angkor.
+   - **Tuyệt đối không chỉnh sửa** `SunWheel.h`, `RollerCoaster.h`, `Playground.h`, `BumperCars.h`, `PirateShip.h`.
+3. *(Mục hỏi thêm khi duyệt 8a/8b — chưa tự đưa vào nếu chưa được đồng ý):* Có giữ nguyên hay muốn nâng cấp chi tiết hình dáng (trong cùng khung bao vệ tinh) cho 3 công trình đã xác minh 2019 là **Golden Sky Tower** (chóp hoa sen + sàn `+4.2m`), **Garuda Valley** (mái yên ngựa Minangkabau) và **Port of Sky Treasure** (nhà ga bến cảng gỗ) ở cuối Đợt 8b không?
 
 ---
 
