@@ -86,6 +86,7 @@ private:
     mutable GLuint archSmoothList   = 0;
     mutable GLuint archFlatList     = 0;
     mutable GLuint emissiveLampList = 0;
+    mutable GLuint groundPlazaList_ = 0;
     mutable GLuint roundRideSpinLists[4] = { 0, 0, 0, 0 };
 
     void ensureDisplayLists() const {
@@ -1001,9 +1002,25 @@ private:
     }
 
     /**
-     * @brief Vẽ mặt nền Quảng trường Trung tâm lát gạch chia ô phẳng tại y = 0.028m
+     * @brief Vẽ mặt nền Quảng trường Trung tâm lát gạch chia ô phẳng tại y = 0.028m (Đợt 8b: cache vào Display List)
      */
     void drawTiledCentralPlaza() const {
+        if (groundPlazaList_ == 0) {
+            groundPlazaList_ = glGenLists(1);
+            if (groundPlazaList_ != 0) {
+                glNewList(groundPlazaList_, GL_COMPILE);
+                compileTiledCentralPlazaGeometry();
+                glEndList();
+            }
+        }
+        if (groundPlazaList_ != 0) {
+            glCallList(groundPlazaList_);
+        } else {
+            compileTiledCentralPlazaGeometry();
+        }
+    }
+
+    void compileTiledCentralPlazaGeometry() const {
         const float cx = ParkLayout::CENTRAL_PLAZA_CENTER.x;
         const float cz = ParkLayout::CENTRAL_PLAZA_CENTER.z;
         const float hw = ParkLayout::CENTRAL_PLAZA_WIDTH * 0.5f;

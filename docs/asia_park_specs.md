@@ -2,7 +2,7 @@
 
 > Tài liệu phục vụ chuẩn hóa bố cục và tỷ lệ dự án **Mô phỏng 3D Công viên Châu Á (Asia Park / Da Nang Downtown)**.
 > **Mốc hiện trạng mô hình:** Khoảng **năm 2019** (`SNAPSHOT_YEAR = 2019` — thời điểm công viên còn nguyên Tháp Đồng Hồ tại quảng trường trung tâm, đầy đủ các trò chơi phía Tây và khu vực nửa phía Đông ranh giới là nền cỏ đơn giản nơi tuyến Monorail chạy qua).
-> Cập nhật: 2026-11-24 (hoàn tất kiểm toán 18 ảnh trong `docs/img/ref/`, chốt Phương án 1 `SNAPSHOT_YEAR = 2019`, kiểm chứng Wayback 2019, tách Đợt 8c & **hoàn thành Đợt 8a**, Đợt 8b chờ duyệt).
+> Cập nhật: 2026-11-24 (hoàn tất kiểm toán 18 ảnh trong `docs/img/ref/`, chốt Phương án 1 `SNAPSHOT_YEAR = 2019`, kiểm chứng Wayback 2019, tách Đợt 8c & **hoàn thành Đợt 8a + Đợt 8b**).
 
 ## 0. Quy tắc dữ liệu & thang tin cậy
 
@@ -496,7 +496,7 @@ Theo yêu cầu điều chỉnh số 1 & 2, cả 5 hạng mục dưới đây đ
 
 ## 13. Kiểm toán 18 ảnh tham chiếu (`docs/img/ref/`), kiểm chứng Wayback 2019 & Kế hoạch Đợt 8a/8b (Chốt Phương án 1)
 
-> **Trạng thái:** Đã chốt các quyết định 1–4 theo **Phương án 1 (`SNAPSHOT_YEAR = 2019`, nửa phía Đông giữ nguyên nền cỏ)**. **Đợt 8a đã triển khai và kiểm chứng hình học**; **Đợt 8b đang chờ duyệt**; phần mở rộng nửa Đông tách riêng thành **Đợt 8c** (chưa thực hiện).
+> **Trạng thái:** Đã chốt các quyết định 1–4 theo **Phương án 1 (`SNAPSHOT_YEAR = 2019`, nửa phía Đông giữ nguyên nền cỏ)**. **Đợt 8a và Đợt 8b đã triển khai và kiểm chứng hình học**; phần mở rộng nửa Đông tách riêng thành **Đợt 8c** (chưa thực hiện).
 
 ### 13.1. Đánh giá bộ 18 ảnh `docs/img/ref/` & liệt kê mâu thuẫn số liệu bản vẽ
 
@@ -607,6 +607,22 @@ Toàn bộ 18 ảnh PNG (`1024×572 px`) trong [`docs/img/ref/`](img/ref/) đề
 2. **Kết quả kiểm tra hình học & va chạm 3D (đo trên đỉnh lưới thật sau chỉnh sửa cuối):**
    - **Tháp Đồng Hồ:** `2 545` đỉnh, `1 035` mặt (`0` pháp tuyến lỗi/NaN), khung bao cục bộ `X ∈ [-12.50, +12.50]` (`25.00 m`), `Y ∈ [0.00, 28.97]`, `Z ∈ [-12.00, +12.00]` (`24.00 m`); cách tim `PATH_MAIN_SPINE` `4.84 m` (**`1.84 m`** tới mép đường), cách `PLAZA_PAVILION_WEST` **`14.20 m`**, `PLAZA_PAVILION_EAST` **`16.80 m`**, cách vòng người đi dạo `Human` tối thiểu **`6.34 m`**, cách cây `PARK_TREES` tối thiểu **`29.20 m`**.
    - **Quần thể Angkor:** `3 234` đỉnh, `2 228` mặt (`0` pháp tuyến lỗi/NaN), khung bao thế giới `X ∈ [-198.00, -172.00]` (`26.00 m`), `Y ∈ [0.00, 15.00]`, `Z ∈ [-267.00, -241.00]` (`26.00 m`) nằm trọn trên sân sao `27.8 × 27.8 m`; cách tim đường cong Bézier Monorail **`7.15 m`**, cách `PATH_LAKESIDE_WEST` `13.10 m` (**`11.60 m`** tới mép đường), cách `PATH_WEST_SPINE` **`17.92 m`**, cách người đi dạo `Human` **`11.45 m`**, cách cây gần nhất **`12.00 m`**.
+
+### 13.7. Kết quả thực hiện & kiểm chứng Đợt 8b (Đã hoàn thành)
+
+1. **Nâng cấp Festival Carousel 2 tầng kiểu Venice tỷ lệ `~0.71` ([`src/rides/Carousel.h`](../src/rides/Carousel.h)):**
+   - Giữ nguyên vị trí `CAROUSEL_POS_UNVERIFIED (-159.4, 0.0, +102.5)`, `platformRadius = 8.5f` (`ĐK 17.0 m`), nâng tổng chiều cao lên **`~10.0 m`** (`canopyHeight = 10.0f` — thu tỷ lệ `~0.71` từ bản vẽ BP10 `Ø24 m × 14 m`):
+     - **Phần tĩnh ngoài:** Bệ tròn 2 cấp, hàng rào bảo vệ (`R = 8.68 m`) chừa cổng vào phía Bắc và **quầy vé bát giác kiểu Venice** ở góc Đông-Nam sân lát (`R_center = 9.35 m`, góc `+45°`, tách rời hoàn toàn khỏi sàn quay `R = 8.48 m` và nằm về phía Nam nên giữ nguyên khe hở `5.00 m` tới `PATH_WEST_SPINE` ở phía Bắc).
+     - **Khối quay 2 tầng (Parent) & 20 Ngựa gỗ (Children):** Trụ lõi 2 tầng, **2 cầu thang cong đối xứng** dẫn từ sàn tầng 1 (`y = 0.55 m`) lên sàn tầng 2 (`R = 6.38 m`, `y = 4.02 m`), lan can con tiện tầng 2, `12` ngựa gỗ tầng 1 (`R = 6.15 m` & `4.35 m`) + **`8` ngựa gỗ tầng 2** (`R = 4.55 m`, thu tỷ lệ `0.82`, nhấp nhô ngược pha), mái vòm nón tầng 2 + lầu đèn vương miện đạt đỉnh `10.04 m`, cùng 2 vòng đèn LED `GL_EMISSION` (28 bóng tầng 1 + 20 bóng tầng 2); biên dịch toàn bộ phần tĩnh/khung quay/3 mẫu ngựa vào OpenGL Display Lists (`staticBaseList_`, `rotatingStructureList_`, `horseLists_[3]`).
+2. **Nâng cấp Golden Sky Tower — Đỉnh búp sen vàng & Sàn đón khách `+4.20 m` ([`src/rides/SkyTower.h`](../src/rides/SkyTower.h)):**
+   - Giữ nguyên `SKY_TOWER_POS (-260.0, 0.0, -54.6)`, `totalHeight = 47.0f`, `towerRadius = 1.65f`, `gondolaRadius = 3.35f`.
+   - **Tổ hợp chân tháp & nhà ga `+4.20 m` (gói gọn trong `R <= 7.88 m`, cách mép `PATH_WEST_SPINE[7]` `>= 5.62 m`):** Bệ bát giác tầng trệt, phòng điều hành bát giác dưới sàn, 8 cột trụ đỏ đỡ **sàn đón khách trên cao `y = 4.20 m`** (có lan can vàng bao quanh), **2 cầu thang trục phía Đông** dẫn lên sảnh đón và **chòi mái cong đón khách** tại `x = +5.55 m` (nằm ngoài hoàn toàn bán kính ghế Gondola `R = 3.85 m`, điều chỉnh `minY = 4.30 m` để ghế dừng đón khách ngay trên mặt sàn `+4.20 m`, 0% va chạm).
+   - **Đỉnh búp sen vàng nhiều lớp (`y = 47.0 .. 52.75 m`, đèn chớp đỏ ở `y = 52.95 m`):** Đài sen 16 cánh loe rộng (`R = 1.92 → 2.95 m`) đỡ búp sen vàng 16 múi khép kín thu nhọn lên đỉnh, biên dịch vào `staticTowerList_`.
+3. **Nâng cấp Garuda Valley & Port of Sky Treasure trong cùng khung bao vệ tinh ([`src/rides/MiniCoaster.h`](../src/rides/MiniCoaster.h) & [`src/core/ParkLayout.h`](../src/core/ParkLayout.h)):**
+   - **Garuda Valley (`MiniCoaster[0]`, `stationStyle = 1`):** Giữ nguyên 100% tọa độ mặt bằng `(X, Z)` của 8 waypoint (`W = 29.29 m × D = 21.63 m`, dài ray `91.7 m`), nâng đỉnh đồi kéo phía Bắc lên **`12.52 m`**; thay nhà ga thường bằng **nhà ga mái yên ngựa cong kiểu Minangkabau / Batak (Indonesia)** theo BP15 (sàn cao `2.45 m`, cầu thang đá phía Nam, 6 cột đỏ, mái yên ngựa võng giữa `y = 7.75 m` và vút cao hai đầu sừng lên `10.65 m` kèm dải mào bờ nóc mạ vàng).
+   - **Port of Sky Treasure (`MiniCoaster[1]`, `stationStyle = 2`):** Giữ nguyên 100% tọa độ mặt bằng `(X, Z)` của 8 waypoint (`W = 27.97 m × D = 43.04 m`, dài ray `128.9 m`), nâng đỉnh xoắn helix phía Bắc lên **`13.44 m`**; thay nhà ga thường bằng **nhà ga bến cảng phương Tây khung gỗ mái đầu hồi** theo BP12 (bệ cầu cảng có 8 cọc gỗ bến tàu bọc đai đồng, cầu thang gỗ, tường khung gỗ half-timbered, mái đầu hồi dốc 2 phía có vì kèo tam giác king-post và **tháp canh cảng biển cupola** trên sống mái cao `11.00 m`).
+4. **Tối ưu hiệu năng Display List:**
+   - Biên dịch thân/viền/ghế toa tàu trong `MiniCoaster::drawMovingTrain` vào `carListSmooth_` / `carListFlat_` (loại bỏ 36 lần cấp phát `PolygonMesh::createBox` mỗi khung hình) và biên dịch toàn bộ mặt nền lát gạch/sân sao/thảm cỏ trong `ParkArchitecture::drawTiledCentralPlaza()` vào `groundPlazaList_`.
 
 ---
 

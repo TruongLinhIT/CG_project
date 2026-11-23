@@ -30,6 +30,7 @@
 #include "core/Lighting.h"
 #include "curves/BezierTrack.h"
 #include "geometry/MeshModel.h"
+#include "geometry/MeshBuilders.h"
 #include "geometry/ParametricShapes.h"
 
 namespace AsiaParkRides {
@@ -60,6 +61,7 @@ struct MiniCoasterConfig {
     MathCG::ColorRGB    stationWallColor  = MathCG::ColorRGB(0.84f, 0.76f, 0.62f);
     MathCG::ColorRGB    stationRoofColor  = MathCG::ColorRGB(0.76f, 0.24f, 0.14f);
     bool                isStoneMountain   = false; // Riêng Paradise Fall có tòa nhà giả núi đá lớn
+    int                 stationStyle      = 0;     // 0: mái Á Đông chuẩn, 1: mái yên ngựa Garuda (BP15), 2: cảng gỗ mái đầu hồi Port of Sky (BP12)
 };
 
 class MiniCoaster {
@@ -78,6 +80,14 @@ public:
         if (staticListFlat_ != 0) {
             glDeleteLists(staticListFlat_, 1);
             staticListFlat_ = 0;
+        }
+        if (carListSmooth_ != 0) {
+            glDeleteLists(carListSmooth_, 1);
+            carListSmooth_ = 0;
+        }
+        if (carListFlat_ != 0) {
+            glDeleteLists(carListFlat_, 1);
+            carListFlat_ = 0;
         }
     }
 
@@ -157,6 +167,8 @@ private:
     bool           initialized_      = false;
     mutable GLuint staticListSmooth_ = 0;
     mutable GLuint staticListFlat_   = 0;
+    mutable GLuint carListSmooth_    = 0;
+    mutable GLuint carListFlat_      = 0;
 
     void drawStaticTrackAndStation(bool showNormals, bool smoothShading) const {
         // 1. Vẽ đường ray đôi, ống xương sống, tà-vẹt và trụ đỡ (BezierTrack)
@@ -165,9 +177,228 @@ private:
         // 2. Vẽ nhà ga đón khách hoặc Tòa nhà giả núi đá Paradise Fall (100% liền khối)
         if (cfg.isStoneMountain) {
             drawStoneMountainBuilding(showNormals, smoothShading);
+        } else if (cfg.stationStyle == 1) {
+            drawMinangkabauSaddleStation(showNormals, smoothShading);
+        } else if (cfg.stationStyle == 2) {
+            drawWesternPortGableStation(showNormals, smoothShading);
         } else {
             drawCompactBoardingStation(showNormals, smoothShading);
         }
+    }
+
+    /**
+     * @brief Đợt 8b: Nhà ga mái yên ngựa cong kiểu Minangkabau / Batak (Indonesia) cho Garuda Valley (BP15)
+     *        Đặt gọn trong khung bao vệ tinh hiện có, có cầu thang lên sàn đón khách và hai đầu sừng mái vút cao.
+     */
+    void drawMinangkabauSaddleStation(bool showNormals, bool smoothShading) const {
+        namespace MB = Geometry::MeshBuilders;
+        const MathCG::Vec3& p = cfg.stationWorldPos;
+        const float w = cfg.stationWidth;  // 6.4 m
+        const float d = cfg.stationDepth;  // 10.5 m
+
+        Geometry::PolygonMesh m("GarudaMinangkabauStation");
+        const MathCG::ColorRGB plinthCol(0.46f, 0.44f, 0.41f);
+        const MathCG::ColorRGB stoneCol(0.64f, 0.60f, 0.53f);
+        const MathCG::ColorRGB woodDark(0.38f, 0.22f, 0.14f);
+        const MathCG::ColorRGB pillarRed(0.68f, 0.22f, 0.14f);
+        const MathCG::ColorRGB wallCream(0.88f, 0.80f, 0.64f);
+        const MathCG::ColorRGB roofTerracotta(0.76f, 0.25f, 0.13f);
+        const MathCG::ColorRGB roofRidgeGold(0.95f, 0.76f, 0.20f);
+
+        // 1. Bệ đá & sàn nhà ga nâng cao (y = 0 .. 2.45 m) kèm cầu thang bậc phía Nam (+Z)
+        MB::appendBoxByYRange(m, 0.0f, 0.00f, 0.42f, 0.0f, w + 0.8f, d + 0.8f, plinthCol);
+        MB::appendBoxByYRange(m, 0.0f, 0.38f, 2.30f, 0.0f, w,        d,        stoneCol);
+        MB::appendBoxByYRange(m, 0.0f, 2.25f, 2.50f, 0.0f, w + 0.4f, d + 0.4f, woodDark);
+        MB::appendStaircase(m, 0.0f, d * 0.5f, 0, 1, 0.0f, 2.8f, 2.2f, 2.30f, 7, stoneCol, plinthCol);
+
+        // 2. Tường hậu chạm khắc phía Tây (-X), lan can gỗ & 6 cột trụ đỡ mái (y = 2.48 .. 5.75 m)
+        MB::appendBoxByYRange(m, -w * 0.38f, 2.48f, 5.70f, 0.0f, w * 0.20f, d * 0.88f, wallCream);
+        MB::appendBoxByYRange(m, -w * 0.27f, 3.30f, 4.90f, 0.0f, 0.12f,     d * 0.72f, woodDark);
+        // Lan can gỗ mặt trước & hai đầu hồi
+        MB::appendBoxByYRange(m,  w * 0.44f, 2.48f, 3.18f,  d * 0.32f, 0.18f, d * 0.28f, woodDark);
+        MB::appendBoxByYRange(m,  w * 0.44f, 2.48f, 3.18f, -d * 0.32f, 0.18f, d * 0.28f, woodDark);
+
+        const float colX[2] = { -w * 0.42f, w * 0.42f };
+        const float colZ[3] = { -d * 0.42f, 0.0f, d * 0.42f };
+        for (float cx : colX) {
+            for (float cz : colZ) {
+                MB::appendBoxByYRange(m, cx, 2.48f, 2.85f, cz, 0.62f, 0.62f, plinthCol);
+                MB::appendBoxByYRange(m, cx, 2.82f, 5.72f, cz, 0.46f, 0.46f, pillarRed);
+            }
+        }
+        // Hệ xà dầm cổ diềm đỡ mái
+        MB::appendBoxByYRange(m, 0.0f, 5.58f, 5.92f, 0.0f, w + 0.3f, d + 0.3f, woodDark);
+        MB::appendBoxByYRange(m, 0.0f, 5.88f, 6.08f, 0.0f, w + 0.7f, d + 0.7f, roofRidgeGold);
+
+        // 3. Mái yên ngựa cong Minangkabau (sống nóc võng ở giữa y ~ 7.75 m, hai đầu sừng vút lên y ~ 10.65 m)
+        constexpr int kSlicesZ = 14;
+        constexpr int kSlopeSeg = 3;
+        const float halfSpanZ = d * 0.62f; // ~6.51 m (vươn nhẹ ra hai đầu hồi)
+        auto evalProfile = [&](int sz, float& zOut, float& yEaveOut, float& yRidgeOut, float& halfWOut) {
+            float u = (2.0f * static_cast<float>(sz) / static_cast<float>(kSlicesZ)) - 1.0f; // [-1, +1]
+            float u2 = u * u;
+            float uHorn = u2 * (0.35f + 0.65f * std::fabs(u));
+            zOut      = u * halfSpanZ;
+            yEaveOut  = 5.95f + 0.85f * u2;
+            yRidgeOut = 7.75f + 2.90f * uHorn;
+            halfWOut  = (w * 0.5f + 1.15f) * (1.0f - 0.16f * u2);
+        };
+
+        for (int sz = 0; sz < kSlicesZ; ++sz) {
+            float z0, ye0, yr0, hw0;
+            float z1, ye1, yr1, hw1;
+            evalProfile(sz,     z0, ye0, yr0, hw0);
+            evalProfile(sz + 1, z1, ye1, yr1, hw1);
+
+            for (int side : {-1, 1}) {
+                for (int k = 0; k < kSlopeSeg; ++k) {
+                    float t0 = static_cast<float>(k) / static_cast<float>(kSlopeSeg);
+                    float t1 = static_cast<float>(k + 1) / static_cast<float>(kSlopeSeg);
+                    // t = 0 tại sống nóc (x = 0), t = 1 tại diềm mái (x = side * hw), độ võng mặt mái pow(1-t, 1.55)
+                    float x00 = side * hw0 * t0, y00 = ye0 + (yr0 - ye0) * std::pow(1.0f - t0, 1.55f);
+                    float x01 = side * hw0 * t1, y01 = ye0 + (yr0 - ye0) * std::pow(1.0f - t1, 1.55f);
+                    float x10 = side * hw1 * t0, y10 = ye1 + (yr1 - ye1) * std::pow(1.0f - t0, 1.55f);
+                    float x11 = side * hw1 * t1, y11 = ye1 + (yr1 - ye1) * std::pow(1.0f - t1, 1.55f);
+
+                    MB::appendOrientedPolygon(m, {
+                        MathCG::Vec3(x00, y00, z0), MathCG::Vec3(x01, y01, z0),
+                        MathCG::Vec3(x11, y11, z1), MathCG::Vec3(x10, y10, z1)
+                    }, roofTerracotta, MathCG::Vec3(side * 0.6f, 1.0f, 0.0f));
+                }
+            }
+            // Mặt trần đóng kín dưới đáy mái + sống nóc mạ vàng kèm mào nhọn trang trí
+            MB::appendOrientedPolygon(m, {
+                MathCG::Vec3(-hw0, ye0, z0), MathCG::Vec3( hw0, ye0, z0),
+                MathCG::Vec3( hw1, ye1, z1), MathCG::Vec3(-hw1, ye1, z1)
+            }, woodDark, MathCG::Vec3(0.0f, -1.0f, 0.0f));
+
+            float zMid = 0.5f * (z0 + z1);
+            float yMid = 0.5f * (yr0 + yr1);
+            float dz   = std::fabs(z1 - z0);
+            MB::appendBoxByYRange(m, 0.0f, yMid - 0.12f, yMid + 0.14f, zMid, 0.28f, dz + 0.05f, roofRidgeGold);
+            m.append(Geometry::PolygonMesh::createPyramid(0.0f, yMid + 0.12f, zMid, 0.26f, dz * 0.72f, 0.42f, roofRidgeGold));
+        }
+
+        // Đóng kín 2 tam giác đầu hồi Bắc (-Z) & Nam (+Z) + 2 chóp sừng vàng ở hai đỉnh mái
+        for (int endIdx : {0, kSlicesZ}) {
+            float ze, ye, yre, hwe;
+            evalProfile(endIdx, ze, ye, yre, hwe);
+            float nz = (endIdx == 0) ? -1.0f : 1.0f;
+            MB::appendOrientedPolygon(m, {
+                MathCG::Vec3(-hwe, ye, ze), MathCG::Vec3(hwe, ye, ze), MathCG::Vec3(0.0f, yre, ze)
+            }, wallCream, MathCG::Vec3(0.0f, 0.2f, nz));
+            m.append(Geometry::PolygonMesh::createPyramid(0.0f, yre + 0.10f, ze, 0.42f, 0.42f, 0.85f, roofRidgeGold));
+        }
+
+        m.computeNormals();
+        glPushMatrix();
+        glTranslatef(p.x, p.y, p.z);
+        m.draw(smoothShading, showNormals);
+        glPopMatrix();
+    }
+
+    /**
+     * @brief Đợt 8b: Nhà ga bến cảng phương Tây khung gỗ mái đầu hồi + tháp canh cho Port of Sky Treasure (BP12)
+     */
+    void drawWesternPortGableStation(bool showNormals, bool smoothShading) const {
+        namespace MB = Geometry::MeshBuilders;
+        const MathCG::Vec3& p = cfg.stationWorldPos;
+        const float w = cfg.stationWidth;  // 6.8 m
+        const float d = cfg.stationDepth;  // 12.0 m
+
+        Geometry::PolygonMesh m("PortSkyWesternGableStation");
+        const MathCG::ColorRGB stonePier(0.48f, 0.46f, 0.43f);
+        const MathCG::ColorRGB stoneLight(0.66f, 0.62f, 0.56f);
+        const MathCG::ColorRGB timberDark(0.36f, 0.22f, 0.13f);
+        const MathCG::ColorRGB timberWarm(0.56f, 0.36f, 0.20f);
+        const MathCG::ColorRGB plasterWall(0.89f, 0.83f, 0.70f);
+        const MathCG::ColorRGB slateRoof(0.68f, 0.24f, 0.15f);
+        const MathCG::ColorRGB brassGold(0.92f, 0.74f, 0.20f);
+
+        // 1. Bệ cầu cảng đá & các cọc gỗ tròn chống quanh mép bến (y = 0 .. 2.45 m) + cầu thang lên phía Nam
+        MB::appendBoxByYRange(m, 0.0f, 0.00f, 0.45f, 0.0f, w + 0.9f, d + 0.9f, stonePier);
+        MB::appendBoxByYRange(m, 0.0f, 0.40f, 2.30f, 0.0f, w,        d,        stoneLight);
+        MB::appendBoxByYRange(m, 0.0f, 2.26f, 2.50f, 0.0f, w + 0.5f, d + 0.5f, timberWarm);
+        MB::appendStaircase(m, 0.0f, d * 0.5f, 0, 1, 0.0f, 3.0f, 2.3f, 2.30f, 7, timberWarm, timberDark);
+
+        // Cọc gỗ bến cảng dọc mặt Đông (+X) và Tây (-X)
+        const float pilingZ[4] = { -d * 0.42f, -d * 0.14f, d * 0.14f, d * 0.42f };
+        for (int sx : {-1, 1}) {
+            for (float pz : pilingZ) {
+                m.append(Geometry::PolygonMesh::createPrismY(sx * (w * 0.5f + 0.32f), 0.0f, pz, 0.24f, 3.15f, 8, timberDark));
+                m.append(Geometry::PolygonMesh::createPrismY(sx * (w * 0.5f + 0.32f), 2.55f, pz, 0.27f, 0.22f, 8, brassGold));
+            }
+        }
+
+        // 2. Khung nhà gỗ nửa tường (half-timbered) & cột gỗ đỡ mái (y = 2.48 .. 5.95 m)
+        MB::appendBoxByYRange(m, -w * 0.38f, 2.48f, 5.88f, 0.0f, w * 0.22f, d * 0.90f, plasterWall);
+        // Khung nẹp gỗ đứng & ngang trên tường hậu
+        for (float tz : {-d * 0.42f, -d * 0.14f, d * 0.14f, d * 0.42f}) {
+            MB::appendBoxByYRange(m, -w * 0.26f, 2.48f, 5.88f, tz, 0.14f, 0.24f, timberDark);
+        }
+        MB::appendBoxByYRange(m, -w * 0.26f, 4.05f, 4.25f, 0.0f, 0.14f, d * 0.88f, timberDark);
+
+        const float postX[2] = { -w * 0.42f, w * 0.42f };
+        const float postZ[4] = { -d * 0.44f, -d * 0.15f, d * 0.15f, d * 0.44f };
+        for (float px : postX) {
+            for (float pz : postZ) {
+                MB::appendBoxByYRange(m, px, 2.48f, 5.90f, pz, 0.46f, 0.46f, timberDark);
+            }
+        }
+        // Lan can gỗ mặt Đông (+X)
+        MB::appendBoxByYRange(m, w * 0.42f, 3.10f, 3.28f, -d * 0.30f, 0.18f, d * 0.28f, timberWarm);
+        MB::appendBoxByYRange(m, w * 0.42f, 3.10f, 3.28f,  d * 0.30f, 0.18f, d * 0.28f, timberWarm);
+        // Dầm đỡ diềm mái
+        MB::appendBoxByYRange(m, 0.0f, 5.75f, 6.02f, 0.0f, w + 0.4f, d + 0.4f, timberDark);
+
+        // 3. Mái đầu hồi dốc 2 phía (Western Gable Roof, y = 5.95 .. 8.70 m) + vì kèo tam giác hai đầu hồi
+        const float hw = w * 0.5f + 0.95f;
+        const float hd = d * 0.5f + 0.85f;
+        const float yEave  = 5.95f;
+        const float yRidge = 8.70f;
+
+        // Hai mặt mái dốc Đông (+X) và Tây (-X)
+        MB::appendOrientedPolygon(m, {
+            MathCG::Vec3(0.0f, yRidge, -hd), MathCG::Vec3( hw, yEave, -hd),
+            MathCG::Vec3( hw, yEave,   hd), MathCG::Vec3(0.0f, yRidge,  hd)
+        }, slateRoof, MathCG::Vec3(1.0f, 1.0f, 0.0f));
+        MB::appendOrientedPolygon(m, {
+            MathCG::Vec3(0.0f, yRidge,  hd), MathCG::Vec3(-hw, yEave,  hd),
+            MathCG::Vec3(-hw, yEave, -hd), MathCG::Vec3(0.0f, yRidge, -hd)
+        }, slateRoof, MathCG::Vec3(-1.0f, 1.0f, 0.0f));
+        // Đáy trần mái đóng kín
+        MB::appendOrientedPolygon(m, {
+            MathCG::Vec3(-hw, yEave, -hd), MathCG::Vec3( hw, yEave, -hd),
+            MathCG::Vec3( hw, yEave,  hd), MathCG::Vec3(-hw, yEave,  hd)
+        }, timberDark, MathCG::Vec3(0.0f, -1.0f, 0.0f));
+        // Sống nóc gỗ-đồng
+        MB::appendBoxByYRange(m, 0.0f, yRidge - 0.14f, yRidge + 0.14f, 0.0f, 0.32f, hd * 2.0f + 0.1f, timberDark);
+
+        // Hai tam giác đầu hồi Bắc (-Z) & Nam (+Z) kèm trụ kèo giữa (king-post truss)
+        for (int sz : {-1, 1}) {
+            float zGable = sz * (hd - 0.15f);
+            MB::appendOrientedPolygon(m, {
+                MathCG::Vec3(-hw + 0.2f, yEave, zGable),
+                MathCG::Vec3( hw - 0.2f, yEave, zGable),
+                MathCG::Vec3(0.0f, yRidge - 0.08f, zGable)
+            }, plasterWall, MathCG::Vec3(0.0f, 0.0f, static_cast<float>(sz)));
+            MB::appendBoxByYRange(m, 0.0f, yEave, yRidge - 0.1f, zGable + sz * 0.08f, 0.30f, 0.18f, timberDark);
+            MB::appendBoxByYRange(m, 0.0f, yEave + 0.95f, yEave + 1.18f, zGable + sz * 0.08f, hw * 1.15f, 0.18f, timberDark);
+        }
+
+        // 4. Tháp canh cảng biển (Harbor Cupola Lantern) mọc trên giữa sống mái (y = 7.85 .. 10.85 m)
+        MB::appendBoxByYRange(m, 0.0f, 7.80f, 9.45f, 0.0f, 2.55f, 2.75f, plasterWall);
+        MB::appendBoxByYRange(m, 0.0f, 8.35f, 9.05f, 0.0f, 2.65f, 1.45f, timberDark);
+        MB::appendBoxByYRange(m, 0.0f, 8.35f, 9.05f, 0.0f, 1.45f, 2.85f, timberDark);
+        MB::appendBoxByYRange(m, 0.0f, 9.38f, 9.62f, 0.0f, 2.95f, 3.15f, timberDark);
+        m.append(Geometry::PolygonMesh::createPyramid(0.0f, 9.58f, 0.0f, 3.15f, 3.35f, 1.05f, slateRoof));
+        m.append(Geometry::PolygonMesh::createPyramid(0.0f, 10.55f, 0.0f, 0.36f, 0.36f, 0.45f, brassGold));
+
+        m.computeNormals();
+        glPushMatrix();
+        glTranslatef(p.x, p.y, p.z);
+        m.draw(smoothShading, showNormals);
+        glPopMatrix();
     }
 
     void drawCompactBoardingStation(bool showNormals, bool smoothShading) const {
@@ -330,7 +561,43 @@ private:
         glPopMatrix();
     }
 
+    void compileSingleCarGeometry(bool showNormals, bool smoothShading) const {
+        // Thân toa tàu
+        auto body = Geometry::PolygonMesh::createBox(
+            0.0f, 0.32f, 0.0f,
+            1.18f, 0.58f, 1.92f,
+            cfg.carBodyColor
+        );
+        body.draw(smoothShading, showNormals);
+
+        // Viền mũi / dải trang trí toa tàu
+        auto stripe = Geometry::PolygonMesh::createBox(
+            0.0f, 0.42f, 0.15f,
+            1.24f, 0.22f, 1.45f,
+            cfg.carAccentColor
+        );
+        stripe.draw(smoothShading, showNormals);
+
+        // Tựa lưng ghế & hành khách ngồi trong toa
+        auto seat = Geometry::PolygonMesh::createBox(
+            0.0f, 0.65f, -0.25f,
+            0.88f, 0.42f, 0.35f,
+            MathCG::ColorRGB(0.22f, 0.24f, 0.28f)
+        );
+        seat.draw(smoothShading, showNormals);
+    }
+
     void drawMovingTrain(bool isNightOrSunset, bool showNormals, bool smoothShading) const {
+        GLuint& carList = smoothShading ? carListSmooth_ : carListFlat_;
+        if (!showNormals && carList == 0) {
+            carList = glGenLists(1);
+            if (carList != 0) {
+                glNewList(carList, GL_COMPILE);
+                compileSingleCarGeometry(false, smoothShading);
+                glEndList();
+            }
+        }
+
         for (int c = 0; c < cfg.numCars; ++c) {
             float d = track.wrapDistance(headDistance - static_cast<float>(c) * cfg.carSpacing);
             TrackFrame f = track.evaluateFrameAtDistance(d);
@@ -346,29 +613,11 @@ private:
             };
             glMultMatrixf(orient);
 
-            // Thân toa tàu
-            auto body = Geometry::PolygonMesh::createBox(
-                0.0f, 0.32f, 0.0f,
-                1.18f, 0.58f, 1.92f,
-                cfg.carBodyColor
-            );
-            body.draw(smoothShading, showNormals);
-
-            // Viền mũi / dải trang trí toa tàu
-            auto stripe = Geometry::PolygonMesh::createBox(
-                0.0f, 0.42f, 0.15f,
-                1.24f, 0.22f, 1.45f,
-                cfg.carAccentColor
-            );
-            stripe.draw(smoothShading, showNormals);
-
-            // Tựa lưng ghế & hành khách ngồi trong toa
-            auto seat = Geometry::PolygonMesh::createBox(
-                0.0f, 0.65f, -0.25f,
-                0.88f, 0.42f, 0.35f,
-                MathCG::ColorRGB(0.22f, 0.24f, 0.28f)
-            );
-            seat.draw(smoothShading, showNormals);
+            if (!showNormals && carList != 0) {
+                glCallList(carList);
+            } else {
+                compileSingleCarGeometry(showNormals, smoothShading);
+            }
 
             // Đèn pha mũi toa đầu tiên khi trời tối / hoàng hôn
             if (c == 0 && isNightOrSunset) {
@@ -413,10 +662,11 @@ inline void initWave5aMiniCoasters(std::array<MiniCoaster, 4>& coasters) {
         c.stationWallColor = MathCG::ColorRGB(0.86f, 0.78f, 0.62f);
         c.stationRoofColor = MathCG::ColorRGB(0.78f, 0.26f, 0.14f);
         c.isStoneMountain  = false;
+        c.stationStyle     = 1; // Đợt 8b: Mái yên ngựa cong Minangkabau (BP15)
         coasters[0].init(c);
     }
 
-    // 2. Port of Sky Treasure (-224.0, 0, +22.0) - Ray xanh ngọc/vàng đồng, nhà ga mái ngói ở phía Tây-Nam
+    // 2. Port of Sky Treasure (-224.0, 0, +22.0) - Ray xanh ngọc/vàng đồng, nhà ga bến cảng gỗ mái đầu hồi ở phía Tây-Nam
     {
         MiniCoasterConfig c;
         c.centerPos        = ParkLayout::PORT_SKY_TREASURE_CENTER;
@@ -436,6 +686,7 @@ inline void initWave5aMiniCoasters(std::array<MiniCoaster, 4>& coasters) {
         c.stationWallColor = MathCG::ColorRGB(0.85f, 0.79f, 0.66f);
         c.stationRoofColor = MathCG::ColorRGB(0.72f, 0.22f, 0.14f);
         c.isStoneMountain  = false;
+        c.stationStyle     = 2; // Đợt 8b: Nhà ga bến cảng khung gỗ mái đầu hồi + tháp canh (BP12)
         coasters[1].init(c);
     }
 

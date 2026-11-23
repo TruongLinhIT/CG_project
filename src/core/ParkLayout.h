@@ -430,20 +430,20 @@ constexpr MathCG::Vec3 HIGHWAY_BOAT_CENTER(-176.0f, 0.0f, -214.0f);        // [�
 // Bảng 8 điểm điều khiển cục bộ (so với tâm từng tàu lượn nhỏ) cho lớp MiniCoaster dùng chung (Đợt 5A):
 constexpr int NUM_MINI_COASTER_WAYPOINTS = 8;
 
-// 1) Garuda Valley (vòng lượn bầu dục có đồi kéo phía Bắc cao 8.2m, nhà ga phía Tây)
+// 1) Garuda Valley (Đợt 8b: giữ nguyên 100% tọa độ mặt bằng X,Z trong khung 34x26m; nâng đồi kéo phía Bắc lên 12.2m, nhà ga mái yên ngựa phía Tây)
 constexpr MathCG::Vec3 GARUDA_VALLEY_LOCAL_WPS[NUM_MINI_COASTER_WAYPOINTS] = {
-    { -14.0f, 2.6f,   0.0f }, { -14.0f, 2.8f,  -9.0f },
-    {  -3.0f, 7.8f, -11.0f }, {  11.0f, 8.2f,  -9.0f },
-    {  14.5f, 5.5f,   0.0f }, {  11.0f, 3.6f,   9.5f },
-    {   0.0f, 4.4f,  10.5f }, { -11.0f, 3.0f,   8.5f }
+    { -14.0f,  2.8f,   0.0f }, { -14.0f,  3.2f,  -9.0f },
+    {  -3.0f, 11.4f, -11.0f }, {  11.0f, 12.2f,  -9.0f },
+    {  14.5f,  7.4f,   0.0f }, {  11.0f,  4.5f,   9.5f },
+    {   0.0f,  5.8f,  10.5f }, { -11.0f,  3.2f,   8.5f }
 };
 
-// 2) Port of Sky Treasure (vòng lượn chữ S kéo dài Bắc-Nam cao 9.2m, nhà ga mái ngói phía Tây-Nam)
+// 2) Port of Sky Treasure (Đợt 8b: giữ nguyên 100% tọa độ mặt bằng X,Z trong khung 36x52m; nâng đỉnh xoắn helix Bắc lên 13.2m, nhà ga bến cảng gỗ Tây-Nam)
 constexpr MathCG::Vec3 PORT_SKY_TREASURE_LOCAL_WPS[NUM_MINI_COASTER_WAYPOINTS] = {
-    { -13.0f, 2.8f,   0.0f }, { -14.0f, 4.5f, -18.0f },
-    {  -3.0f, 9.2f, -22.0f }, {  11.0f, 8.5f, -17.0f },
-    {  13.0f, 5.2f,  -2.0f }, {   6.0f, 6.5f,  10.0f },
-    {  12.0f, 4.0f,  20.0f }, {  -4.0f, 3.0f,  19.0f }
+    { -13.0f,  3.0f,   0.0f }, { -14.0f,  6.2f, -18.0f },
+    {  -3.0f, 13.2f, -22.0f }, {  11.0f, 11.8f, -17.0f },
+    {  13.0f,  6.8f,  -2.0f }, {   6.0f,  8.6f,  10.0f },
+    {  12.0f,  4.8f,  20.0f }, {  -4.0f,  3.2f,  19.0f }
 };
 
 // 3) Paradise Fall (vòng ray số 8 thắt eo ở giữa, cao 8.8m, kết nối cụm Tòa nhà đá PARADISE_FALL_BLDG_POS)
