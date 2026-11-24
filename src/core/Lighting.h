@@ -101,11 +101,13 @@ public:
             light0Diff[0]    = 1.00f; light0Diff[1]    = 0.58f; light0Diff[2]    = 0.30f; light0Diff[3]    = 1.0f;
             light0Spec[0]    = 0.75f; light0Spec[1]    = 0.45f; light0Spec[2]    = 0.25f; light0Spec[3]    = 1.0f;
         } else {
-            // BAN ĐÊM: Ánh sáng môi trường I_a * k_a thấp để làm nổi bật hiệu ứng tự phát sáng LED và suy giảm nguồn sáng điểm
-            globalAmbient[0] = 0.14f; globalAmbient[1] = 0.15f; globalAmbient[2] = 0.24f; globalAmbient[3] = 1.0f;
+            // BAN ĐÊM: Ánh sáng môi trường I_a * k_a thấp (ánh trăng xanh lạnh) vừa đủ để khối kiến trúc
+            // không bị đen tuyền, đồng thời vẫn làm nổi bật hiệu ứng tự phát sáng LED (GL_EMISSION)
+            // và các nguồn sáng điểm suy giảm 1/D^2 của hệ thống đèn công viên (NightIllumination).
+            globalAmbient[0] = 0.20f; globalAmbient[1] = 0.22f; globalAmbient[2] = 0.34f; globalAmbient[3] = 1.0f;
             light0Pos[0]     = 80.0f;  light0Pos[1]    = 150.0f; light0Pos[2]    = -90.0f; light0Pos[3]    = 1.0f;
-            light0Diff[0]    = 0.25f; light0Diff[1]    = 0.30f; light0Diff[2]    = 0.48f; light0Diff[3]    = 1.0f;
-            light0Spec[0]    = 0.20f; light0Spec[1]    = 0.25f; light0Spec[2]    = 0.40f; light0Spec[3]    = 1.0f;
+            light0Diff[0]    = 0.34f; light0Diff[1]    = 0.40f; light0Diff[2]    = 0.62f; light0Diff[3]    = 1.0f;
+            light0Spec[0]    = 0.26f; light0Spec[1]    = 0.32f; light0Spec[2]    = 0.50f; light0Spec[3]    = 1.0f;
         }
 
         glLightModelfv(GL_LIGHT_MODEL_AMBIENT, globalAmbient);

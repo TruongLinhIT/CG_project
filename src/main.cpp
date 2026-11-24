@@ -47,6 +47,7 @@
 #include "rides/PirateShip.h"
 #include "rides/MiniCoaster.h"
 #include "rides/MasterPlan8c.h"
+#include "rides/NightIllumination.h"
 
 // ============================================================================
 // MÁY TRẠNG THÁI MÔ PHỎNG & ĐƯỜNG ỐNG ĐỒ HỌA TOÀN CỤC
@@ -114,6 +115,7 @@ static AsiaParkRides::BumperCars  gBumperCars;
 static AsiaParkRides::PirateShip  gPirateShip;
 static std::array<AsiaParkRides::MiniCoaster, 4> gMiniCoasters;
 static AsiaParkRides::MasterPlan8c gMasterPlan8c;
+static AsiaParkRides::NightIllumination gNightLights;
 static std::vector<AsiaParkActors::Human> gHumans;
 
 // ============================================================================
@@ -150,6 +152,7 @@ enum MenuOption {
     MENU_ANIM_SLOWER,
     MENU_TOGGLE_SUNWHEEL_FAST,
     MENU_TOGGLE_MASTERPLAN_8C,
+    MENU_TOGGLE_NIGHT_LIGHTS,
     MENU_TOGGLE_HUD,
     MENU_TOGGLE_MINIMAP,
     MENU_EXIT = 99
@@ -636,6 +639,20 @@ static void drawParkGroundAndLake() {
     }
 }
 
+/**
+ * @brief Đợt 9: Sinh dải LED dọc thân các đường ray (Queen Cobra, Monorail, 4 tàu lượn nhỏ).
+ *        Phải gọi SAU khi gCurves.init() và initWave5aMiniCoasters() đã dựng xong track.
+ */
+static void rebuildNightLightLeds() {
+    static bool added = false;
+    if (added) return;
+    added = true;
+
+    gNightLights.addTrackLeds(gCurves.queenCobraTrack, 30.0f);
+    gNightLights.addTrackLeds(gCurves.monorailTrack,   34.0f);
+    for (const auto& mc : gMiniCoasters) gNightLights.addTrackLeds(mc.track, 26.0f);
+}
+
 static void displayCallback() {
     gLighting.applyClearColor();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -672,7 +689,9 @@ static void displayCallback() {
     );
 
     // 3. Áp dụng chiếu sáng & tô bóng (Chương 6)
+    gNightLights.setLightingEnabled(gLighting.lightingEnabled);
     gLighting.applyLights(gState.sunWheelCenter);
+    gNightLights.applyNightLights(gLighting.timeOfDay, gMasterPlan8c.enabled);
     gLighting.applyCoasterHeadlight(
         queenFrame.position + queenFrame.up * 0.8f + queenFrame.tangent * 1.5f,
         queenFrame.tangent
@@ -697,7 +716,9 @@ static void displayCallback() {
     bool smooth = (gLighting.shadingModel == ShadingModel::GOURAUD_SMOOTH);
 
     drawParkGroundAndLake();
+    gNightLights.setLightingEnabled(gLighting.lightingEnabled);
     gParkArch.draw(isNightOrSunset, gState.showNormalsAndCtrl, smooth);
+    gNightLights.drawGroundPools(isNightOrSunset);
     drawLakesidePavilionMesh();
     drawHierarchicalSunWheelPreview();
     gCurves.draw(gState.showNormalsAndCtrl, gLighting.lightingEnabled, gLighting.timeOfDay);
@@ -713,6 +734,12 @@ static void displayCallback() {
         mc.draw(isNightOrSunset, gState.showNormalsAndCtrl, smooth);
     }
     gMasterPlan8c.draw(isNightOrSunset, gState.showNormalsAndCtrl, smooth);
+
+    // Đợt 9: Hệ thống chiếu sáng ban đêm (trụ đèn + dây festoon + dải LED công trình)
+    gNightLights.setLightingEnabled(gLighting.lightingEnabled);
+    gNightLights.drawFixtures(gState.showNormalsAndCtrl);
+    gNightLights.drawGlow(isNightOrSunset);
+
     for (const auto& h : gHumans) h.draw(isNightOrSunset);
 
     // 6. Vẽ các lớp phủ giao diện 2D (Luôn ở chế độ tô đặc GL_FILL)
@@ -792,7 +819,8 @@ static void displayCallback() {
             gCurves.queenCobraTrain.lastSpeedMps,
             gSunWheel.getEffectiveSpeedDeg(),
             gSunWheel.fastDemoMode,
-            gMasterPlan8c.enabled
+            gMasterPlan8c.enabled,
+            gNightLights.enabled
         );
     }
 
@@ -848,6 +876,7 @@ static void timerCallback(int value) {
         gPirateShip.update(dt);
         for (auto& mc : gMiniCoasters) mc.update(dt);
         gMasterPlan8c.update(dt);
+        gNightLights.update(dt);
         for (auto& h : gHumans) h.update(dt);
         gState.coasterParamT    = gCurves.queenCobraTrain.paramT;
     }
@@ -943,6 +972,9 @@ static void applyMenuSelection(int option) {
         case MENU_TOGGLE_MASTERPLAN_8C:
             gMasterPlan8c.enabled = !gMasterPlan8c.enabled;
             break;
+        case MENU_TOGGLE_NIGHT_LIGHTS:
+            gNightLights.enabled = !gNightLights.enabled;
+            break;
         case MENU_TOGGLE_HUD:
             gState.showHUD = !gState.showHUD;
             break;
@@ -1030,6 +1062,9 @@ static void keyboardCallback(unsigned char key, int x, int y) {
             break;
         case 'k': case 'K':
             applyMenuSelection(MENU_TOGGLE_MASTERPLAN_8C);
+            break;
+        case 'g': case 'G':
+            applyMenuSelection(MENU_TOGGLE_NIGHT_LIGHTS);
             break;
         case 'l': case 'L': {
             int nextTime = (static_cast<int>(gLighting.timeOfDay) + 1) % 3;
@@ -1223,6 +1258,7 @@ static void createGLUTMenus() {
     glutAddMenuEntry("Tam dung / Tiep tuc Hoat anh [SPACE]",    MENU_ANIM_TOGGLE);
     glutAddMenuEntry("Bat/Tat Tua nhanh Sun Wheel x5 (2.0 do/s) [V]", MENU_TOGGLE_SUNWHEEL_FAST);
     glutAddMenuEntry("Bat/Tat Quy hoach tong the Dot 8c (khong phai 2019) [K]", MENU_TOGGLE_MASTERPLAN_8C);
+    glutAddMenuEntry("Bat/Tat He thong den LED ban dem [G]",   MENU_TOGGLE_NIGHT_LIGHTS);
     glutAddMenuEntry("Tang toc hoat anh",                       MENU_ANIM_FASTER);
     glutAddMenuEntry("Giam toc hoat anh",                       MENU_ANIM_SLOWER);
     glutAddMenuEntry("Bat/Tat Ban do nho 2D [M]",               MENU_TOGGLE_MINIMAP);
@@ -1303,6 +1339,8 @@ static bool renderHeadlessTopDownPPM(const char* outPpmPath) {
 
     // 2. Khởi tạo dữ liệu đường ray & thiết lập trạng thái OpenGL
     gCurves.init();
+    AsiaParkRides::initWave5aMiniCoasters(gMiniCoasters);
+    rebuildNightLightLeds();
     glViewport(0, 0, capW, capH);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -1342,6 +1380,7 @@ static bool renderHeadlessTopDownPPM(const char* outPpmPath) {
     gHumans = AsiaParkActors::createDefaultCrowd();
     drawParkGroundAndLake();
     gParkArch.draw(false, false, true);
+    gNightLights.drawGroundPools(false);
     drawLakesidePavilionMesh();
     drawHierarchicalSunWheelPreview();
     gCurves.draw(false, gLighting.lightingEnabled, gLighting.timeOfDay);
@@ -1352,6 +1391,8 @@ static bool renderHeadlessTopDownPPM(const char* outPpmPath) {
     gBumperCars.draw(false, false);
     gPirateShip.draw(false, false);
     for (const auto& mc : gMiniCoasters) mc.draw(false, false, true);
+    gNightLights.setLightingEnabled(gLighting.lightingEnabled);
+    gNightLights.drawFixtures(false);
     for (const auto& h : gHumans) h.draw(false);
 
     // 5. Vẽ thêm lưới tọa độ mét (bước 50m / 100m theo Local X, Z) để dễ đối chiếu trực tiếp với layout_overlay.png
@@ -1423,6 +1464,7 @@ static bool renderHeadlessPerspectiveShots() {
 
     gCurves.init();
     AsiaParkRides::initWave5aMiniCoasters(gMiniCoasters);
+    rebuildNightLightLeds();
     gHumans = AsiaParkActors::createDefaultCrowd();
 
     struct ShotSpec {
@@ -1505,7 +1547,9 @@ static bool renderHeadlessPerspectiveShots() {
 
         drawParkGroundAndLake();
         bool isNightOrSunset = (gLighting.timeOfDay != TimeOfDay::DAY);
+        gNightLights.setLightingEnabled(gLighting.lightingEnabled);
         gParkArch.draw(isNightOrSunset, false, true);
+        gNightLights.drawGroundPools(isNightOrSunset);
         drawLakesidePavilionMesh();
         drawHierarchicalSunWheelPreview();
         gCurves.draw(false, gLighting.lightingEnabled, gLighting.timeOfDay);
@@ -1516,6 +1560,9 @@ static bool renderHeadlessPerspectiveShots() {
         gBumperCars.draw(isNightOrSunset, false);
         gPirateShip.draw(isNightOrSunset, false);
         for (const auto& mc : gMiniCoasters) mc.draw(isNightOrSunset, false, true);
+        gNightLights.setLightingEnabled(gLighting.lightingEnabled);
+        gNightLights.drawFixtures(false);
+        gNightLights.drawGlow(isNightOrSunset);
         for (const auto& h : gHumans) h.draw(isNightOrSunset);
 
         glFlush();
@@ -1680,7 +1727,9 @@ static bool renderHeadlessPerspectiveShots() {
 
         bool isNightOrSunset = (gLighting.timeOfDay != TimeOfDay::DAY);
         drawParkGroundAndLake();
+        gNightLights.setLightingEnabled(gLighting.lightingEnabled);
         gParkArch.draw(isNightOrSunset, false, true);
+        gNightLights.drawGroundPools(isNightOrSunset);
         drawLakesidePavilionMesh();
         drawHierarchicalSunWheelPreview();
         gCurves.draw(false, gLighting.lightingEnabled, gLighting.timeOfDay);
@@ -1691,6 +1740,9 @@ static bool renderHeadlessPerspectiveShots() {
         gBumperCars.draw(isNightOrSunset, false);
         gPirateShip.draw(isNightOrSunset, false);
         for (const auto& mc : gMiniCoasters) mc.draw(isNightOrSunset, false, true);
+        gNightLights.setLightingEnabled(gLighting.lightingEnabled);
+        gNightLights.drawFixtures(false);
+        gNightLights.drawGlow(isNightOrSunset);
         for (const auto& h : gHumans) h.draw(isNightOrSunset);
 
         glFlush();
@@ -1718,6 +1770,7 @@ static bool renderHeadlessPerspectiveShots() {
 
         drawParkGroundAndLake();
         gParkArch.draw(true, false, true);
+        gNightLights.drawGroundPools(true);
         drawLakesidePavilionMesh();
         drawHierarchicalSunWheelPreview();
         gCurves.draw(false, true, gLighting.timeOfDay);
@@ -1728,6 +1781,8 @@ static bool renderHeadlessPerspectiveShots() {
         gBumperCars.draw(true, false);
         gPirateShip.draw(true, false);
         for (const auto& mc : gMiniCoasters) mc.draw(true, false, true);
+        gNightLights.drawFixtures(false);
+        gNightLights.drawGlow(true);
         for (const auto& h : gHumans) h.draw(true);
     }
     glFinish();
@@ -1794,6 +1849,7 @@ int main(int argc, char** argv) {
     // Khởi tạo hệ thống đường cong & đoàn tàu (Queen Cobra + Monorail)
     gCurves.init();
     AsiaParkRides::initWave5aMiniCoasters(gMiniCoasters);
+    rebuildNightLightLeds();
     gHumans = AsiaParkActors::createDefaultCrowd();
 
     // Tạo menu phân cấp khi nhấp chuột phải

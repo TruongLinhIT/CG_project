@@ -642,7 +642,46 @@ Toàn bộ 18 ảnh PNG (`1024×572 px`) trong [`docs/img/ref/`](img/ref/) đề
 
 ---
 
-## 11. Danh mục nguồn bổ sung
+### 13.9. Kết quả thực hiện & kiểm chứng Đợt 9 — Hệ thống Chiếu sáng Ban đêm (`src/rides/NightIllumination.h`) (Đã hoàn thành)
+
+**Vấn đề:** Ở chế độ `[L] → Ban đêm`, toàn bộ công viên gần như đen tuyền. Nguyên nhân gốc không phải thiếu đèn mà là **nền đất, quảng trường lát gạch và mọi dải lối đi được vẽ bằng `glColor3f` với `GL_LIGHTING` đã tắt** (`drawParkGroundAndLake`, `drawFlatPolylineStrip`, `compileTiledCentralPlazaGeometry`), nên không có nguồn sáng nào — kể cả `GL_LIGHT3..6` — có thể làm sáng chúng. Vì vậy Đợt 9 bổ sung **cả hai**: (a) hạ tầng chiếu sáng thực (đèn điểm suy giảm 1/D²) và (b) lớp **vũng sáng cộng màu (`GL_SRC_ALPHA, GL_ONE`)** phủ trực tiếp lên các bề mặt không nhận sáng.
+
+1. **Module mới [`src/rides/NightIllumination.h`](../src/rides/NightIllumination.h) — header-only, ~895 dòng, không dùng `glutSolid*`, không texture:**
+   - **Trụ đèn đôi cao `6.0 m`** (bệ đế vuông `0.62 m` + thân bát giác `r = 0.145 m` + cổ vàng + tay đòn ngang `2.20 m` + 2 chụp nón + chóp trang trí), sinh **thủ tục** dọc **7 tuyến lối đi** trong `ParkLayout.h` (`PATH_MAIN_SPINE`, `PATH_SOUTH_LAKE_PROM`, `PATH_WEST_SPINE`, `PATH_LAKESIDE_WEST`, `PATH_CENTRAL_CONNECTOR`, `PATH_EAST_MASTERPLAN_MAIN`, `PATH_EAST_MASTERPLAN_NORTH`) với **bước `30 m`, đảo bên trái/phải**. Mỗi vị trí ứng viên phải vượt **3 bộ lọc**: `ParkLayout::isPointInLake()` (Ray-Casting 11 đỉnh) + `blockedByStructure()` (**19 hình chữ nhật** + **13 hình tròn** bao quanh mọi công trình) + `blockedByEastMasterPlan()` (**8 hình tròn** Đợt 8c) → **không trụ nào xuyên vào công trình hay rơi xuống hồ**.
+   - **Dây đèn festoon** nối hai trụ liền kề cùng tuyến: dây võng parabol (`sag = 0.30 + 0.055·d`), **14 bóng nhỏ/bóng**, màu HSV chạy dọc dây; tự động bỏ qua cặp trụ cách nhau `< 6 m` hoặc `> 42 m`.
+   - **Dải LED âm sàn** chạy liên tục dọc **hai mép trong** của mọi lối đi (bước `6.5 m`), bán kính quầng `1.15 m`, cao `y = 0.30 m`.
+   - **Dải LED viền công trình** (`addRectOutline` cho hình chữ nhật xoay được, `addRing` cho vòng tròn, `addVerticalStrip` cho ống neon dọc thân tháp) áp cho **18 nhóm công trình**: Cổng Ngọ Môn (3 viền mái + 2 cánh tường thành), Tháp Đồng Hồ (5 vòng bát giác theo 5 tầng + 4 ống neon + 4 mặt đồng hồ), Carousel (2 vòng diềm mái), Golden Sky Tower (4 ống neon + vòng sàn đón + vòng gondola), 6 chòi mái ngói, Thủy đình, dãy 3×6 quầy mái sọc, 4 đu quay tròn, sân chơi, xe va chạm, thuyền cướp biển, Quảng trường Ngôi sao Angkor (viền nền + 5 đỉnh Prang) và **8 công trình Đợt 8c**.
+   - **LED dọc đường ray** (`addTrackLeds`) cho Queen Cobra (bước `30 m`), Monorail (`34 m`) và 4 tàu lượn nhỏ (`26 m`), đặt cao `+0.95 m` trên đỉnh ray.
+   - **4 nguồn sáng điểm `GL_LIGHT3..6`** với **suy giảm bậc hai** (`GL_CONSTANT/LINEAR/QUADRATIC_ATTENUATION = 0.75 / 0.0035 / ~0.0005`) đặt tại Quảng trường Trung tâm, ngã ba khu Tây, khu Angkor/Paradise Fall và nửa Đông (chỉ bật khi `[K]` đang bật). Cường độ tự giảm `×0.55` ở Hoàng hôn, tắt hoàn toàn ban ngày.
+
+2. **Sửa gốc trong [`src/core/Lighting.h`](../src/core/Lighting.h):** nâng `GL_LIGHT_MODEL_AMBIENT` ban đêm từ `(0.14, 0.15, 0.24)` lên `(0.20, 0.22, 0.34)` và `GL_LIGHT0` từ `(0.25, 0.30, 0.48)` lên `(0.34, 0.40, 0.62)` — đủ để khối kiến trúc đọc được hình khối dưới ánh trăng lạnh mà **không** làm mất hiệu ứng `GL_EMISSION` của LED.
+
+3. **Tối ưu hiệu năng (quan trọng vì bộ sinh tạo ra 2 891 điểm sáng + 8 ống neon + 487 vũng sáng):**
+   - Toàn bộ billboard quầng sáng gói trong **một khối `glBegin(GL_TRIANGLES)` duy nhất** thay vì 2 khối `GL_TRIANGLE_FAN` mỗi bóng.
+   - **LOD 2 mức:** quầng sáng ngoài (6 tam giác) chỉ vẽ khi `d ≤ 170 m`; lõi sáng luôn vẽ khi `d ≤ 1400 m`.
+   - **Culling theo khoảng cách camera**, giải mã ngược vị trí mắt từ ma trận `GL_MODELVIEW` (`cam = −Rᵀt`): quầng `460 m`, vũng sáng `340 m`.
+   - Vũng sáng chỉ đặt **cách quãng** (mỗi 2 bước) và bán kính thu về `2.80 m`.
+   - Hình học tĩnh của trụ đèn gói trong **1 Display List**.
+
+4. **Tích hợp [`src/main.cpp`](../src/main.cpp):** thêm `#include`, biến `gNightLights`, `rebuildNightLightLeds()` (gọi **sau** `gCurves.init()` và `initWave5aMiniCoasters()` ở cả 4 điểm khởi tạo), phím **`[G]`**, mục menu chuột phải, dòng HUD, và **5 điểm gọi vẽ** (`displayCallback`, `--capture-top`, `--capture-shots`, bộ ảnh Đợt 4/5, benchmark). Thứ tự vẽ được chọn có chủ đích: `drawGroundPools()` gọi **sau** `gParkArch.draw()` (vì quảng trường lát gạch nằm trong Display List của kiến trúc, vẽ trước sẽ bị che), còn `drawGlow()` gọi **cuối cùng** sau mọi công trình.
+
+5. **Kiểm chứng định lượng (headless EGL, cùng camera mắt người `(-6, 3.4, 104) → (6, 10, 8)`):**
+
+   | Trạng thái | Độ sáng trung bình | Pixel sáng `ΣRGB > 200` |
+   |:---|:---|:---|
+   | Ban đêm **trước** Đợt 9 | 43.16 | 8.60 % |
+   | Ban đêm **sau** Đợt 9 (đèn tắt `[G]`) | 52.80 | 42.35 % |
+   | Ban đêm **sau** Đợt 9 (đèn bật) | **54.26** | **42.84 %** |
+   | Hoàng hôn (tham chiếu) | 104.96 | — |
+
+   Phần đóng góp thuần của lớp LED (chênh lệch bật/tắt) làm thay đổi **3.16 % số pixel**, tập trung đúng ở dải lối đi, chân trụ đèn và mép mái công trình — tức lớp phát sáng hoạt động đúng vị trí thiết kế, không phải tăng sáng đều toàn khung.
+
+6. **Hiệu năng:** baseline không đèn `86.0 → 92.3 FPS`; có đèn đầy đủ **`79.8 FPS`** (đo 200 khung `1280×768`, cùng máy) — chi phí **≈ 8–13 %** cho ~2 900 nguồn sáng, chấp nhận được so với ngưỡng 60 FPS của đồ án.
+
+7. **Điều khiển mới:** phím **`[G]`** hoặc menu chuột phải → *"Bat/Tat He thong den LED ban dem [G]"*; trạng thái hiển thị trên HUD cùng dòng `[K]`.
+
+---
+
 
 1. [Sun World — Vòng quay Mặt Trời Sun Wheel](https://sunworld.vn/vi/check-in/vong-quay-sun-wheel-tai-asia-park-niem-tu-hao-cua-da-nang-6125)
 2. [VnExpress — Ngắm vòng quay khổng lồ tại Đà Nẵng](https://vnexpress.net/ngam-vong-quay-khong-lo-tai-da-nang-3017385.html)

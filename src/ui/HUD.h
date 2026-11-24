@@ -59,7 +59,8 @@ public:
         float coasterSpeedMps,
         float sunWheelSpeedDeg = 0.4f,
         bool sunWheelFastDemo = false,
-        bool showMasterPlan8c = true
+        bool showMasterPlan8c = true,
+        bool nightLightsOn = true
     ) {
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
@@ -162,8 +163,9 @@ public:
         drawBitmapText(panelX + 14.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
 
         glColor3f(1.0f, 0.86f, 0.36f);
-        std::snprintf(buf, sizeof(buf), "[K] Dot 8c : %s (Quy hoach tong the, khong phai hien trang 2019)",
-                      showMasterPlan8c ? "BAT" : "TAT");
+        std::snprintf(buf, sizeof(buf), "[K] Dot 8c : %s | [G] Den LED ban dem: %s",
+                      showMasterPlan8c ? "BAT" : "TAT",
+                      nightLightsOn ? "BAT" : "TAT");
         drawBitmapText(panelX + 14.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
 
         glColor3f(0.65f, 0.85f, 1.0f);
