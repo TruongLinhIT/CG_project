@@ -444,6 +444,17 @@ constexpr MathCG::Vec3 PARADISE_FALL_BLDG_POS(-179.8f, 0.0f, -91.1f);      // [�
 constexpr MathCG::Vec3 PARADISE_FALL_TRACK_CENTER(-199.0f, 0.0f, -119.9f); // [Ước lượng từ ảnh vệ tinh; hình dạng đơn giản hóa] (34x24m)
 constexpr MathCG::Vec3 HIGHWAY_BOAT_CENTER(-176.0f, 0.0f, -214.0f);        // [Đã xác minh tên/vị trí; hình dạng đơn giản hóa] (34x26m)
 
+// Lô A2 - Thông số kiến trúc nhà ga các tàu lượn nhỏ [Bản vẽ minh họa AI, tham khảo hình dạng]
+// (Giữ nguyên vị trí & đường ray/đoàn tàu Đợt 5A)
+constexpr float        GARUDA_STATION_DECK_Y          =  2.05f;
+constexpr float        GARUDA_STATION_EAVE_Y          =  5.35f;
+constexpr float        GARUDA_STATION_ROOF_HORN_H     =  4.65f; // Đỉnh sừng Minangkabau vươn lên ~10.0m
+constexpr float        PORT_SKY_STATION_DECK_Y        =  2.15f;
+constexpr float        PORT_SKY_WING_EAVE_Y           =  5.45f; // Hai gian bên thấp hơn gian giữa
+constexpr float        PORT_SKY_CENTER_EAVE_Y         =  6.25f; // Gian giữa cao hơn hai bên
+constexpr MathCG::Vec3 PARADISE_FALL_GAZEBO_OFFSET(7.3f, 0.0f, -12.7f); // Lầu ga 2 tầng nối cạnh Bắc-Đông núi đá ((-172.5, -103.8), hở ray >= 7m)
+constexpr float        PARADISE_FALL_GAZEBO_DECK_Y    =  2.60f;
+
 // Bảng 8 điểm điều khiển cục bộ (so với tâm từng tàu lượn nhỏ) cho lớp MiniCoaster dùng chung (Đợt 5A):
 constexpr int NUM_MINI_COASTER_WAYPOINTS = 8;
 

@@ -346,12 +346,13 @@ public:
         if (vertices.empty() || faces.empty()) return;
 
         bool hasVertexNormals = (vertexNormals.size() == vertices.size());
+        MathCG::ColorRGB prevCol(-1.0f, -1.0f, -1.0f);
 
         auto emitFace = [&](const Face& face) {
-            if (face.hasCustomColor) {
-                glColor3f(face.color.r, face.color.g, face.color.b);
-            } else {
-                glColor3f(defaultColor.r, defaultColor.g, defaultColor.b);
+            const MathCG::ColorRGB& c = face.hasCustomColor ? face.color : defaultColor;
+            if (c.r != prevCol.r || c.g != prevCol.g || c.b != prevCol.b) {
+                glColor3f(c.r, c.g, c.b);
+                prevCol = c;
             }
             if (!smoothShading || !hasVertexNormals) {
                 glNormal3f(face.faceNormal.x, face.faceNormal.y, face.faceNormal.z);
@@ -1087,6 +1088,196 @@ public:
 
         lotus.computeNormals();
         return lotus;
+    }
+
+    /**
+     * @brief Hàm dùng lại tạo Mái yên ngựa cong kiểu Minangkabau (Indonesia)
+     *        [Bản vẽ minh họa AI, tham khảo hình dạng]: hai đầu sống nóc vểnh cao thành sừng trâu,
+     *        bụng mái võng xuống ở giữa, vách tam giác gỗ đầu hồi khép kín và mào nóc trang trí.
+     */
+    static PolygonMesh createMinangkabauRoof(
+        float cx, float cy, float cz,
+        float baseW, float baseD,
+        float midSaddleH, float hornPeakH, float hornFlareLen,
+        int numCrestSpikes,
+        const MathCG::ColorRGB& roofCol,
+        const MathCG::ColorRGB& trimCol,
+        float rotYDeg = 0.0f
+    ) {
+        PolygonMesh roof("MinangkabauSaddleRoof");
+        roof.defaultColor = roofCol;
+
+        const int uSteps = 6;
+        const int vSteps = 8;
+        const float hw = baseW * 0.5f;
+        const float hd = baseD * 0.5f;
+        const float thick = 0.16f;
+
+        auto evalRoofXZ = [&](float rx, float rz, float& outX, float& outY, float& outZ) {
+            float vAbs = std::fabs(rz);
+            float ridgeY = midSaddleH + (hornPeakH - midSaddleH) * std::pow(vAbs, 2.15f);
+            float eaveLiftY = 0.28f * hornPeakH * vAbs * vAbs;
+            float sideCurve = std::pow(std::max(0.0f, 1.0f - std::fabs(rx)), 1.45f);
+            float flare = hornFlareLen * (1.0f - 0.72f * rx * rx) * std::pow(vAbs, 1.75f);
+            outX = rx * hw;
+            outY = cy + eaveLiftY + (ridgeY - eaveLiftY) * sideCurve;
+            outZ = (hd + flare) * rz;
+        };
+
+        const int ringStride = uSteps + 1;
+        // 1. Mặt trên mái (+Y) [0 .. (vSteps+1)*ringStride - 1]
+        for (int j = 0; j <= vSteps; ++j) {
+            float rz = (static_cast<float>(j) / vSteps - 0.5f) * 2.0f;
+            for (int i = 0; i <= uSteps; ++i) {
+                float rx = (static_cast<float>(i) / uSteps - 0.5f) * 2.0f;
+                float x, y, z;
+                evalRoofXZ(rx, rz, x, y, z);
+                roof.addVertex(x, y, z);
+            }
+        }
+        const int botOffset = static_cast<int>(roof.vertices.size());
+        // 2. Mặt dưới diềm mái (-Y, dày 0.16m)
+        for (int j = 0; j <= vSteps; ++j) {
+            float rz = (static_cast<float>(j) / vSteps - 0.5f) * 2.0f;
+            for (int i = 0; i <= uSteps; ++i) {
+                float rx = (static_cast<float>(i) / uSteps - 0.5f) * 2.0f;
+                float x, y, z;
+                evalRoofXZ(rx, rz, x, y, z);
+                roof.addVertex(x, y - thick, z);
+            }
+        }
+
+        auto tIdx = [&](int i, int j) { return j * ringStride + i; };
+        auto bIdx = [&](int i, int j) { return botOffset + j * ringStride + i; };
+
+        for (int j = 0; j < vSteps; ++j) {
+            for (int i = 0; i < uSteps; ++i) {
+                roof.addQuad(tIdx(i, j), tIdx(i, j + 1), tIdx(i + 1, j + 1), tIdx(i + 1, j), roofCol, true);
+                roof.addQuad(bIdx(i, j), bIdx(i + 1, j), bIdx(i + 1, j + 1), bIdx(i, j + 1), trimCol, true);
+            }
+        }
+        // Khép kín viền mép diềm trái/phải và 2 đầu hồi Bắc/Nam
+        for (int j = 0; j < vSteps; ++j) {
+            roof.addQuad(bIdx(0, j), bIdx(0, j + 1), tIdx(0, j + 1), tIdx(0, j), trimCol, true);
+            roof.addQuad(bIdx(uSteps, j + 1), bIdx(uSteps, j), tIdx(uSteps, j), tIdx(uSteps, j + 1), trimCol, true);
+        }
+        for (int i = 0; i < uSteps; ++i) {
+            roof.addQuad(bIdx(i + 1, 0), bIdx(i, 0), tIdx(i, 0), tIdx(i + 1, 0), trimCol, true);
+            roof.addQuad(bIdx(i, vSteps), bIdx(i + 1, vSteps), tIdx(i + 1, vSteps), tIdx(i, vSteps), trimCol, true);
+        }
+
+        // 3. Vách gỗ tam giác đặc kín tại 2 đầu hồi Bắc (j=0) & Nam (j=vSteps) từ cao độ xà y = cy lên sống mái
+        //    Giúp mặt dưới đầu hồi không hở trống và gắn khít lên cột nhà ga bên dưới
+        for (int endIdx : { 0, vSteps }) {
+            bool isSouth = (endIdx == vSteps);
+            float rz = isSouth ? 1.0f : -1.0f;
+            float baseZ = rz * hd * 0.94f;
+            int gBaseStart = static_cast<int>(roof.vertices.size());
+            for (int i = 0; i <= uSteps; ++i) {
+                float rx = (static_cast<float>(i) / uSteps - 0.5f) * 2.0f;
+                roof.addVertex(rx * hw * 0.94f, cy - 0.14f, baseZ);
+            }
+            int gBackStart = static_cast<int>(roof.vertices.size());
+            for (int i = 0; i <= uSteps; ++i) {
+                float rx = (static_cast<float>(i) / uSteps - 0.5f) * 2.0f;
+                roof.addVertex(rx * hw * 0.94f, cy - 0.14f, baseZ + (isSouth ? -0.22f : 0.22f));
+            }
+            for (int i = 0; i < uSteps; ++i) {
+                if (isSouth) {
+                    roof.addQuad(gBaseStart + i, gBaseStart + i + 1, bIdx(i + 1, endIdx), bIdx(i, endIdx), trimCol, true);
+                    roof.addQuad(gBackStart + i + 1, gBackStart + i, bIdx(i, endIdx), bIdx(i + 1, endIdx), trimCol, true);
+                } else {
+                    roof.addQuad(gBaseStart + i + 1, gBaseStart + i, bIdx(i, endIdx), bIdx(i + 1, endIdx), trimCol, true);
+                    roof.addQuad(gBackStart + i, gBackStart + i + 1, bIdx(i + 1, endIdx), bIdx(i, endIdx), trimCol, true);
+                }
+            }
+        }
+
+        // 4. Mào trang trí chạm trổ dọc sống mái yên ngựa (theo bản vẽ #16)
+        MathCG::ColorRGB crestCol(0.95f, 0.78f, 0.20f);
+        if (numCrestSpikes > 0) {
+            for (int k = 0; k < numCrestSpikes; ++k) {
+                float rz = (numCrestSpikes == 1) ? 0.0f : (-0.82f + 1.64f * (static_cast<float>(k) / (numCrestSpikes - 1)));
+                float rx, ry, rzz;
+                evalRoofXZ(0.0f, rz, rx, ry, rzz);
+                float spikeH = 0.42f + 0.32f * std::fabs(rz);
+                roof.append(createPyramid(0.0f, ry - 0.12f, rzz, 0.24f, 0.34f, spikeH, crestCol));
+            }
+        }
+
+        if (std::fabs(rotYDeg) > 1e-3f) roof.rotateY(rotYDeg);
+        roof.translate(cx, 0.0f, cz);
+        roof.computeNormals();
+        return roof;
+    }
+
+    /**
+     * @brief Hàm dùng lại tạo Mái gỗ 2 dốc có vì kèo tam giác (Port of Sky Treasure / nhà ga bến cảng gỗ)
+     *        [Bản vẽ minh họa AI, tham khảo hình dạng]: hai mái nghiêng kín, thanh bờ nóc và
+     *        các khung vì kèo tam giác (king-post truss) tại các nhịp đầu hồi.
+     */
+    static PolygonMesh createGableRoofWithTruss(
+        float cx, float cy, float cz,
+        float spanW, float lengthD,
+        float ridgeH, float eaveOverhang,
+        const MathCG::ColorRGB& roofCol,
+        const MathCG::ColorRGB& woodCol,
+        const MathCG::ColorRGB& trussCol,
+        int numTrusses = 3,
+        float rotYDeg = 0.0f
+    ) {
+        PolygonMesh mesh("GableRoofWithTruss");
+        mesh.defaultColor = roofCol;
+
+        const float hs = spanW * 0.5f + eaveOverhang;
+        const float hl = lengthD * 0.5f + eaveOverhang;
+        const float rafterLen = std::sqrt(hs * hs + ridgeH * ridgeH);
+        const float slopeAngleDeg = std::atan2(ridgeH, hs) * MathCG::RAD2DEG;
+        const float thick = 0.16f;
+
+        // 1. Hai cánh mái 2 dốc (mặt phẳng kép kín từ đỉnh nóc xuống diềm mái trái/phải)
+        for (int side : {-1, 1}) {
+            PolygonMesh slab = createBox(0.0f, 0.0f, 0.0f, rafterLen + 0.08f, thick, hl * 2.0f, roofCol);
+            slab.rotateZ(-side * slopeAngleDeg);
+            slab.translate(side * hs * 0.5f, cy + ridgeH * 0.5f, 0.0f);
+            mesh.append(slab);
+        }
+        // Thanh bờ nóc trên đỉnh giao hai mái
+        mesh.append(createBox(0.0f, cy + ridgeH + 0.08f, 0.0f, 0.30f, 0.22f, hl * 2.0f + 0.06f, woodCol));
+
+        // 2. Hệ vì kèo gỗ tam giác lộ thiên (Bottom Tie Beam + King-Post + Diagonal Struts + Rafters)
+        const int trusses = std::max(2, numTrusses);
+        const float trussSpan = spanW;
+        const float tHS = trussSpan * 0.5f;
+        const float tAngleDeg = std::atan2(ridgeH, tHS) * MathCG::RAD2DEG;
+        const float tRafterLen = std::sqrt(tHS * tHS + ridgeH * ridgeH);
+
+        for (int t = 0; t < trusses; ++t) {
+            float tz = -lengthD * 0.46f + (lengthD * 0.92f) * (static_cast<float>(t) / (trusses - 1));
+            // Xà ngang đáy vì kèo (tie beam)
+            mesh.append(createBox(0.0f, cy + 0.04f, tz, trussSpan + 0.10f, 0.20f, 0.22f, trussCol));
+            // Thanh trụ đứng giữa (king-post) từ xà ngang lên đỉnh nóc
+            appendBoxByYRange(mesh, 0.0f, cy + 0.04f, cy + ridgeH + 0.02f, tz, 0.20f, 0.20f, trussCol);
+            // Hai thanh kèo chéo chính + hai thanh chống xiên bên trong tam giác vì kèo
+            for (int side : {-1, 1}) {
+                PolygonMesh rafter = createBox(0.0f, 0.0f, 0.0f, tRafterLen, 0.16f, 0.18f, woodCol);
+                rafter.rotateZ(-side * tAngleDeg);
+                rafter.translate(side * tHS * 0.5f, cy + ridgeH * 0.5f - 0.06f, tz);
+                mesh.append(rafter);
+
+                float strutW = std::sqrt((tHS * 0.48f) * (tHS * 0.48f) + (ridgeH * 0.48f) * (ridgeH * 0.48f));
+                float strutAng = std::atan2(ridgeH * 0.48f, tHS * 0.48f) * MathCG::RAD2DEG;
+                PolygonMesh strut = createBox(0.0f, 0.0f, 0.0f, strutW, 0.13f, 0.14f, trussCol);
+                strut.rotateZ(side * strutAng);
+                strut.translate(side * tHS * 0.26f, cy + ridgeH * 0.28f, tz);
+                mesh.append(strut);
+            }
+        }
+
+        if (std::fabs(rotYDeg) > 1e-3f) mesh.rotateY(rotYDeg);
+        mesh.translate(cx, 0.0f, cz);
+        mesh.computeNormals();
+        return mesh;
     }
 };
 
