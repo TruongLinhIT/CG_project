@@ -457,7 +457,7 @@ private:
         glVertex3f(v3.x, v3.y, v3.z);
     }
 
-    static void drawOrientedBox(
+    static void emitOrientedBoxFaces(
         const MathCG::Vec3& center,
         const MathCG::Vec3& right,
         const MathCG::Vec3& up,
@@ -480,20 +480,42 @@ private:
         MathCG::Vec3 p111 = center + rx + uy + fz;
         MathCG::Vec3 p011 = center - rx + uy + fz;
 
-        glBegin(GL_QUADS);
         drawOrientedQuadFace(p001, p101, p111, p011); // +Z (Mặt trước)
         drawOrientedQuadFace(p100, p000, p010, p110); // -Z (Mặt sau)
         drawOrientedQuadFace(p101, p100, p110, p111); // +X (Mặt phải)
         drawOrientedQuadFace(p000, p001, p011, p010); // -X (Mặt trái)
         drawOrientedQuadFace(p011, p111, p110, p010); // +Y (Mặt trên)
         drawOrientedQuadFace(p000, p100, p101, p001); // -Y (Mặt dưới)
+    }
+
+    static void drawOrientedBox(
+        const MathCG::Vec3& center,
+        const MathCG::Vec3& right,
+        const MathCG::Vec3& up,
+        const MathCG::Vec3& fwd,
+        float hx,
+        float hy,
+        float hz
+    ) {
+        glBegin(GL_QUADS);
+        emitOrientedBoxFaces(center, right, up, fwd, hx, hy, hz);
         glEnd();
     }
 
     void drawClosedTubeRail(float offsetRight, float offsetUp, float radius) const {
         const int n      = static_cast<int>(samples.size());
         const int radial = std::max(6, config.railRadialSteps);
+        if (n < 2) return;
 
+        std::vector<float> cosTbl(radial + 1);
+        std::vector<float> sinTbl(radial + 1);
+        for (int j = 0; j <= radial; ++j) {
+            float theta = (static_cast<float>(j % radial) / static_cast<float>(radial)) * MathCG::TWO_PI;
+            cosTbl[j] = std::cos(theta);
+            sinTbl[j] = std::sin(theta);
+        }
+
+        // Giữ nguyên GL_QUAD_STRIP từng đoạn ray để bảo toàn chính xác từng tam giác & 0% sai khác pixel (với bảng cos/sin dựng sẵn)
         for (int i = 0; i < n; ++i) {
             const TrackFrame& f0 = samples[i];
             const TrackFrame& f1 = samples[(i + 1) % n];
@@ -503,11 +525,9 @@ private:
 
             glBegin(GL_QUAD_STRIP);
             for (int j = 0; j <= radial; ++j) {
-                float theta = (static_cast<float>(j % radial) / static_cast<float>(radial)) * MathCG::TWO_PI;
-                float ct = std::cos(theta);
-                float st = std::sin(theta);
+                float ct = cosTbl[j];
+                float st = sinTbl[j];
 
-                // Phát đỉnh f1 trước, f0 sau -> tạo pháp tuyến ngược chiều kim đồng hồ (CCW) hướng ra ngoài dọc theo +n(theta)
                 MathCG::Vec3 n1 = (f1.right * ct + f1.up * st).normalized();
                 MathCG::Vec3 p1 = c1 + n1 * radius;
                 glNormal3f(n1.x, n1.y, n1.z);
@@ -531,6 +551,7 @@ private:
 
         glColor3f(config.spineColor.r, config.spineColor.g, config.spineColor.b);
 
+        glBegin(GL_QUADS);
         for (int i = 0; i < n; ++i) {
             const TrackFrame& f0 = samples[i];
             const TrackFrame& f1 = samples[(i + 1) % n];
@@ -549,14 +570,13 @@ private:
                 f1.position + f1.right *  halfWBot + f1.up * yBot
             };
 
-            glBegin(GL_QUADS);
             for (int side = 0; side < 4; ++side) {
                 int nextSide = (side + 1) % 4;
                 // Tích có hướng (cs0[next] - cs0[side]) x (cs1[side] - cs0[side]) hướng ra phía ngoài!
                 drawOrientedQuadFace(cs0[side], cs0[nextSide], cs1[nextSide], cs1[side]);
             }
-            glEnd();
         }
+        glEnd();
     }
 
     void drawCrossTies() const {
@@ -567,31 +587,33 @@ private:
 
         glColor3f(config.tieColor.r, config.tieColor.g, config.tieColor.b);
 
+        glBegin(GL_QUADS);
         for (int i = 0; i < numTies; ++i) {
             TrackFrame f = evaluateFrameAtDistance(i * step);
 
             if (config.isMonorailBeam) {
                 // Đai vòng gá đỡ gọn gàng bao quanh dầm bê tông
-                drawOrientedBox(
+                emitOrientedBoxFaces(
                     f.position - f.up * 0.52f,
                     f.right, f.up, f.tangent,
                     0.62f, 0.56f, 0.14f
                 );
             } else {
                 // Thanh tà-vẹt ngang liên kết thanh ray trái và phải
-                drawOrientedBox(
+                emitOrientedBoxFaces(
                     f.position - f.up * 0.12f,
                     f.right, f.up, f.tangent,
                     config.trackGauge * 0.54f, 0.08f, 0.12f
                 );
                 // Thanh chống cổ đứng nối từ thanh ngang xuống ống thép xương sống trung tâm
-                drawOrientedBox(
+                emitOrientedBoxFaces(
                     f.position - f.up * (config.spineDropOffset * 0.52f),
                     f.right, f.up, f.tangent,
                     0.12f, config.spineDropOffset * 0.45f, 0.11f
                 );
             }
         }
+        glEnd();
     }
 
     static void drawParametricVerticalCylinder(
@@ -635,42 +657,54 @@ private:
         const MathCG::Vec3 worldY(0.0f, 1.0f, 0.0f);
         const MathCG::Vec3 worldZ(0.0f, 0.0f, 1.0f);
 
+        std::vector<TrackFrame> pillarFrames;
+        pillarFrames.reserve(numPillars);
         for (int i = 0; i < numPillars; ++i) {
             TrackFrame f = evaluateFrameAtDistance(i * step);
             float attachOffset = config.isMonorailBeam ? 1.05f : config.spineDropOffset;
             MathCG::Vec3 attachPt = f.position - f.up * attachOffset;
-
             if (attachPt.y < 1.2f) continue;
+            if (config.isMonorailBeam && ParkLayout::isPointInLake(attachPt.x, attachPt.z)) continue;
+            pillarFrames.push_back(f);
+        }
+        if (pillarFrames.empty()) return;
 
-            // Nếu là dầm Monorail đi qua nhịp cầu vượt mặt hồ thì KHÔNG cắm trụ bê tông xuống giữa mặt nước
-            // (đoạn này được đỡ bởi dàn cầu vượt và hai trụ mố cầu trên bờ Đông - Tây)
-            if (config.isMonorailBeam && ParkLayout::isPointInLake(attachPt.x, attachPt.z)) {
-                continue;
-            }
-
-            // Bệ móng bê tông dưới mặt đất
-            glColor3f(0.45f, 0.47f, 0.50f);
-            drawOrientedBox(
+        // Gom toàn bộ bệ móng bê tông & gối đỡ đỉnh cột vào 1 batch GL_QUADS (giữ nguyên đỉnh/màu)
+        glColor3f(0.45f, 0.47f, 0.50f);
+        glBegin(GL_QUADS);
+        for (const auto& f : pillarFrames) {
+            float attachOffset = config.isMonorailBeam ? 1.05f : config.spineDropOffset;
+            MathCG::Vec3 attachPt = f.position - f.up * attachOffset;
+            emitOrientedBoxFaces(
                 MathCG::Vec3(attachPt.x, 0.35f, attachPt.z),
                 worldX, worldY, worldZ,
                 config.pillarRadius * 2.1f, 0.35f, config.pillarRadius * 2.1f
             );
+        }
+        glEnd();
 
-            // Cột trụ đỡ hình trụ thuôn dần lên trên
-            glColor3f(config.pillarColor.r, config.pillarColor.g, config.pillarColor.b);
+        glColor3f(config.tieColor.r, config.tieColor.g, config.tieColor.b);
+        glBegin(GL_QUADS);
+        for (const auto& f : pillarFrames) {
+            float attachOffset = config.isMonorailBeam ? 1.05f : config.spineDropOffset;
+            MathCG::Vec3 attachPt = f.position - f.up * attachOffset;
+            emitOrientedBoxFaces(
+                attachPt,
+                f.right, f.up, f.tangent,
+                config.pillarRadius * 1.25f, 0.25f, config.pillarRadius * 1.25f
+            );
+        }
+        glEnd();
+
+        glColor3f(config.pillarColor.r, config.pillarColor.g, config.pillarColor.b);
+        for (const auto& f : pillarFrames) {
+            float attachOffset = config.isMonorailBeam ? 1.05f : config.spineDropOffset;
+            MathCG::Vec3 attachPt = f.position - f.up * attachOffset;
             drawParametricVerticalCylinder(
                 attachPt.x, attachPt.z,
                 0.65f, attachPt.y,
                 config.pillarRadius * 1.18f, config.pillarRadius * 0.90f,
                 10
-            );
-
-            // Gối đỡ định vị phía trên đỉnh cột căn chỉnh theo tiếp tuyến đường ray
-            glColor3f(config.tieColor.r, config.tieColor.g, config.tieColor.b);
-            drawOrientedBox(
-                attachPt,
-                f.right, f.up, f.tangent,
-                config.pillarRadius * 1.25f, 0.25f, config.pillarRadius * 1.25f
             );
         }
     }
@@ -712,29 +746,36 @@ private:
             );
         };
 
+        glColor3f(0.50f, 0.54f, 0.60f);
+        glBegin(GL_QUADS);
         for (int i = 0; i < n; ++i) {
             const TrackFrame& f0 = samples[i];
             const TrackFrame& f1 = samples[(i + 1) % n];
             bool in0 = ParkLayout::isPointInLake(f0.position.x, f0.position.z);
             bool in1 = ParkLayout::isPointInLake(f1.position.x, f1.position.z);
 
-            // Đặt trụ mố cầu tại điểm mẫu trên bờ khô ngay sát mép nước trước và sau khi vượt hồ
-            if (!in0 && in1) {
-                drawBankAbutmentPillar(f0);
-            } else if (in0 && !in1) {
-                drawBankAbutmentPillar(f1);
-            }
-
-            // Vẽ dầm hộp cầu vượt tăng cường bên dưới dầm Monorail suốt nhịp vượt mặt nước
             if (in0 || in1) {
                 MathCG::Vec3 mid = (f0.position + f1.position) * 0.5f - f0.up * 1.85f;
                 float segLen = (f1.position - f0.position).length();
-                glColor3f(0.50f, 0.54f, 0.60f);
-                drawOrientedBox(
+                emitOrientedBoxFaces(
                     mid,
                     f0.right, f0.up, f0.tangent,
                     1.25f, 0.55f, segLen * 0.52f
                 );
+            }
+        }
+        glEnd();
+
+        for (int i = 0; i < n; ++i) {
+            const TrackFrame& f0 = samples[i];
+            const TrackFrame& f1 = samples[(i + 1) % n];
+            bool in0 = ParkLayout::isPointInLake(f0.position.x, f0.position.z);
+            bool in1 = ParkLayout::isPointInLake(f1.position.x, f1.position.z);
+
+            if (!in0 && in1) {
+                drawBankAbutmentPillar(f0);
+            } else if (in0 && !in1) {
+                drawBankAbutmentPillar(f1);
             }
         }
     }

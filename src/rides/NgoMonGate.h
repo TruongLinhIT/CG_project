@@ -46,8 +46,15 @@ public:
      * @brief Vẽ toàn bộ tổ hợp Cổng Ngọ Môn + 2 Cánh Tường Thành + Hồ Sen + Sân Trước & Tháp Đồng Hồ tách riêng
      */
     void draw(bool isNightOrSunset, bool showNormals = false, bool smoothShading = true) const {
-        // 1. Vẽ Hai Hồ Sen trước cổng & Sân trước lát đá (trong hệ tọa độ thế giới 1:1)
-        drawForecourtAndLotusPonds(isNightOrSunset);
+        if (!showNormals) ensureDisplayLists();
+        const int modeIdx = isNightOrSunset ? 1 : 0;
+
+        // 1. Vẽ Hai Hồ Sen trước cổng & Sân trước lát đá (100% tĩnh theo Ngày/Đêm -> Display List)
+        if (!showNormals && forecourtList_[modeIdx] != 0) {
+            glCallList(forecourtList_[modeIdx]);
+        } else {
+            drawForecourtAndLotusPonds(isNightOrSunset);
+        }
 
         // 2. Vẽ Cổng Thành Ngọ Môn + Hai Cánh Tường Thành Răng Cưa tại (+16.1, 0.0, +139.1), scale = 0.76
         glPushMatrix();
@@ -55,7 +62,6 @@ public:
         glScalef(gateScale, gateScale, gateScale);
 
         if (!showNormals) {
-            ensureDisplayLists();
             if (smoothShading && gateSmoothList != 0) {
                 glCallList(gateSmoothList);
             } else if (!smoothShading && gateFlatList != 0) {
@@ -67,9 +73,13 @@ public:
             gateMesh.draw(smoothShading, true);
         }
 
-        // Vẽ các ô cửa sổ tròn phát sáng trên mặt tiền tầng 2 và dàn đèn lồng đỏ cung đình dưới hiên mái
-        drawTier2RoundWindows(isNightOrSunset);
-        drawLanterns(isNightOrSunset, showNormals);
+        // Vẽ các ô cửa sổ tròn & dàn đèn lồng (100% tĩnh theo Ngày/Đêm -> Display List)
+        if (!showNormals && gateExtrasList_[modeIdx] != 0) {
+            glCallList(gateExtrasList_[modeIdx]);
+        } else {
+            drawTier2RoundWindows(isNightOrSunset);
+            drawLanterns(isNightOrSunset, showNormals);
+        }
 
         glPopMatrix();
 
@@ -79,7 +89,6 @@ public:
         glScalef(clockTowerScale, clockTowerScale, clockTowerScale);
 
         if (!showNormals) {
-            ensureDisplayLists();
             if (smoothShading && clockSmoothList != 0) {
                 glCallList(clockSmoothList);
             } else if (!smoothShading && clockFlatList != 0) {
@@ -103,8 +112,30 @@ private:
     mutable GLuint gateFlatList    = 0;
     mutable GLuint clockSmoothList = 0;
     mutable GLuint clockFlatList   = 0;
+    mutable GLuint forecourtList_[2]  = { 0, 0 };
+    mutable GLuint gateExtrasList_[2] = { 0, 0 };
 
     void ensureDisplayLists() const {
+        for (int m = 0; m < 2; ++m) {
+            bool night = (m == 1);
+            if (forecourtList_[m] == 0) {
+                forecourtList_[m] = glGenLists(1);
+                if (forecourtList_[m] != 0) {
+                    glNewList(forecourtList_[m], GL_COMPILE);
+                    drawForecourtAndLotusPonds(night);
+                    glEndList();
+                }
+            }
+            if (gateExtrasList_[m] == 0) {
+                gateExtrasList_[m] = glGenLists(1);
+                if (gateExtrasList_[m] != 0) {
+                    glNewList(gateExtrasList_[m], GL_COMPILE);
+                    drawTier2RoundWindows(night);
+                    drawLanterns(night, false);
+                    glEndList();
+                }
+            }
+        }
         if (gateSmoothList == 0) {
             gateSmoothList = glGenLists(1);
             if (gateSmoothList != 0) {

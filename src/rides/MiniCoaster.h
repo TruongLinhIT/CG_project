@@ -120,6 +120,13 @@ public:
 
         track.buildFromClosedWaypoints(worldWps, 0.42f, tcfg);
         headDistance = track.getTotalLength() * cfg.initialPhase01;
+
+        // Dựng sẵn hình học tĩnh cho mỗi toa tàu (tránh tạo std::vector & computeNormals mỗi khung)
+        // Lưu ý: khi vẽ đoàn tàu vẫn gọi draw() trực tiếp theo ma trận động của từng toa, KHÔNG dùng Display List.
+        carBodyMesh_ = Geometry::PolygonMesh::createBox(0.0f, 0.32f, 0.0f, 1.18f, 0.58f, 1.92f, cfg.carBodyColor);
+        carStripeMesh_ = Geometry::PolygonMesh::createBox(0.0f, 0.42f, 0.15f, 1.24f, 0.22f, 1.45f, cfg.carAccentColor);
+        carSeatMesh_ = Geometry::PolygonMesh::createBox(0.0f, 0.65f, -0.25f, 0.88f, 0.42f, 0.35f, MathCG::ColorRGB(0.22f, 0.24f, 0.28f));
+        carHeadlightMesh_ = Geometry::PolygonMesh::createBox(0.0f, 0.34f, 0.98f, 0.65f, 0.18f, 0.08f, MathCG::ColorRGB(1.0f, 0.95f, 0.55f));
         initialized_ = true;
     }
 
@@ -164,6 +171,10 @@ private:
     bool           initialized_      = false;
     mutable GLuint staticListSmooth_ = 0;
     mutable GLuint staticListFlat_   = 0;
+    Geometry::PolygonMesh carBodyMesh_;
+    Geometry::PolygonMesh carStripeMesh_;
+    Geometry::PolygonMesh carSeatMesh_;
+    Geometry::PolygonMesh carHeadlightMesh_;
 
     void drawStaticTrackAndStation(bool showNormals, bool smoothShading) const {
         // 1. Vẽ đường ray đôi, ống xương sống, tà-vẹt và trụ đỡ (BezierTrack - giữ nguyên 100%)
@@ -597,40 +608,20 @@ private:
             };
             glMultMatrixf(orient);
 
-            // Thân toa tàu
-            auto body = Geometry::PolygonMesh::createBox(
-                0.0f, 0.32f, 0.0f,
-                1.18f, 0.58f, 1.92f,
-                cfg.carBodyColor
-            );
-            body.draw(smoothShading, showNormals);
+            // Thân toa tàu (vẽ trực tiếp, dùng lưới dựng sẵn)
+            carBodyMesh_.draw(smoothShading, showNormals);
 
             // Viền mũi / dải trang trí toa tàu
-            auto stripe = Geometry::PolygonMesh::createBox(
-                0.0f, 0.42f, 0.15f,
-                1.24f, 0.22f, 1.45f,
-                cfg.carAccentColor
-            );
-            stripe.draw(smoothShading, showNormals);
+            carStripeMesh_.draw(smoothShading, showNormals);
 
             // Tựa lưng ghế & hành khách ngồi trong toa
-            auto seat = Geometry::PolygonMesh::createBox(
-                0.0f, 0.65f, -0.25f,
-                0.88f, 0.42f, 0.35f,
-                MathCG::ColorRGB(0.22f, 0.24f, 0.28f)
-            );
-            seat.draw(smoothShading, showNormals);
+            carSeatMesh_.draw(smoothShading, showNormals);
 
             // Đèn pha mũi toa đầu tiên khi trời tối / hoàng hôn
             if (c == 0 && isNightOrSunset) {
                 GLfloat emit[4] = { 1.0f, 0.95f, 0.55f, 1.0f };
                 glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, emit);
-                auto lamp = Geometry::PolygonMesh::createBox(
-                    0.0f, 0.34f, 0.98f,
-                    0.65f, 0.18f, 0.08f,
-                    MathCG::ColorRGB(1.0f, 0.95f, 0.55f)
-                );
-                lamp.draw(smoothShading, showNormals);
+                carHeadlightMesh_.draw(smoothShading, showNormals);
                 GLfloat zeroEmit[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
                 glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, zeroEmit);
             }

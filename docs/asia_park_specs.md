@@ -584,6 +584,29 @@ Theo yêu cầu điều chỉnh số 1 & 2, cả 5 hạng mục dưới đây đ
   - [`img/lote_a3_carousel_night.png`](img/lote_a3_carousel_night.png) — Cận 3: Góc thấp Tây-Nam với vòng đèn diềm mái, đèn rọi gầm trần & lầu đèn phát sáng trên nền Sun Wheel và Tháp Đồng Hồ (Đêm).
   - [`img/lote_a3_overview_sunset.png`](img/lote_a3_overview_sunset.png) — Toàn cảnh Lô A3 cùng `PATH_WEST_SPINE` & khu Tây công viên (Hoàng hôn).
 
+### 13.7. Nhật ký triển khai LÔ O1 (Tối ưu hiệu năng tĩnh — tạo khoảng đệm trước Lô B1)
+- **Mục tiêu & nguyên tắc:** Tạo khoảng đệm FPS (`≥ +10%`) trước khi dựng Lô B1 (Angkor Wat); chỉ đưa **phần tĩnh** vào Display List, gộp batch `glBegin/glEnd`, bỏ tính toán/cấp phát lặp lại mỗi khung; **không đổi hình dạng, vị trí, màu sắc hay animation**, mọi đoàn tàu & bộ phận chuyển động vẫn vẽ trực tiếp như cũ.
+- **Đo thời gian vẽ từng thành phần (`1280 × 768` Sunset trên Windows 11 / Intel UHD Graphics 770) — Top 5 tốn FPS nhất trước Lô O1:**
+  1. `gCurves` (Monorail + Queen Cobra): **`3.7334 ms`** -> giảm còn **`2.2946 ms`** (`-38.5%`)
+  2. `gParkArch` (Quảng trường lát gạch, 123 cây & sân khấu): **`2.9193 ms`** -> giảm còn **`2.4910 ms`** (`-14.7%`)
+  3. `gSunWheel` (chính): **`1.7184 ms`** -> giảm còn **`1.1570 ms`** (`-32.7%`) *(cộng phản chiếu hồ `1.4016 -> 1.2211 ms`: tổng `3.1200 -> 2.3781 ms`)*
+  4. `gMiniCoasters[0..3]`: **`1.5618 ms`** -> giảm còn **`1.3047 ms`** (`-16.5%`)
+  5. `LakeReflection` (`SunWheel`): **`1.4016 ms`** -> giảm còn **`1.2211 ms`** (`-12.9%`)
+  - *(Ngoài Top 5: `drawParkGroundAndLake`: `1.2913 -> 1.0528 ms`; `gNgoMonGate`: `1.1321 -> 0.9225 ms`)*
+- **Các thay đổi an toàn đã áp dụng:**
+  - [`src/curves/BezierTrack.h`](../src/curves/BezierTrack.h) & [`src/curves/RollerCoaster.h`](../src/curves/RollerCoaster.h): gom batch `GL_QUADS` cho dầm hộp Monorail, tà-vẹt, bệ/gối trụ đỡ và dầm cầu vượt hồ; dựng trước bảng `cos/sin` cho `drawClosedTubeRail` (giữ nguyên `GL_QUAD_STRIP` để không lệch đường chéo tam giác); đưa toàn bộ phần tĩnh nhà ga & đường ray Queen Cobra / Monorail (`qcStaticList_[2]`, `mrStaticList_[2]`) vào Display List, giữ nguyên `queenCobraTrain` và `monorailTrain` vẽ trực tiếp.
+  - [`src/geometry/MeshModel.h`](../src/geometry/MeshModel.h) & [`src/rides/ParkArchitecture.h`](../src/rides/ParkArchitecture.h): gộp các mặt lồi `n > 4` (`GL_POLYGON`) thành triangle fan ngay trong batch `GL_TRIANGLES` duy nhất của `PolygonMesh::draw`; đưa `drawTiledCentralPlaza` (`plazaStaticList_`), vành khuyên (`stageToroidsList_`) & đồ họa màn hình sân khấu (`stageFlatScreensList_[2]`, giữ `glDisable/glEnable(GL_LIGHTING)` bên ngoài Display List) vào Display List.
+  - [`src/rides/SunWheel.h`](../src/rides/SunWheel.h): đưa tháp chữ A + biển `SUN WHEEL` (`towerSignList_[2]`), cabin tĩnh (`cabinList_[2]`, gọi 128 lần/khung), vành trục (`hubToroidList_`) & vành ngoài (`outerRimList_`) vào Display List; dựng sẵn 1 lần bộ đỉnh/pháp tuyến `GL_QUAD_STRIP` cho 4 cặp vòng LED & 320 nan hoa (chỉ tính màu `HSVtoRGB(ledHueDeg)` động, bỏ gọi `glMaterialfv` thừa ban ngày), giữ nguyên 64 phép quay ngược phân cấp cabin.
+  - [`src/rides/MiniCoaster.h`](../src/rides/MiniCoaster.h): dựng sẵn lưới 4 thành phần toa tàu lúc `init()`, bỏ `createBox()` & `computeNormals()` mỗi khung nhưng vẫn gọi `.draw()` trực tiếp theo từng toa chuyển động.
+  - [`src/main.cpp`](../src/main.cpp) & [`src/rides/NgoMonGate.h`](../src/rides/NgoMonGate.h): đưa dải chân trời 3 thời điểm, mặt cỏ, Sông Hàn, 3 đường nhựa, 5 tuyến lối đi, hồ nước, bờ kè & thân/bóng 10 đèn lồng ven hồ (`drawParkGroundAndLake`) và hai hồ sen + 42 lá/21 búp sen + đèn lồng cổng (`NgoMonGate`) vào Display List tĩnh. *(Lưu ý: đã loại bỏ phương án đổi `GL_QUAD_STRIP -> GL_QUADS` ở ống ray và loại bỏ re-compile `GL_COMPILE_AND_EXECUTE` mỗi khung ở `SunWheel` sau khi đo kiểm thực tế).*
+- **Kiểm chứng không đổi hình ảnh & animation (`o1_verify_diff.exe` tại `1280 × 768`):**
+  - So sánh từng điểm ảnh trên toàn bộ 4 góc chuẩn (Ngày / Hoàng hôn toàn cảnh / Đêm trục chính / Cận Quảng trường & Tàu lượn, `983,040 px/ảnh`): **`0 px` khác biệt (`0.0000%`, `maxChanDiff = 0`) trên cả 4 ảnh**.
+  - Kiểm tra quỹ đạo animation ở `t = 0.00 s`, `0.75 s`, `2.00 s` (`39` dòng trạng thái cho SunWheel, Queen Cobra, Monorail, 4 MiniCoaster, Carousel, SkyTower, PirateShip, BumperCars, Human): **trùng khớp 100% (`0 mismatches`)**.
+- **Hiệu năng Trước / Sau Lô O1 (`1280 × 768`, 200 khung hình, Sunset, có cập nhật `ledHueDeg` liên tục):**
+  - **Trước Lô O1:** **`65.0 FPS`** (FBO, `3.076 s`, `15.378 ms/khung`) / **`61.2 FPS`** (Backbuf, `3.266 s`, `16.330 ms/khung`).
+  - **Sau Lô O1:** **`77.2 FPS`** (FBO, `2.591 s`, `12.955 ms/khung` — **`+18.8%`**) / **`80.5 FPS`** (Backbuf, `2.483 s`, `12.417 ms/khung` — **`+31.5%`**), vượt mục tiêu `≥ +10%`.
+- **Ảnh kiểm chứng 3 chế độ sau tối ưu:** [`img/lote_o1_day.png`](img/lote_o1_day.png), [`img/lote_o1_sunset.png`](img/lote_o1_sunset.png), [`img/lote_o1_night.png`](img/lote_o1_night.png).
+
 ---
 
 ## Phụ lục A. Đỉnh polygon OSM `way 667422708` (Da Nang Downtown, tham chiếu)

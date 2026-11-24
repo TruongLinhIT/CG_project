@@ -590,18 +590,60 @@ public:
             0.0f,
             -ParkLayout::QUEEN_COBRA_ORIG_CENTER.z
         );
-        drawQueenCobraStation(isNightOrSunset);
-        queenCobraTrack.draw(showNormalsAndCtrl, lightingEnabled);
+        if (!showNormalsAndCtrl) {
+            const int modeIdx = isNightOrSunset ? 1 : 0;
+            if (qcStaticList_[modeIdx] == 0) {
+                qcStaticList_[modeIdx] = glGenLists(1);
+                if (qcStaticList_[modeIdx] != 0) {
+                    glNewList(qcStaticList_[modeIdx], GL_COMPILE);
+                    drawQueenCobraStation(isNightOrSunset);
+                    queenCobraTrack.draw(false, true);
+                    glEndList();
+                }
+            }
+            if (qcStaticList_[modeIdx] != 0) {
+                glCallList(qcStaticList_[modeIdx]);
+            } else {
+                drawQueenCobraStation(isNightOrSunset);
+                queenCobraTrack.draw(false, lightingEnabled);
+            }
+        } else {
+            drawQueenCobraStation(isNightOrSunset);
+            queenCobraTrack.draw(true, lightingEnabled);
+        }
+        // Đoàn tàu vẫn vẽ trực tiếp mỗi khung
         queenCobraTrain.draw(queenCobraTrack, showNormalsAndCtrl, lightingEnabled, isNightOrSunset);
         glPopMatrix();
 
         // 2. Vẽ cụm Tàu điện Monorail (~1.87 km) cùng 2 nhà ga (Ga Nam & Ga Nepal)
-        drawMonorailStation(isNightOrSunset);
-        monorailTrack.draw(showNormalsAndCtrl, lightingEnabled);
+        if (!showNormalsAndCtrl) {
+            const int modeIdx = isNightOrSunset ? 1 : 0;
+            if (mrStaticList_[modeIdx] == 0) {
+                mrStaticList_[modeIdx] = glGenLists(1);
+                if (mrStaticList_[modeIdx] != 0) {
+                    glNewList(mrStaticList_[modeIdx], GL_COMPILE);
+                    drawMonorailStation(isNightOrSunset);
+                    monorailTrack.draw(false, true);
+                    glEndList();
+                }
+            }
+            if (mrStaticList_[modeIdx] != 0) {
+                glCallList(mrStaticList_[modeIdx]);
+            } else {
+                drawMonorailStation(isNightOrSunset);
+                monorailTrack.draw(false, lightingEnabled);
+            }
+        } else {
+            drawMonorailStation(isNightOrSunset);
+            monorailTrack.draw(true, lightingEnabled);
+        }
+        // Đoàn tàu Monorail vẫn vẽ trực tiếp mỗi khung
         monorailTrain.draw(monorailTrack, showNormalsAndCtrl, lightingEnabled, isNightOrSunset);
     }
 
 private:
+    mutable GLuint qcStaticList_[2] = { 0, 0 };
+    mutable GLuint mrStaticList_[2] = { 0, 0 };
     static void drawQueenCobraStation(bool isNightOrSunset) {
         // Sàn đón khách dọc theo đoạn thẳng 0: đường ray tại x = -68.0, z thuộc [26..52], y = 6.0
         const float cx = -68.0f;

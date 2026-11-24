@@ -43,11 +43,19 @@ public:
      */
     void draw(bool isNightOrSunset, bool showNormals = false, bool smoothShading = true) const {
         // 1. Mặt phẳng Quảng trường Trung tâm lát gạch, Sân bông hoa (#7-#8) & Nền lát hình sao Angkor (#19)
-        drawTiledCentralPlaza();
+        if (!showNormals) {
+            ensureDisplayLists();
+            if (plazaStaticList_ != 0) {
+                glCallList(plazaStaticList_);
+            } else {
+                drawTiledCentralPlaza();
+            }
+        } else {
+            drawTiledCentralPlaza();
+        }
 
         // 2. Các khối kiến trúc lưới đa giác tĩnh Đợt 4 & Đợt 5B (dùng Display List khi không bật debug normals)
         if (!showNormals) {
-            ensureDisplayLists();
             if (smoothShading && archSmoothList != 0) {
                 glCallList(archSmoothList);
             } else if (!smoothShading && archFlatList != 0) {
@@ -84,9 +92,38 @@ private:
     mutable GLuint archSmoothList   = 0;
     mutable GLuint archFlatList     = 0;
     mutable GLuint emissiveLampList = 0;
+    mutable GLuint plazaStaticList_ = 0;
+    mutable GLuint stageToroidsList_ = 0;
+    mutable GLuint stageFlatScreensList_[2] = { 0, 0 };
     mutable GLuint roundRideSpinLists[4] = { 0, 0, 0, 0 };
 
     void ensureDisplayLists() const {
+        if (plazaStaticList_ == 0) {
+            plazaStaticList_ = glGenLists(1);
+            if (plazaStaticList_ != 0) {
+                glNewList(plazaStaticList_, GL_COMPILE);
+                drawTiledCentralPlaza();
+                glEndList();
+            }
+        }
+        if (stageToroidsList_ == 0) {
+            stageToroidsList_ = glGenLists(1);
+            if (stageToroidsList_ != 0) {
+                glNewList(stageToroidsList_, GL_COMPILE);
+                drawStageToroidRingsDirect();
+                glEndList();
+            }
+        }
+        for (int m = 0; m < 2; ++m) {
+            if (stageFlatScreensList_[m] == 0) {
+                stageFlatScreensList_[m] = glGenLists(1);
+                if (stageFlatScreensList_[m] != 0) {
+                    glNewList(stageFlatScreensList_[m], GL_COMPILE);
+                    drawStageFlatGraphicsDirect(m == 1);
+                    glEndList();
+                }
+            }
+        }
         if (archSmoothList == 0) {
             archSmoothList = glGenLists(1);
             if (archSmoothList != 0) {
@@ -1095,15 +1132,25 @@ private:
      *        (Đợt 7: Đổi màn hình giữa sân khấu từ trắng phẳng sang nền xanh dịu chuyển sắc
      *         kèm biểu tượng Vòng quay / mặt trời vàng, sóng nước và dòng chữ "ASIA PARK" đơn giản)
      */
-    void drawStageCircularScreensAndLights(bool isNightOrSunset) const {
+    void drawStageToroidRingsDirect() const {
+        const float stZ     = ParkLayout::SUN_WHEEL_STAGE_POS.z; // -15.9m
+        const float frontZ  = stZ + ParkLayout::SUN_WHEEL_STAGE_DEPTH * 0.5f + 0.08f;
+        const float screenR = ParkLayout::SUN_WHEEL_SCREEN_RADIUS; // 3.1m
+        glColor3f(0.92f, 0.74f, 0.20f);
+        for (int side : {-1, 1}) {
+            glPushMatrix();
+            glTranslatef(side * 19.75f, 4.65f, frontZ);
+            ParametricShapes::drawToroid(screenR + 0.12f, 0.22f, 28, 8, false);
+            glPopMatrix();
+        }
+    }
+
+    void drawStageFlatGraphicsDirect(bool isNightOrSunset) const {
         const float stZ     = ParkLayout::SUN_WHEEL_STAGE_POS.z; // -15.9m
         const float frontZ  = stZ + ParkLayout::SUN_WHEEL_STAGE_DEPTH * 0.5f + 0.08f;
         const float screenR = ParkLayout::SUN_WHEEL_SCREEN_RADIUS; // 3.1m
 
-        // Tắt tạm thời GL_LIGHTING khi vẽ đồ họa trên mặt màn hình LED để màu sắc không bị cộng dồn thành trắng phẳng
-        GLboolean wasLit = glIsEnabled(GL_LIGHTING);
-
-        // 1. Hai Màn hình Tròn lớn ở hai khối nhà cánh (cx = ±19.75m, cy = 4.65m)
+        // 1. Mặt đĩa hai Màn hình Tròn lớn ở hai khối nhà cánh (cx = ±19.75m, cy = 4.65m)
         for (int side : {-1, 1}) {
             float sx = side * 19.75f;
             float sy = 4.65f;
@@ -1111,13 +1158,6 @@ private:
             glPushMatrix();
             glTranslatef(sx, sy, frontZ);
 
-            // Vành khuyên viền mạ vàng quanh màn hình tròn (có chiếu sáng)
-            if (wasLit) glEnable(GL_LIGHTING);
-            glColor3f(0.92f, 0.74f, 0.20f);
-            ParametricShapes::drawToroid(screenR + 0.12f, 0.22f, 28, 8, false);
-
-            // Mặt đĩa màn hình tròn: nền xanh lam dịu + vòng tròn ngọc + hoa sen vàng 8 cánh ở tâm
-            glDisable(GL_LIGHTING);
             glColor3f(isNightOrSunset ? 0.18f : 0.22f, isNightOrSunset ? 0.52f : 0.58f, isNightOrSunset ? 0.78f : 0.84f);
             ParametricShapes::drawDisk(screenR, 28, 0.0f, false);
 
@@ -1142,8 +1182,6 @@ private:
         }
 
         // 2. Màn hình LED chính giữa Sân khấu Sun Wheel (X thuộc [-9.5, +9.5], Y thuộc [1.55, 7.25])
-        //    Nền xanh dương/xanh ngọc dịu chuyển sắc + hoa văn Vòng quay Mặt Trời + sóng nước + chữ "ASIA PARK"
-        glDisable(GL_LIGHTING);
         const float scrZ = stZ + 4.54f; // Ngay phía trước tường hậu đài sân khấu
 
         // 2.1. Khung viền kim loại sẫm bao quanh màn hình
@@ -1155,7 +1193,7 @@ private:
         glVertex3f(-9.8f, 7.38f, scrZ - 0.03f);
         glEnd();
 
-        // 2.2. Nền màn hình xanh dịu chuyển sắc dọc (dưới xanh ngọc dịu -> trên xanh biển trầm)
+        // 2.2. Nền màn hình xanh dịu chuyển sắc dọc
         glBegin(GL_QUADS);
         glColor3f(0.18f, 0.56f, 0.78f);
         glVertex3f(-9.5f, 1.55f, scrZ);
@@ -1260,23 +1298,34 @@ private:
             }
         }
         glLineWidth(1.0f);
+    }
 
+    void drawStageCircularScreensAndLights(bool isNightOrSunset) const {
+        ensureDisplayLists();
+        const int modeIdx = isNightOrSunset ? 1 : 0;
+
+        // 1. Vành khuyên viền mạ vàng quanh 2 màn hình tròn (theo chế độ chiếu sáng hiện tại)
+        if (stageToroidsList_ != 0) {
+            glCallList(stageToroidsList_);
+        } else {
+            drawStageToroidRingsDirect();
+        }
+
+        // 2. Đồ họa tĩnh trên các màn hình (bọc glDisable/glEnable(GL_LIGHTING) ở ngoài Display List)
+        GLboolean wasLit = glIsEnabled(GL_LIGHTING);
+        if (wasLit) glDisable(GL_LIGHTING);
+        if (stageFlatScreensList_[modeIdx] != 0) {
+            glCallList(stageFlatScreensList_[modeIdx]);
+        } else {
+            drawStageFlatGraphicsDirect(isNightOrSunset);
+        }
         if (wasLit) glEnable(GL_LIGHTING);
 
         // 3. ĐỢT 6A: Bóng đèn trụ đèn lối đi & dãy đèn lồng phát sáng bằng vật liệu emissive khi chiều/tối
-        //    (KHÔNG dùng quá 8 nguồn sáng GL_LIGHTi; chỉ bật GL_EMISSION trên vật liệu)
         if (isNightOrSunset) {
             GLfloat warmBulbEmit[4] = { 1.0f, 0.88f, 0.45f, 1.0f };
             glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, warmBulbEmit);
             glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, warmBulbEmit);
-        }
-        if (emissiveLampList == 0) {
-            emissiveLampList = glGenLists(1);
-            if (emissiveLampList != 0) {
-                glNewList(emissiveLampList, GL_COMPILE);
-                emissiveLampMesh.draw(true, false);
-                glEndList();
-            }
         }
         if (emissiveLampList != 0) {
             glCallList(emissiveLampList);

@@ -377,11 +377,38 @@ public:
             else if (n > 4) hasPolys = true;
         }
 
-        // Gộp hàng loạt GL_TRIANGLES và GL_QUADS để giảm glBegin/glEnd khi biên dịch Display List
-        if (hasTris) {
+        // Gộp hàng loạt toàn bộ GL_TRIANGLES (bao gồm fan cho mặt đa giác lồi n > 4) và GL_QUADS
+        if (hasTris || hasPolys) {
             glBegin(GL_TRIANGLES);
             for (const auto& face : faces) {
-                if (face.vertexIndices.size() == 3) emitFace(face);
+                const size_t n = face.vertexIndices.size();
+                if (n == 3) {
+                    emitFace(face);
+                } else if (n > 4) {
+                    const MathCG::ColorRGB& c = face.hasCustomColor ? face.color : defaultColor;
+                    if (c.r != prevCol.r || c.g != prevCol.g || c.b != prevCol.b) {
+                        glColor3f(c.r, c.g, c.b);
+                        prevCol = c;
+                    }
+                    if (!smoothShading || !hasVertexNormals) {
+                        glNormal3f(face.faceNormal.x, face.faceNormal.y, face.faceNormal.z);
+                    }
+                    const int i0 = face.vertexIndices[0];
+                    for (size_t k = 1; k + 1 < n; ++k) {
+                        const int triIdx[3] = { i0, face.vertexIndices[k], face.vertexIndices[k + 1] };
+                        for (int corner = 0; corner < 3; ++corner) {
+                            int vIdx = triIdx[corner];
+                            if (vIdx >= 0 && vIdx < static_cast<int>(vertices.size())) {
+                                if (smoothShading && hasVertexNormals) {
+                                    const auto& vn = vertexNormals[vIdx];
+                                    glNormal3f(vn.x, vn.y, vn.z);
+                                }
+                                const auto& p = vertices[vIdx];
+                                glVertex3f(p.x, p.y, p.z);
+                            }
+                        }
+                    }
+                }
             }
             glEnd();
         }
@@ -391,15 +418,6 @@ public:
                 if (face.vertexIndices.size() == 4) emitFace(face);
             }
             glEnd();
-        }
-        if (hasPolys) {
-            for (const auto& face : faces) {
-                if (face.vertexIndices.size() > 4) {
-                    glBegin(GL_POLYGON);
-                    emitFace(face);
-                    glEnd();
-                }
-            }
         }
 
         // Hiển thị trực quan pháp tuyến để kiểm tra (phục vụ giảng dạy & bảo vệ đồ án Chương 6)

@@ -90,11 +90,17 @@ public:
      * @param showNormals Hiển thị trực quan vector pháp tuyến bề mặt để gỡ lỗi
      */
     void draw(float ledHueDeg, bool isNightOrSunset, bool showNormals = false) const {
+        ensureDisplayLists();
         glPushMatrix();
 
-        // 1. Tháp đỡ chữ A giàn không gian tĩnh, bệ móng & biển hiệu "SUN WHEEL"
-        drawSupportTower(isNightOrSunset);
-        drawNeonSign(isNightOrSunset);
+        // 1. Tháp đỡ chữ A giàn không gian tĩnh, bệ móng & biển hiệu "SUN WHEEL" (Display List)
+        const int modeIdx = isNightOrSunset ? 1 : 0;
+        if (towerSignList_[modeIdx] != 0) {
+            glCallList(towerSignList_[modeIdx]);
+        } else {
+            drawSupportTower(isNightOrSunset);
+            drawNeonSign(isNightOrSunset);
+        }
 
         // 2. Tổ hợp vòng quay phân cấp: M = T(I) * R_z(alpha) * T(-I)
         MathCG::Mat4 wheelRot = MathCG::Mat4::rotateZAroundPoint(center, currentAngleDeg);
@@ -108,6 +114,151 @@ public:
     }
 
 private:
+    struct StripVertex {
+        float nx, ny, nz;
+        float px, py, pz;
+    };
+
+    mutable GLuint towerSignList_[2]     = { 0, 0 };
+    mutable GLuint cabinList_[2]         = { 0, 0 };
+    mutable GLuint hubToroidList_        = 0;
+    mutable GLuint outerRimList_         = 0;
+    mutable bool   wheelStripBuilt_      = false;
+    mutable std::vector<StripVertex> ringVerts_;     // 4 rings * 32 sectors * 14 verts (dùng glTranslatef Z như bản gốc)
+    mutable std::vector<StripVertex> spokeVerts_;    // 32 spokes * 5 bands * 2 sides * 14 verts
+    mutable std::vector<StripVertex> crossbarVerts_; // 32 crossbars * 14 verts
+
+    static void appendCylinderStrip14(
+        std::vector<StripVertex>& out,
+        const MathCG::Vec3& aPt,
+        const MathCG::Vec3& bPt,
+        float rA,
+        float rB
+    ) {
+        const int slices = 6;
+        MathCG::Vec3 diff = bPt - aPt;
+        float len = diff.length();
+        MathCG::Vec3 fwd = diff / len;
+        MathCG::Vec3 helper = (std::fabs(fwd.y) < 0.90f)
+            ? MathCG::Vec3(0.0f, 1.0f, 0.0f)
+            : MathCG::Vec3(1.0f, 0.0f, 0.0f);
+        MathCG::Vec3 right = MathCG::cross(helper, fwd).normalized();
+        MathCG::Vec3 up    = MathCG::cross(fwd, right).normalized();
+        float dr = rA - rB;
+        float slant = std::sqrt(dr * dr + len * len);
+        if (slant < 1e-6f) slant = 1.0f;
+        float nr = len / slant;
+        float nL = dr / slant;
+        for (int i = 0; i <= slices; ++i) {
+            float u = (static_cast<float>(i) / slices) * MathCG::TWO_PI;
+            MathCG::Vec3 radialDir = right * std::cos(u) + up * std::sin(u);
+            MathCG::Vec3 norm = (radialDir * nr + fwd * nL).normalized();
+            MathCG::Vec3 pA = aPt + radialDir * rA;
+            MathCG::Vec3 pB = bPt + radialDir * rB;
+            out.push_back({ norm.x, norm.y, norm.z, pB.x, pB.y, pB.z });
+            out.push_back({ norm.x, norm.y, norm.z, pA.x, pA.y, pA.z });
+        }
+    }
+
+    void ensureWheelStripCache() const {
+        if (wheelStripBuilt_) return;
+        wheelStripBuilt_ = true;
+
+        const float innerRingRadii[] = { 13.5f, 23.0f, 32.5f, 41.5f };
+        const int vSteps = 6;
+        const float a = 0.22f;
+        ringVerts_.reserve(4 * numSpokes * (vSteps + 1) * 2);
+        for (int rIdx = 0; rIdx < 4; ++rIdx) {
+            float R = innerRingRadii[rIdx];
+            for (int s = 0; s < numSpokes; ++s) {
+                float u0 = (static_cast<float>(s)     / numSpokes) * MathCG::TWO_PI;
+                float u1 = (static_cast<float>(s + 1) / numSpokes) * MathCG::TWO_PI;
+                float cu0 = std::cos(u0), su0 = std::sin(u0);
+                float cu1 = std::cos(u1), su1 = std::sin(u1);
+                for (int j = 0; j <= vSteps; ++j) {
+                    float v  = (static_cast<float>(j) / vSteps) * MathCG::TWO_PI;
+                    float cv = std::cos(v), sv = std::sin(v);
+                    ringVerts_.push_back({ cv * cu0, cv * su0, sv, (R + a * cv) * cu0, (R + a * cv) * su0, a * sv });
+                    ringVerts_.push_back({ cv * cu1, cv * su1, sv, (R + a * cv) * cu1, (R + a * cv) * su1, a * sv });
+                }
+            }
+        }
+
+        const float spokeBands[] = { 4.8f, 13.5f, 23.0f, 32.5f, 41.5f, radius - 0.55f };
+        spokeVerts_.reserve(numSpokes * 5 * 2 * 14);
+        crossbarVerts_.reserve(numSpokes * 14);
+        for (int k = 0; k < numSpokes; ++k) {
+            float rad = (360.0f / numSpokes) * k * MathCG::DEG2RAD;
+            float ca = std::cos(rad), sa = std::sin(rad);
+            for (int band = 0; band < 5; ++band) {
+                float r0 = spokeBands[band], r1 = spokeBands[band + 1];
+                for (int side = -1; side <= 1; side += 2) {
+                    appendCylinderStrip14(
+                        spokeVerts_,
+                        MathCG::Vec3(r0 * ca, r0 * sa, side * 2.3f),
+                        MathCG::Vec3(r1 * ca, r1 * sa, side * 2.1f),
+                        0.18f, 0.16f
+                    );
+                }
+            }
+            appendCylinderStrip14(
+                crossbarVerts_,
+                MathCG::Vec3((radius - 0.55f) * ca, (radius - 0.55f) * sa, -2.1f),
+                MathCG::Vec3((radius - 0.55f) * ca, (radius - 0.55f) * sa,  2.1f),
+                0.18f, 0.18f
+            );
+        }
+    }
+
+    void ensureDisplayLists() const {
+        ensureWheelStripCache();
+        for (int m = 0; m < 2; ++m) {
+            bool night = (m == 1);
+            if (towerSignList_[m] == 0) {
+                towerSignList_[m] = glGenLists(1);
+                if (towerSignList_[m] != 0) {
+                    glNewList(towerSignList_[m], GL_COMPILE);
+                    drawSupportTower(night);
+                    drawNeonSign(night);
+                    glEndList();
+                }
+            }
+            if (cabinList_[m] == 0) {
+                cabinList_[m] = glGenLists(1);
+                if (cabinList_[m] != 0) {
+                    glNewList(cabinList_[m], GL_COMPILE);
+                    drawSingleCabinDirect(night);
+                    glEndList();
+                }
+            }
+        }
+        if (hubToroidList_ == 0) {
+            hubToroidList_ = glGenLists(1);
+            if (hubToroidList_ != 0) {
+                glNewList(hubToroidList_, GL_COMPILE);
+                for (int side = -1; side <= 1; side += 2) {
+                    glPushMatrix();
+                    glTranslatef(0.0f, 0.0f, side * 2.5f);
+                    ParametricShapes::drawToroid(4.8f, 0.55f, 24, 8, false);
+                    glPopMatrix();
+                }
+                glEndList();
+            }
+        }
+        if (outerRimList_ == 0) {
+            outerRimList_ = glGenLists(1);
+            if (outerRimList_ != 0) {
+                glNewList(outerRimList_, GL_COMPILE);
+                for (int side = -1; side <= 1; side += 2) {
+                    glPushMatrix();
+                    glTranslatef(0.0f, 0.0f, side * 2.1f);
+                    ParametricShapes::drawToroid(radius - 0.55f, 0.52f, 64, 8, false);
+                    glPopMatrix();
+                }
+                glEndList();
+            }
+        }
+    }
     /**
      * @brief Tháp đỡ chữ A giàn không gian & các trụ móng bê tông dưới lòng hồ
      */
@@ -212,7 +363,16 @@ private:
      * @brief Kết cấu phần quay của vòng quay: Trục trung tâm, Vành ngoài, Vòng LED đồng tâm, 32 Nan hoa
      */
     void drawWheelStructure(float ledHueDeg, bool isNightOrSunset, bool showNormals) const {
-        // 1. Đĩa trục trung tâm phát sáng
+        auto emitStrip14 = [](const StripVertex* v, int count) {
+            glBegin(GL_QUAD_STRIP);
+            for (int idx = 0; idx < count; ++idx) {
+                glNormal3f(v[idx].nx, v[idx].ny, v[idx].nz);
+                glVertex3f(v[idx].px, v[idx].py, v[idx].pz);
+            }
+            glEnd();
+        };
+
+        // 1. Đĩa trục trung tâm phát sáng (Display List hình học + màu động)
         if (isNightOrSunset) {
             float hr = 1.0f, hg = 1.0f, hb = 1.0f;
             MathCG::HSVtoRGB(ledHueDeg, 0.85f, 1.0f, hr, hg, hb);
@@ -221,15 +381,19 @@ private:
         } else {
             glColor3f(0.88f, 0.90f, 0.94f);
         }
-        for (int side = -1; side <= 1; side += 2) {
-            glPushMatrix();
-            glTranslatef(0.0f, 0.0f, side * 2.5f);
-            ParametricShapes::drawToroid(4.8f, 0.55f, 24, 8, false);
-            glPopMatrix();
+        if (hubToroidList_ != 0) {
+            glCallList(hubToroidList_);
+        } else {
+            for (int side = -1; side <= 1; side += 2) {
+                glPushMatrix();
+                glTranslatef(0.0f, 0.0f, side * 2.5f);
+                ParametricShapes::drawToroid(4.8f, 0.55f, 24, 8, false);
+                glPopMatrix();
+            }
         }
         LightingSystem::resetMaterial();
 
-        // 2. Cặp vành chịu lực ngoài cùng (Bán kính = 49.45m, mặt trước & mặt sau z = +/- 2.1m)
+        // 2. Cặp vành chịu lực ngoài cùng (Display List hình học khi !showNormals + màu động)
         float ledR = 1.0f, ledG = 0.5f, ledB = 0.1f;
         MathCG::HSVtoRGB(ledHueDeg, 0.90f, 1.0f, ledR, ledG, ledB);
         if (isNightOrSunset) {
@@ -238,73 +402,75 @@ private:
             LightingSystem::setMaterial(0.75f, 56.0f);
         }
         glColor3f(ledR, ledG, ledB);
-        for (int side = -1; side <= 1; side += 2) {
-            glPushMatrix();
-            glTranslatef(0.0f, 0.0f, side * 2.1f);
-            ParametricShapes::drawToroid(radius - 0.55f, 0.52f, 64, 8, showNormals);
-            glPopMatrix();
-        }
-        LightingSystem::resetMaterial();
-
-        // 3. Các vòng kết cấu LED cầu vồng đồng tâm (Chương 1 & 5)
-        const float innerRingRadii[] = { 13.5f, 23.0f, 32.5f, 41.5f };
-        for (int rIdx = 0; rIdx < 4; ++rIdx) {
+        if (!showNormals && outerRimList_ != 0) {
+            glCallList(outerRimList_);
+        } else {
             for (int side = -1; side <= 1; side += 2) {
                 glPushMatrix();
-                glTranslatef(0.0f, 0.0f, side * 2.0f);
-                ParametricShapes::drawSegmentedLedToroid(
-                    innerRingRadii[rIdx],
-                    0.22f,
-                    numSpokes,
-                    6,
-                    ledHueDeg + static_cast<float>(rIdx) * 58.0f,
-                    360.0f / numSpokes,
-                    0.92f, 1.0f,
-                    isNightOrSunset ? 0.85f : 0.0f
-                );
+                glTranslatef(0.0f, 0.0f, side * 2.1f);
+                ParametricShapes::drawToroid(radius - 0.55f, 0.52f, 64, 8, showNormals);
                 glPopMatrix();
             }
         }
+        LightingSystem::resetMaterial();
 
-        // 4. 32 Nan hoa hướng tâm với dải đèn LED HSV chuyển màu nối tiếp
-        const float spokeBands[] = { 4.8f, 13.5f, 23.0f, 32.5f, 41.5f, radius - 0.55f };
-        for (int k = 0; k < numSpokes; ++k) {
-            float spokeAngleDeg = (360.0f / numSpokes) * k;
-            float rad = spokeAngleDeg * MathCG::DEG2RAD;
-            float ca  = std::cos(rad);
-            float sa  = std::sin(rad);
-
-            for (int band = 0; band < 5; ++band) {
-                float r0 = spokeBands[band];
-                float r1 = spokeBands[band + 1];
-                float hue = std::fmod(
-                    ledHueDeg + k * (360.0f / numSpokes) + band * 42.0f,
-                    360.0f
-                );
-                float sr = 1.0f, sg = 1.0f, sb = 1.0f;
-                MathCG::HSVtoRGB(hue, 0.90f, 1.0f, sr, sg, sb);
-                if (isNightOrSunset) {
-                    LightingSystem::setMaterial(0.75f, 40.0f, sr * 0.78f, sg * 0.78f, sb * 0.78f);
-                }
-                glColor3f(sr, sg, sb);
-
+        // 3. Các vòng kết cấu LED cầu vồng đồng tâm (giữ nguyên glTranslatef + lưới dựng sẵn -> 0% lệch float)
+        const int ringStride = 14;
+        const float hueStep = 360.0f / numSpokes;
+        const float emitIntensity = isNightOrSunset ? 0.85f : 0.0f;
+        if (!ringVerts_.empty()) {
+            const size_t perRingCount = static_cast<size_t>(numSpokes) * ringStride;
+            for (int rIdx = 0; rIdx < 4; ++rIdx) {
+                const float baseHue = ledHueDeg + static_cast<float>(rIdx) * 58.0f;
+                const size_t ringOffset = static_cast<size_t>(rIdx) * perRingCount;
                 for (int side = -1; side <= 1; side += 2) {
-                    ParametricShapes::drawCylinderBetween(
-                        MathCG::Vec3(r0 * ca, r0 * sa, side * 2.3f),
-                        MathCG::Vec3(r1 * ca, r1 * sa, side * 2.1f),
-                        0.18f, 0.16f, 6, false
-                    );
+                    glPushMatrix();
+                    glTranslatef(0.0f, 0.0f, side * 2.0f);
+                    for (int s = 0; s < numSpokes; ++s) {
+                        float hue = std::fmod(baseHue + s * hueStep, 360.0f);
+                        if (hue < 0.0f) hue += 360.0f;
+                        float lr = 1.0f, lg = 1.0f, lb = 1.0f;
+                        MathCG::HSVtoRGB(hue, 0.92f, 1.0f, lr, lg, lb);
+                        if (isNightOrSunset) {
+                            GLfloat matDiff[4] = { lr, lg, lb, 1.0f };
+                            GLfloat matEmit[4] = { lr * emitIntensity, lg * emitIntensity, lb * emitIntensity, 1.0f };
+                            glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE,  matDiff);
+                            glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, matEmit);
+                        }
+                        glColor3f(lr, lg, lb);
+                        emitStrip14(&ringVerts_[ringOffset + static_cast<size_t>(s) * ringStride], ringStride);
+                    }
+                    glPopMatrix();
                 }
             }
+            if (isNightOrSunset) {
+                GLfloat zeroEmit[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+                glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, zeroEmit);
+            }
+        }
 
-            // Thanh giằng ngang nối vành trước & vành sau tại mỗi nan hoa
-            LightingSystem::resetMaterial();
-            glColor3f(0.82f, 0.85f, 0.90f);
-            ParametricShapes::drawCylinderBetween(
-                MathCG::Vec3((radius - 0.55f) * ca, (radius - 0.55f) * sa, -2.1f),
-                MathCG::Vec3((radius - 0.55f) * ca, (radius - 0.55f) * sa,  2.1f),
-                0.18f, 0.18f, 6, false
-            );
+        // 4. 32 Nan hoa & thanh giằng ngang xen kẽ theo đúng thứ tự dựng hình ban đầu
+        if (!spokeVerts_.empty() && !crossbarVerts_.empty()) {
+            size_t sCursor = 0;
+            for (int k = 0; k < numSpokes; ++k) {
+                for (int band = 0; band < 5; ++band) {
+                    float hue = std::fmod(ledHueDeg + k * hueStep + band * 42.0f, 360.0f);
+                    float sr = 1.0f, sg = 1.0f, sb = 1.0f;
+                    MathCG::HSVtoRGB(hue, 0.90f, 1.0f, sr, sg, sb);
+                    if (isNightOrSunset) {
+                        LightingSystem::setMaterial(0.75f, 40.0f, sr * 0.78f, sg * 0.78f, sb * 0.78f);
+                    }
+                    glColor3f(sr, sg, sb);
+                    for (int side = 0; side < 2; ++side) {
+                        emitStrip14(&spokeVerts_[sCursor], 14);
+                        sCursor += 14;
+                    }
+                }
+                if (isNightOrSunset) LightingSystem::resetMaterial();
+                glColor3f(0.82f, 0.85f, 0.90f);
+                emitStrip14(&crossbarVerts_[static_cast<size_t>(k) * 14], 14);
+            }
+            if (!isNightOrSunset) LightingSystem::resetMaterial();
         }
     }
 
@@ -312,6 +478,8 @@ private:
      * @brief 64 Cabin chở khách áp dụng phép quay ngược phân cấp Chương 4 -(beta_k + alpha)
      */
     void drawCabins(float alpha, bool isNightOrSunset, bool showNormals) const {
+        const int modeIdx = isNightOrSunset ? 1 : 0;
+        const bool useCabinDL = (!showNormals && cabinList_[modeIdx] != 0);
         for (int k = 0; k < numCabins; ++k) {
             float cabinAngleDeg = (360.0f / numCabins) * k;
 
@@ -325,18 +493,20 @@ private:
             // để mọi cabin luôn treo thẳng đứng hoàn hảo theo phương trọng lực thế giới!
             glRotatef(-(cabinAngleDeg + alpha), 0.0f, 0.0f, 1.0f);
 
-            drawSingleCabin(isNightOrSunset, showNormals);
+            if (useCabinDL) {
+                glCallList(cabinList_[modeIdx]);
+            } else {
+                drawSingleCabinDirect(isNightOrSunset);
+            }
 
             glPopMatrix();
         }
     }
 
     /**
-     * @brief Mô hình 3D chi tiết của một Cabin chở khách
+     * @brief Mô hình 3D chi tiết của một Cabin chở khách (tĩnh trong hệ cabin -> compile Display List)
      */
-    void drawSingleCabin(bool isNightOrSunset, bool showNormals) const {
-        (void)showNormals;
-
+    void drawSingleCabinDirect(bool isNightOrSunset) const {
         // Thanh treo cabin & chốt trục xoay
         glColor3f(0.78f, 0.80f, 0.85f);
         drawBox(0.0f, -0.65f, 0.0f, 0.14f, 1.30f, 0.14f);
