@@ -493,50 +493,210 @@ private:
         gateMesh.computeNormals();
 
         // ====================================================================
-        // 6. THÁP ĐỒNG HỒ TRUNG TÂM TÁCH RIÊNG (clockTowerMesh tại (+10.7, 0.0, +61.6), scale 1.0)
-        //    Đảm bảo liền khối 100% từ mặt đất y = 0 lên đỉnh chóp H = 27.5m
+        // 6. THÁP ĐỒNG HỒ TRUNG TÂM NÂNG CẤP LÔ A1 (tâm (+10.7, 0.0, +61.6), scale 1.0)
+        //    Khung bao chân đế giữ trong 25x24m, tổng cao ~29.4m theo vệ tinh Wayback 2019;
+        //    hình dạng [Bản vẽ minh họa AI, tham khảo hình dạng]: chân đá 3 vòm cuốn & 4 cầu thang,
+        //    4 cánh mái cong nhỏ ở chân, thân bát giác 5 tầng mái cong chồng khít, chóp nhọn.
         // ====================================================================
         clockTowerMesh.clear();
-        clockTowerMesh.name = "CentralClockTower2019";
+        clockTowerMesh.name = "CentralClockTowerA1_Octagonal5Tiers";
 
-        const float ctBaseW = 8.4f;
-        const float ctMidW  = 7.2f;
-        const float ctTopW  = 6.4f;
+        const float podW   = ParkLayout::CLOCK_TOWER_PODIUM_W; // 17.6m
+        const float podD   = ParkLayout::CLOCK_TOWER_PODIUM_D; // 17.0m
+        const float podH   = ParkLayout::CLOCK_TOWER_PODIUM_H; //  4.85m
+        const float coreW  = 13.4f;
+        const float coreD  = 12.8f;
 
-        // Tầng đế đá (y = 0.0 .. 1.2m) & Thân dưới Tháp Đồng Hồ (y = 1.15 .. 10.5m)
-        appendBoxByYRange(clockTowerMesh, 0.0f, 0.00f,  1.20f, 0.0f, ctBaseW + 1.4f, ctBaseW + 1.4f, plinthCol);
-        appendBoxByYRange(clockTowerMesh, 0.0f, 1.15f, 10.50f, 0.0f, ctBaseW,        ctBaseW,        stoneCol);
-        // Gờ mái phân tầng giữa (y = 10.45 .. 11.10m) & Mái diềm tầng giữa
-        appendBoxByYRange(clockTowerMesh, 0.0f, 10.45f, 11.10f, 0.0f, ctBaseW + 1.0f, ctBaseW + 1.0f, lightStoneCol);
-        // Thân giữa Tháp Đồng Hồ (y = 11.00 .. 17.20m)
-        appendBoxByYRange(clockTowerMesh, 0.0f, 11.00f, 17.20f, 0.0f, ctMidW, ctMidW, warmWallCol);
-        appendBoxByYRange(clockTowerMesh, 0.0f, 17.10f, 17.55f, 0.0f, ctMidW + 0.9f, ctMidW + 0.9f, lightStoneCol);
+        // 6.1. Bệ móng đá bậc cấp dưới cùng (18.4 x 17.8m, y = 0.00 .. 0.42m) & Lõi đặc bên trong chân đế
+        appendBoxByYRange(clockTowerMesh, 0.0f, 0.00f, 0.42f, 0.0f, podW + 0.8f, podD + 0.8f, plinthCol);
+        appendBoxByYRange(clockTowerMesh, 0.0f, 0.35f, podH - 0.10f, 0.0f, coreW, coreD, darkTrimCol);
 
-        // Thân trên nơi gắn 4 mặt đồng hồ (y = 17.50 .. 24.65m)
-        const float towerBaseY = 17.15f;
-        const float towerBodyH =  7.50f;
-        appendBoxByYRange(clockTowerMesh, 0.0f, towerBaseY + 0.30f, towerBaseY + towerBodyH, 0.0f, ctTopW, ctTopW, stoneCol);
+        // 6.2. Bốn mặt tường chân đế đá có 3 VÒM CUỐN mỗi mặt & Bốn CẦU THANG trục (24.0 x 23.4m <= 25x24m)
+        struct PodiumSideSpec {
+            float span;
+            float halfDist;
+            float yawDeg;
+            bool  fullTerraceStair; // Hai mặt Đông/Tây có cầu thang cao lên sân bệ; Nam/Bắc khoe trọn 3 vòm cuốn + bậc tam cấp
+        };
+        const PodiumSideSpec sidesSpec[4] = {
+            { podW, podD * 0.5f,   0.0f, false }, // Nam (+Z) - mặt tiền quảng trường: 3 vòm cuốn + bậc tam cấp cổng chính
+            { podD, podW * 0.5f,  90.0f, true  }, // Đông (+X) - 3 vòm cuốn + cầu thang đá lên sân bệ +4.85m
+            { podW, podD * 0.5f, 180.0f, false }, // Bắc (-Z) - mặt hậu hướng Sun Wheel: 3 vòm cuốn + bậc tam cấp
+            { podD, podW * 0.5f, -90.0f, true  }  // Tây (-X) - 3 vòm cuốn + cầu thang đá lên sân bệ +4.85m
+        };
+        for (const auto& sp : sidesSpec) {
+            Geometry::PolygonMesh facade("ClockPodiumFacade");
+            const float zOut = sp.halfDist;
+            const float zIn  = sp.halfDist - 2.15f;
+            const float zMed = 0.5f * (zOut + zIn);
+            const float wallThick = zOut - zIn;
 
-        // Gờ phào chỉ và diềm mái mạ vàng trên đỉnh thân tháp (y = 24.55 .. 25.15m)
-        appendBoxByYRange(clockTowerMesh, 0.0f, towerBaseY + towerBodyH - 0.10f, towerBaseY + towerBodyH + 0.50f, 0.0f, ctTopW + 1.0f, ctTopW + 1.0f, goldRoofCol);
+            facade.append(Geometry::PolygonMesh::createArchVault(
+                0.0f, 1.95f, zIn, zOut + 0.06f, 1.65f, 2.42f, 12, lightStoneCol
+            ));
+            for (int s : {-1, 1}) {
+                facade.append(Geometry::PolygonMesh::createArchVault(
+                    s * 4.75f, 1.95f, zIn, zOut + 0.06f, 1.05f, 1.72f, 10, lightStoneCol
+                ));
+                appendBoxByYRange(facade, s * 4.75f, 0.35f, 3.05f, zIn + 0.14f, 2.20f, 0.28f, darkTrimCol);
+                appendBoxByYRange(facade, s * 2.68f, 0.35f, podH - 0.10f, zMed, 1.95f, wallThick, stoneCol);
+                appendBoxByYRange(facade, s * 2.68f, 0.35f, podH - 0.15f, zOut + 0.10f, 0.72f, 0.24f, lightStoneCol);
 
-        // Chóp Mái Tháp Đồng Hồ đao cong 4 phía đặt trực tiếp tại y = 25.10m (cao 2.5m -> đỉnh 27.6m)
-        auto towerRoof = Geometry::PolygonMesh::createCurvedAsianRoof(
-            0.0f, towerBaseY + towerBodyH + 0.45f, 0.0f,
-            ctTopW + 1.2f, ctTopW + 1.2f,
-            2.50f, 1.8f,
-            goldRoofCol
-        );
-        clockTowerMesh.append(towerRoof);
+                float cornerEdgeInner = 5.80f;
+                float cornerEdgeOuter = sp.span * 0.5f;
+                float cornerWidth     = cornerEdgeOuter - cornerEdgeInner;
+                float cornerCenterX   = s * 0.5f * (cornerEdgeInner + cornerEdgeOuter);
+                appendBoxByYRange(facade, cornerCenterX, 0.35f, podH - 0.10f, zMed, cornerWidth, wallThick, stoneCol);
+                appendBoxByYRange(facade, s * (cornerEdgeOuter - 0.45f), 0.35f, podH - 0.12f, zOut + 0.08f, 0.90f, 0.22f, lightStoneCol);
+            }
+            appendBoxByYRange(facade, 0.0f, 0.35f, 3.65f, zIn + 0.14f, 3.40f, 0.28f, darkTrimCol);
+            // Cánh cửa gỗ son bên trong hốc vòm chính mặt Nam & Bắc để nhìn rõ 3 cửa vòm cuốn
+            if (!sp.fullTerraceStair) {
+                appendBoxByYRange(facade, 0.0f, 0.42f, 3.10f, zIn + 0.35f, 2.50f, 0.22f, redPillarCol);
+            }
+            appendBoxByYRange(facade, 0.0f, 3.55f, podH - 0.08f, zMed, sp.span - 0.2f, wallThick, stoneCol);
+            appendBoxByYRange(facade, 0.0f, 2.95f, 3.62f, zMed, sp.span - 3.6f, wallThick - 0.08f, stoneCol);
 
-        // Chóp nhọn mạ vàng gắn liền trên sống nóc đỉnh tháp (y = 27.40 .. 29.80m)
-        float peakY = towerBaseY + towerBodyH + 0.45f + 2.35f;
-        auto spire = Geometry::PolygonMesh::createPyramid(
-            0.0f, peakY, 0.0f,
-            1.2f, 1.2f, 2.4f,
-            MathCG::ColorRGB(0.98f, 0.85f, 0.20f)
-        );
-        clockTowerMesh.append(spire);
+            if (sp.fullTerraceStair) {
+                // Cầu thang cao từ y = 0 lên sân bệ y = podH (hướng Đông/Tây, tổng rộng <= 23.4m < 25m)
+                facade.append(Geometry::PolygonMesh::createSteppedStaircase(
+                    0.0f, sp.halfDist - 0.08f, 0.0f, 0.0f, podH,
+                    2.85f, 4.00f, 11, lightStoneCol, balustradeCol
+                ));
+            } else {
+                // Bậc tam cấp dẫn vào vòm cổng chính phía Nam & Bắc (để lộ trọn vẹn 3 vòm cuốn)
+                facade.append(Geometry::PolygonMesh::createSteppedStaircase(
+                    0.0f, sp.halfDist - 0.08f, 0.0f, 0.0f, 0.72f,
+                    1.65f, 4.20f, 4, lightStoneCol, balustradeCol
+                ));
+            }
+
+            facade.rotateY(sp.yawDeg);
+            clockTowerMesh.append(facade);
+        }
+
+        // 6.3. Sân thượng bệ đá & Lan can đá trắng bao quanh (chừa lối mở tại đầu cầu thang Đông/Tây)
+        appendBoxByYRange(clockTowerMesh, 0.0f, podH - 0.18f, podH + 0.12f, 0.0f, podW + 0.6f, podD + 0.6f, lightStoneCol);
+        const float railY0 = podH + 0.08f;
+        const float railY1 = podH + 0.92f;
+        // Lan can liên tục ở cạnh Nam (+Z) & Bắc (-Z)
+        appendBoxByYRange(clockTowerMesh, 0.0f, railY0, railY1,  podD * 0.5f + 0.15f, podW + 0.3f, 0.34f, balustradeCol);
+        appendBoxByYRange(clockTowerMesh, 0.0f, railY0, railY1, -podD * 0.5f - 0.15f, podW + 0.3f, 0.34f, balustradeCol);
+        for (int s : {-1, 1}) {
+            // Cạnh Đông/Tây chừa lối mở 4.0m cho 2 cầu thang lên sân bệ
+            appendBoxByYRange(clockTowerMesh,  podW * 0.5f + 0.15f, railY0, railY1, s * 5.20f, 0.34f, 6.6f, balustradeCol);
+            appendBoxByYRange(clockTowerMesh, -podW * 0.5f - 0.15f, railY0, railY1, s * 5.20f, 0.34f, 6.6f, balustradeCol);
+            // Trụ góc sân bệ & đèn cột đá nhỏ ở 4 góc [Bản vẽ minh họa AI #04]
+            for (int sz : {-1, 1}) {
+                float cxP = s * (podW * 0.5f - 0.85f);
+                float czP = sz * (podD * 0.5f - 0.85f);
+                appendBoxByYRange(clockTowerMesh, cxP, railY0 - 0.05f, railY1 + 0.45f, czP, 0.95f, 0.95f, lightStoneCol);
+                clockTowerMesh.append(Geometry::PolygonMesh::createPyramid(
+                    cxP, railY1 + 0.43f, czP, 1.05f, 1.05f, 0.55f, goldRoofCol
+                ));
+            }
+        }
+
+        // 6.4. Tầng chuyển tiếp & 4 Cánh mái cong nhỏ ở chân trên sân bệ (y = 4.95 .. 8.80m)
+        const float transBaseY = podH + 0.08f; // 4.93m
+        clockTowerMesh.append(Geometry::PolygonMesh::createRegularOctagonalPrism(
+            0.0f, transBaseY - 0.10f, 8.75f, 0.0f, 5.45f, warmWallCol, 22.5f
+        ));
+        // Cánh mái cong nhỏ hai bên (Đông & Tây) và sảnh vào (Nam & Bắc) [Bản vẽ minh họa AI #04]
+        for (int side : {-1, 1}) {
+            float wx = side * 5.85f;
+            appendBoxByYRange(clockTowerMesh, wx, transBaseY - 0.05f, transBaseY + 0.35f, 0.0f, 4.4f, 4.8f, lightStoneCol);
+            appendBoxByYRange(clockTowerMesh, wx, transBaseY + 0.30f, transBaseY + 2.25f, 0.0f, 4.0f, 4.2f, warmWallCol);
+            for (int sz : {-1, 1}) {
+                clockTowerMesh.append(Geometry::PolygonMesh::createPrismY(
+                    wx + side * 1.75f, transBaseY + 0.30f, sz * 1.85f, 0.20f, 1.98f, 10, redPillarCol
+                ));
+            }
+            appendBoxByYRange(clockTowerMesh, wx, transBaseY + 2.20f, transBaseY + 2.52f, 0.0f, 4.4f, 4.6f, darkTrimCol);
+            clockTowerMesh.append(Geometry::PolygonMesh::createCurvedAsianRoof(
+                wx, transBaseY + 2.50f, 0.0f, 4.5f, 4.7f, 1.40f, 1.15f, goldRoofCol
+            ));
+
+            float nz = side * 5.65f;
+            appendBoxByYRange(clockTowerMesh, 0.0f, transBaseY - 0.05f, transBaseY + 0.35f, nz, 4.8f, 4.0f, lightStoneCol);
+            appendBoxByYRange(clockTowerMesh, 0.0f, transBaseY + 0.30f, transBaseY + 2.15f, nz, 4.4f, 3.5f, warmWallCol);
+            appendBoxByYRange(clockTowerMesh, 0.0f, transBaseY + 0.30f, transBaseY + 1.85f, nz + side * 1.78f, 2.2f, 0.16f, redPillarCol);
+            appendBoxByYRange(clockTowerMesh, 0.0f, transBaseY + 2.10f, transBaseY + 2.42f, nz, 4.8f, 3.9f, darkTrimCol);
+            clockTowerMesh.append(Geometry::PolygonMesh::createCurvedAsianRoof(
+                0.0f, transBaseY + 2.40f, nz, 4.9f, 4.1f, 1.35f, 1.10f, goldRoofCol
+            ));
+        }
+
+        // 6.5. Thân bát giác 5 TẦNG MÁI CONG chồng khít lên nhau (y = 8.40 .. 27.35m)
+        //      [Bản vẽ minh họa AI, tham khảo hình dạng] - tầng 3 ở giữa gắn 4 mặt đồng hồ
+        struct OctTierSpec {
+            float wallY0;
+            float wallY1;
+            float wallApothem;
+            float roofOuterApothem;
+            float roofTopApothem;
+            float roofH;
+            float eaveLift;
+            bool  hasClockBay;
+        };
+        const OctTierSpec octTiers[5] = {
+            {  8.35f, 11.40f, 4.75f, 6.55f, 3.85f, 1.38f, 0.54f, false }, // Tầng mái 1
+            { 11.95f, 14.70f, 4.20f, 5.65f, 3.45f, 1.25f, 0.46f, false }, // Tầng mái 2
+            { 15.20f, 19.65f, 3.75f, 5.35f, 2.95f, 1.35f, 0.45f, true  }, // Tầng mái 3 (TẦNG GIỮA - ĐỒNG HỒ)
+            { 20.15f, 23.00f, 3.15f, 4.55f, 2.38f, 1.25f, 0.40f, false }, // Tầng mái 4
+            { 23.45f, 25.85f, 2.55f, 3.85f, 0.72f, 1.50f, 0.42f, false }  // Tầng mái 5 (Đỉnh bát giác)
+        };
+
+        for (int t = 0; t < 5; ++t) {
+            const auto& ot = octTiers[t];
+            // Khối lõi thân bát giác liền khít với tầng dưới (chồng sâu >= 0.45m vào phần nóc mái dưới)
+            clockTowerMesh.append(Geometry::PolygonMesh::createRegularOctagonalPrism(
+                0.0f, ot.wallY0, ot.wallY1, 0.0f, ot.wallApothem,
+                (t % 2 == 0) ? stoneCol : warmWallCol, 22.5f
+            ));
+            // Viền ban công đá nhẹ & 8 cột trang trí màu đỏ cung đình ở 8 góc bát giác
+            clockTowerMesh.append(Geometry::PolygonMesh::createRegularOctagonalPrism(
+                0.0f, ot.wallY0 + 0.35f, ot.wallY0 + 0.90f, 0.0f, ot.wallApothem + 0.28f, lightStoneCol, 22.5f
+            ));
+            const float colRingR = (ot.wallApothem + 0.05f) / std::cos(MathCG::PI / 8.0f);
+            for (int k = 0; k < 8; ++k) {
+                float a = (22.5f + k * 45.0f) * MathCG::DEG2RAD;
+                clockTowerMesh.append(Geometry::PolygonMesh::createPrismY(
+                    colRingR * std::cos(a), ot.wallY0 + 0.45f, -colRingR * std::sin(a),
+                    0.18f, (ot.wallY1 - ot.wallY0) - 0.55f, 8, redPillarCol
+                ));
+            }
+            // Nếu là Tầng 3 (Tầng giữa gắn đồng hồ): thêm 4 khung hộp kiến trúc nổi ở 4 hướng N/S/E/W đỡ mặt đồng hồ
+            if (ot.hasClockBay) {
+                const float dialY = ParkLayout::CLOCK_TOWER_DIAL_Y;
+                const float offZ  = ParkLayout::CLOCK_TOWER_DIAL_OFFSET - 0.14f;
+                for (int side = 0; side < 4; ++side) {
+                    Geometry::PolygonMesh bay("ClockFaceHousing");
+                    appendBoxByYRange(bay, 0.0f, dialY - 1.92f, dialY + 1.92f, offZ - 0.45f, 3.65f, 0.90f, lightStoneCol);
+                    appendBoxByYRange(bay, 0.0f, dialY + 1.85f, dialY + 2.15f, offZ - 0.40f, 3.95f, 1.05f, darkTrimCol);
+                    bay.rotateY(side * 90.0f);
+                    clockTowerMesh.append(bay);
+                }
+            }
+            // Mái cong bát giác đặt trực tiếp lên đỉnh thân tầng tại y = ot.wallY1 - 0.05m
+            clockTowerMesh.append(Geometry::PolygonMesh::createOctagonalCurvedRoof(
+                0.0f, ot.wallY1 - 0.05f, 0.0f,
+                ot.wallApothem, ot.roofOuterApothem, ot.roofH, ot.eaveLift, ot.roofTopApothem,
+                goldRoofCol, darkTrimCol
+            ));
+        }
+
+        // 6.6. Chóp nhọn bát giác mạ vàng trên đỉnh cùng (y = 27.10 .. 29.40m -> tổng cao ~29.4m)
+        const MathCG::ColorRGB spireGoldCol(0.98f, 0.85f, 0.22f);
+        clockTowerMesh.append(Geometry::PolygonMesh::createRegularOctagonalPrism(
+            0.0f, 27.10f, 27.65f, 0.0f, 0.78f, goldRoofCol, 22.5f
+        ));
+        clockTowerMesh.append(Geometry::PolygonMesh::createRegularOctagonalPrism(
+            0.0f, 27.60f, 28.05f, 0.0f, 0.56f, spireGoldCol, 22.5f
+        ));
+        clockTowerMesh.append(Geometry::PolygonMesh::createPyramid(
+            0.0f, 27.95f, 0.0f, 1.05f, 1.05f, 1.45f, spireGoldCol
+        ));
 
         clockTowerMesh.computeNormals();
     }
@@ -666,11 +826,12 @@ private:
     }
 
     /**
-     * @brief Vẽ 4 mặt đồng hồ phát sáng trên bốn phía của Tháp Đồng Hồ Trung Tâm
+     * @brief Vẽ 4 mặt đồng hồ phát sáng trên bốn phía của tầng giữa Tháp Đồng Hồ Trung Tâm
      */
     void drawClockFaces(bool isNightOrSunset) const {
-        float clockY = 21.0f;
-        float offset = 3.25f;
+        const float clockY = ParkLayout::CLOCK_TOWER_DIAL_Y;
+        const float offset = ParkLayout::CLOCK_TOWER_DIAL_OFFSET;
+        const float dialR  = ParkLayout::CLOCK_TOWER_DIAL_RADIUS;
 
         for (int side = 0; side < 4; ++side) {
             glPushMatrix();
@@ -678,7 +839,7 @@ private:
             glTranslatef(0.0f, clockY, offset);
 
             glColor3f(0.95f, 0.78f, 0.15f);
-            ParametricShapes::drawToroid(2.10f, 0.15f, 24, 8, false);
+            ParametricShapes::drawToroid(dialR + 0.05f, 0.13f, 24, 8, false);
 
             if (isNightOrSunset) {
                 GLfloat emit[4] = { 0.95f, 0.95f, 0.85f, 1.0f };
@@ -688,7 +849,7 @@ private:
             } else {
                 glColor3f(0.98f, 0.98f, 0.96f);
             }
-            ParametricShapes::drawDisk(2.05f, 24, 0.0f, false);
+            ParametricShapes::drawDisk(dialR, 24, 0.0f, false);
             if (isNightOrSunset) {
                 GLfloat zeroEmit[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
                 glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, zeroEmit);
@@ -700,20 +861,22 @@ private:
             for (int h = 0; h < 12; ++h) {
                 float th = (static_cast<float>(h) / 12) * MathCG::TWO_PI;
                 float cTh = std::cos(th), sTh = std::sin(th);
-                float rInner = (h % 3 == 0) ? 1.55f : 1.72f;
-                float rOuter = 1.92f;
+                float rInner = (h % 3 == 0) ? (dialR * 0.75f) : (dialR * 0.84f);
+                float rOuter = dialR * 0.94f;
                 glVertex3f(rInner * cTh, rInner * sTh, 0.02f);
                 glVertex3f(rOuter * cTh, rOuter * sTh, 0.02f);
             }
             glVertex3f(0.0f, 0.0f, 0.03f);
-            glVertex3f(0.85f * std::cos(MathCG::DEG2RAD * 30.0f), 0.85f * std::sin(MathCG::DEG2RAD * 30.0f), 0.03f);
+            glVertex3f(dialR * 0.45f * std::cos(MathCG::DEG2RAD * 30.0f),
+                       dialR * 0.45f * std::sin(MathCG::DEG2RAD * 30.0f), 0.03f);
             glVertex3f(0.0f, 0.0f, 0.03f);
-            glVertex3f(1.35f * std::cos(MathCG::DEG2RAD * 60.0f), 1.35f * std::sin(MathCG::DEG2RAD * 60.0f), 0.03f);
+            glVertex3f(dialR * 0.70f * std::cos(MathCG::DEG2RAD * 60.0f),
+                       dialR * 0.70f * std::sin(MathCG::DEG2RAD * 60.0f), 0.03f);
             glEnd();
             glLineWidth(1.0f);
 
             glColor3f(0.95f, 0.80f, 0.15f);
-            ParametricShapes::drawSphere(0.15f, 10, 8, false);
+            ParametricShapes::drawSphere(0.14f, 10, 8, false);
 
             glPopMatrix();
         }

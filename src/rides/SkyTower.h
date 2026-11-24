@@ -32,29 +32,33 @@
 #include "core/ParkLayout.h"
 #include "core/Lighting.h"
 #include "geometry/ParametricShapes.h"
+#include "geometry/MeshModel.h"
 
 namespace AsiaParkRides {
 
 class SkyTower {
 public:
-    MathCG::Vec3 position       = ParkLayout::SKY_TOWER_POS; // (-260.0, 0.0, -54.6) [Ước lượng từ ảnh vệ tinh] ±10m
-    float        totalHeight    = 47.0f;
+    MathCG::Vec3 position       = ParkLayout::SKY_TOWER_POS;             // (-260.0, 0.0, -54.6) [Ước lượng từ ảnh vệ tinh] ±10m
+    float        totalHeight    = ParkLayout::SKY_TOWER_SHAFT_HEIGHT;    // 47.0m [Đã xác minh]
+    float        lotusHeight    = ParkLayout::SKY_TOWER_LOTUS_CROWN_HEIGHT; // ~6.0m [Bản vẽ minh họa AI, tham khảo hình dạng]
     float        towerRadius    = 1.65f;
     float        gondolaRadius  = 3.35f;
     int          numSeats       = 16;
     float        cycleTime      = 0.0f;  // Đồng hồ hoạt ảnh nội bộ
-    float        currentY       = 3.5f;  // Độ cao hiện tại của vòng Gondola
+    float        currentY       = ParkLayout::SKY_TOWER_GONDOLA_MIN_Y;   // Độ cao khởi đầu ngay trên sàn đón +4.2m
     float        currentYawDeg  = 0.0f;  // Góc quay hiện tại của vòng Gondola
 
-    SkyTower() = default;
+    SkyTower() {
+        buildStaticStationMesh();
+    }
 
     /**
-     * @brief Cập nhật vật lý: Điều khiển chu kỳ rơi tự do đa pha
+     * @brief Cập nhật vật lý: Điều khiển chu kỳ rơi tự do đa pha (giữ nguyên animation, khớp sàn đón +4.2m)
      */
     void update(float dt) {
         cycleTime = std::fmod(cycleTime + dt, 22.0f);
 
-        const float minY = 3.5f;
+        const float minY = ParkLayout::SKY_TOWER_GONDOLA_MIN_Y; // 4.35m (vừa trên sàn +4.20m)
         const float maxY = 42.0f;
         const float liftDuration = 13.0f;
         const float holdDuration = 2.5f;
@@ -64,37 +68,29 @@ public:
         float t = cycleTime;
 
         if (t < liftDuration) {
-            // Pha 1: Kéo tời lên chậm kèm xoay toàn cảnh 360 độ
             float u = t / liftDuration;
-            // Nội suy trơn (Smooth-step ease-in / ease-out)
             float ease = u * u * (3.0f - 2.0f * u);
             currentY = minY + (maxY - minY) * ease;
             currentYawDeg = u * 360.0f * 1.5f;
         }
         else if (t < liftDuration + holdDuration) {
-            // Pha 2: Giữ hồi hộp ở đỉnh (treo lơ lửng trên cao)
             currentY = maxY;
-            // Xoay nhẹ tại chỗ khi chờ rơi
             float holdT = t - liftDuration;
             currentYawDeg += holdT * 4.0f * dt;
         }
         else if (t < liftDuration + holdDuration + dropDuration) {
-            // Pha 3: Rơi tự do dưới tác dụng trọng lực: y(t) = maxY - 0.5 * g_eff * dt^2
             float dropT = t - (liftDuration + holdDuration);
             float u = dropT / dropDuration;
-            // Gia tốc rơi bậc hai hướng xuống
             float fallDist = (maxY - (minY + 6.0f)) * (u * u);
             currentY = maxY - fallDist;
         }
         else if (t < liftDuration + holdDuration + dropDuration + brakeDuration) {
-            // Pha 4: Đệm hãm phanh từ trường bằng dòng điện xoáy
             float brakeT = t - (liftDuration + holdDuration + dropDuration);
             float u = brakeT / brakeDuration;
             float ease = 1.0f - (1.0f - u) * (1.0f - u);
             currentY = (minY + 6.0f) - 6.0f * ease;
         }
         else {
-            // Pha 5: Tạm dừng đón trả khách tại sàn ga
             currentY = minY;
         }
     }
@@ -113,82 +109,28 @@ public:
     }
 
     /**
-     * @brief Vẽ Tháp Rơi Tự Do Golden Sky Tower
+     * @brief Vẽ Tháp Rơi Tự Do Golden Sky Tower (dùng Display List cho toàn bộ phần tĩnh & khung ghế)
      */
     void draw(bool isNightOrSunset, bool showNormals = false) const {
         glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
 
-        // ====================================================================
-        // 1. Bệ móng tĩnh & Sàn chờ đón khách
-        // ====================================================================
-        // Bục bê tông hình bát giác
-        glColor3f(0.42f, 0.44f, 0.48f);
-        ParametricShapes::drawCylinderY(7.2f, 1.2f, 8, 2, true, showNormals);
-        glColor3f(0.85f, 0.70f, 0.18f); // Vòng viền mạ vàng quanh chu vi
-        ParametricShapes::drawToroidY(7.25f, 0.15f, 16, 8, showNormals);
-
-        // Bậc thang sàn lên tàu & các cột lan can bảo vệ xung quanh
-        glColor3f(0.35f, 0.38f, 0.42f);
-        for (int i = 0; i < 8; ++i) {
-            float u = (static_cast<float>(i) / 8) * MathCG::TWO_PI;
-            float px = 7.0f * std::cos(u);
-            float pz = 7.0f * std::sin(u);
-            ParametricShapes::drawCylinderY(0.12f, 2.2f, 8, 2, true, false);
-            glPushMatrix();
-            glTranslatef(px, 0.0f, pz);
-            ParametricShapes::drawCylinderY(0.12f, 2.2f, 8, 2, true, false);
-            glPopMatrix();
+        // 1. Phần hình học tĩnh (Đế, sàn đón +4.2m, cầu thang, buồng ĐK, chòi mái ngói, cột 47m & chỏm sen ~6m)
+        if (!showNormals) {
+            ensureDisplayLists();
+            if (staticList_ != 0) {
+                glCallList(staticList_);
+            } else {
+                drawStaticStructureDirect(false);
+            }
+        } else {
+            drawStaticStructureDirect(true);
         }
 
-        // ====================================================================
-        // 2. Cột tháp kết cấu trung tâm (H = 47m)
-        // ====================================================================
-        // Thân cột chính tông màu trắng-vàng (Hình trụ tham số)
-        LightingSystem::setMaterial(0.60f, 48.0f);
-        glColor3f(0.92f, 0.94f, 0.96f);
-        ParametricShapes::drawCylinderY(towerRadius, totalHeight, 24, 16, true, showNormals);
-
-        // 4 Thanh ray dẫn hướng bằng thép chạy dọc toàn bộ chiều cao tháp
-        glColor3f(0.24f, 0.26f, 0.30f);
-        for (int i = 0; i < 4; ++i) {
-            float u = (static_cast<float>(i) / 4) * MathCG::TWO_PI;
-            float rx = std::cos(u);
-            float rz = std::sin(u);
-            MathCG::Vec3 railBase(rx * (towerRadius + 0.12f), 1.2f, rz * (towerRadius + 0.12f));
-            MathCG::Vec3 railTop(rx * (towerRadius + 0.12f), totalHeight, rz * (towerRadius + 0.12f));
-            ParametricShapes::drawCylinderBetween(railBase, railTop, 0.14f, 0.14f, 6, false);
-        }
-
-        // Các vòng tròn trang trí mạ vàng bao quanh thân tháp
-        glColor3f(0.95f, 0.76f, 0.12f);
-        const float ringY[] = { 10.0f, 20.0f, 30.0f, 40.0f };
-        for (float y : ringY) {
-            glPushMatrix();
-            glTranslatef(0.0f, y, 0.0f);
-            ParametricShapes::drawToroidY(towerRadius + 0.08f, 0.10f, 24, 8, false);
-            glPopMatrix();
-        }
-
-        // ====================================================================
-        // 3. Mũ chụp buồng máy trên đỉnh & Đèn chớp cảnh báo hàng không
-        // ====================================================================
+        // 2. Đèn hiệu cảnh báo hàng không gắn khít ngay trên đỉnh búp hoa sen (y ~ 53.05m)
         glPushMatrix();
-        glTranslatef(0.0f, totalHeight, 0.0f);
-
-        // Cổ trụ bao quanh buồng máy
-        glColor3f(0.88f, 0.72f, 0.16f); // Vương miện vàng
-        ParametricShapes::drawCylinderY(towerRadius + 0.45f, 2.4f, 16, 2, true, showNormals);
-
-        // Chóp nón trên đỉnh tháp
-        glTranslatef(0.0f, 2.4f, 0.0f);
-        glColor3f(0.95f, 0.32f, 0.14f);
-        ParametricShapes::drawConeY(towerRadius + 0.45f, 0.0f, 3.2f, 16, 4, true, showNormals);
-
-        // Đèn hiệu nhấp nháy cảnh báo hàng không tại điểm cao nhất
-        glTranslatef(0.0f, 3.35f, 0.0f);
+        glTranslatef(0.0f, totalHeight + lotusHeight - 0.02f, 0.0f);
         if (isNightOrSunset) {
-            // Chớp sáng đỏ theo chu kỳ
             float strobe = std::fmod(cycleTime * 3.0f, 1.0f);
             float intensity = (strobe < 0.25f) ? 1.0f : 0.15f;
             GLfloat emit[4] = { 1.0f * intensity, 0.1f * intensity, 0.1f * intensity, 1.0f };
@@ -198,90 +140,29 @@ public:
         } else {
             glColor3f(0.90f, 0.15f, 0.15f);
         }
-        ParametricShapes::drawSphere(0.45f, 12, 10, false);
+        ParametricShapes::drawSphere(0.36f, 10, 8, false);
         if (isNightOrSunset) {
             GLfloat zeroEmit[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
             glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, zeroEmit);
         }
         glPopMatrix();
 
-        // ====================================================================
-        // 4. Khung Gondola chở khách động học phân cấp
-        // ====================================================================
+        // 3. Khung Gondola chở khách động học phân cấp (Display List khung + LED ban đêm)
         glPushMatrix();
-        // Bước 1: Tịnh tiến theo phương thẳng đứng Y(t)
         glTranslatef(0.0f, currentY, 0.0f);
-        // Bước 2: Quay phương vị quanh trục đứng Yaw(t)
         glRotatef(currentYawDeg, 0.0f, 1.0f, 0.0f);
 
-        drawGondolaRing(isNightOrSunset, showNormals);
-
-        glPopMatrix();
-
-        glPopMatrix();
-    }
-
-private:
-    /**
-     * @brief Vòng Gondola: Đai Toroid, 16 ghế hành khách hướng ra ngoài, mái che nắng
-     */
-    void drawGondolaRing(bool isNightOrSunset, bool showNormals) const {
-        // 1. Ống lót kết cấu bên trong trượt dọc theo cột tháp
-        glColor3f(0.18f, 0.20f, 0.24f);
-        ParametricShapes::drawCylinderY(towerRadius + 0.22f, 2.1f, 20, 2, true, false);
-
-        // 2. Vòng đỡ sàn hành khách chính (Hình xuyến tham số Toroid)
-        LightingSystem::setMaterial(0.70f, 48.0f);
-        glColor3f(0.96f, 0.78f, 0.12f); // Vòng vàng rực rỡ
-        glPushMatrix();
-        glTranslatef(0.0f, 0.35f, 0.0f);
-        ParametricShapes::drawToroidY(gondolaRadius, 0.32f, 32, 10, showNormals);
-        glPopMatrix();
-
-        // 3. Vòng mái che nắng hình tròn phía trên đầu
-        glColor3f(0.92f, 0.28f, 0.14f); // Mái vòm đỏ son Á Đông
-        glPushMatrix();
-        glTranslatef(0.0f, 2.35f, 0.0f);
-        ParametricShapes::drawToroidY(gondolaRadius + 0.15f, 0.22f, 32, 8, false);
-        glPopMatrix();
-
-        // 4. 16 Ghế hành khách hướng mặt ra ngoài bố trí quanh vòng tròn
-        for (int i = 0; i < numSeats; ++i) {
-            float angleDeg = (360.0f / numSeats) * i;
-            glPushMatrix();
-            glRotatef(angleDeg, 0.0f, 1.0f, 0.0f);
-            glTranslatef(0.0f, 0.0f, gondolaRadius);
-
-            // Giá đỡ ghế nối vào đai ống lót bên trong
-            glColor3f(0.35f, 0.38f, 0.42f);
-            ParametricShapes::drawCylinderBetween(
-                MathCG::Vec3(0.0f, 0.35f, -gondolaRadius + towerRadius + 0.25f),
-                MathCG::Vec3(0.0f, 0.35f, 0.0f),
-                0.08f, 0.08f, 6, false
-            );
-
-            // Đệm ghế thể thao đúc khuôn (Màu đỏ thẫm)
-            glColor3f(0.85f, 0.14f, 0.12f);
-            // Mặt ghế ngồi
-            drawLocalBox(0.0f, 0.55f, 0.0f, 0.65f, 0.14f, 0.55f);
-            // Tựa lưng ghế
-            drawLocalBox(0.0f, 1.05f, -0.24f, 0.62f, 0.90f, 0.12f);
-            // Tựa đầu
-            drawLocalBox(0.0f, 1.62f, -0.22f, 0.42f, 0.28f, 0.14f);
-
-            // Đai an toàn vắt qua vai (Màu vàng)
-            glColor3f(0.98f, 0.82f, 0.15f);
-            drawLocalBox(-0.16f, 1.08f, -0.04f, 0.09f, 0.72f, 0.28f);
-            drawLocalBox( 0.16f, 1.08f, -0.04f, 0.09f, 0.72f, 0.28f);
-
-            // Thanh gác chân treo bên dưới
-            glColor3f(0.50f, 0.52f, 0.56f);
-            drawLocalBox(0.0f, 0.05f, 0.12f, 0.50f, 0.06f, 0.20f);
-
-            glPopMatrix();
+        if (!showNormals) {
+            ensureDisplayLists();
+            if (gondolaList_ != 0) {
+                glCallList(gondolaList_);
+            } else {
+                drawGondolaRingDirect(false);
+            }
+        } else {
+            drawGondolaRingDirect(true);
         }
 
-        // Đèn LED chiếu gầm ban đêm bên dưới vòng Gondola
         if (isNightOrSunset) {
             GLfloat emit[4] = { 0.2f, 0.8f, 1.0f, 1.0f };
             glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, emit);
@@ -294,8 +175,241 @@ private:
             GLfloat zeroEmit[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
             glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, zeroEmit);
         }
-
         LightingSystem::resetMaterial();
+
+        glPopMatrix();
+        glPopMatrix();
+    }
+
+private:
+    mutable Geometry::PolygonMesh staticStationMesh_;
+    mutable GLuint staticList_  = 0;
+    mutable GLuint gondolaList_ = 0;
+
+    void ensureDisplayLists() const {
+        if (staticList_ == 0) {
+            staticList_ = glGenLists(1);
+            if (staticList_ != 0) {
+                glNewList(staticList_, GL_COMPILE);
+                drawStaticStructureDirect(false);
+                glEndList();
+            }
+        }
+        if (gondolaList_ == 0) {
+            gondolaList_ = glGenLists(1);
+            if (gondolaList_ != 0) {
+                glNewList(gondolaList_, GL_COMPILE);
+                drawGondolaRingDirect(false);
+                glEndList();
+            }
+        }
+    }
+
+    /**
+     * @brief Xây dựng toàn bộ phần tĩnh trạm Sky Tower & chỏm hoa sen 6m bằng PolygonMesh
+     *        [Bản vẽ minh họa AI, tham khảo hình dạng] - tất cả nằm gọn trong bán kính <= 8.0m
+     */
+    void buildStaticStationMesh() {
+        using Mesh = Geometry::PolygonMesh;
+        staticStationMesh_.clear();
+        staticStationMesh_.name = "SkyTowerStationAndLotusA1";
+
+        const float deckY = ParkLayout::SKY_TOWER_BOARDING_DECK_Y; // +4.20m
+        const float deckR = 6.00f;                                 // Giữ toàn bộ hạng mục gọn trong bán kính <= 8.0m
+
+        const MathCG::ColorRGB plinthCol(0.42f, 0.44f, 0.48f);
+        const MathCG::ColorRGB concreteCol(0.76f, 0.75f, 0.72f);
+        const MathCG::ColorRGB deckStoneCol(0.84f, 0.80f, 0.72f);
+        const MathCG::ColorRGB steelDarkCol(0.24f, 0.27f, 0.32f);
+        const MathCG::ColorRGB railGrayCol(0.55f, 0.58f, 0.62f);
+        const MathCG::ColorRGB goldCol(0.95f, 0.76f, 0.16f);
+        const MathCG::ColorRGB deepGoldCol(0.82f, 0.60f, 0.12f);
+        const MathCG::ColorRGB crimsonCol(0.76f, 0.16f, 0.14f);
+        const MathCG::ColorRGB roofTileCol(0.68f, 0.22f, 0.14f);
+        const MathCG::ColorRGB glassCol(0.20f, 0.44f, 0.64f);
+
+        // 1. Móng bê tông nền bát giác & lõi trụ tầng trệt (R = 7.45m -> y = 0 .. 0.36m, lõi R = 3.55m -> 4.18m)
+        staticStationMesh_.append(Mesh::createPrismY(0.0f, 0.00f, 0.0f, 7.45f, 0.36f, 16, plinthCol));
+        staticStationMesh_.append(Mesh::createPrismY(0.0f, 0.32f, 0.0f, 3.60f, deckY - 0.30f, 12, concreteCol));
+
+        // 12 Cột thép đỡ vành sàn đón khách +4.20m (đặt ở R = 5.45m)
+        for (int i = 0; i < 12; ++i) {
+            float a = (static_cast<float>(i) / 12.0f) * MathCG::TWO_PI;
+            float cx = 5.45f * std::cos(a);
+            float cz = 5.45f * std::sin(a);
+            staticStationMesh_.append(Mesh::createPrismY(cx, 0.32f, cz, 0.20f, deckY - 0.34f, 8, steelDarkCol));
+        }
+
+        // 2. Sàn đón khách tròn trên cao tại y = +4.20m (dày 3.84 .. 4.20m, R = 6.00m) & Gờ viền vàng
+        staticStationMesh_.append(Mesh::createPrismY(0.0f, deckY - 0.36f, 0.0f, deckR, 0.36f, 20, deckStoneCol));
+        staticStationMesh_.append(Mesh::createPrismY(0.0f, deckY - 0.32f, 0.0f, deckR + 0.14f, 0.22f, 20, goldCol));
+
+        // 3. Hàng rào bảo vệ chu vi sàn đón khách (R = 5.84m, y = 4.20 .. 5.25m)
+        //    Chừa lối mở sạch tại đầu cầu thang lên (góc Đông-Nam) & trước cửa chòi đón (phía Đông)
+        const int railSegs = 24;
+        const float railR = 5.84f;
+        for (int i = 0; i < railSegs; ++i) {
+            float aMid = ((i + 0.5f) / railSegs) * 360.0f;
+            if ((aMid >= 8.0f && aMid <= 38.0f) || (aMid >= 332.0f || aMid < 8.0f)) continue;
+            float rad0 = (static_cast<float>(i) / railSegs) * MathCG::TWO_PI;
+            float rad1 = (static_cast<float>(i + 1) / railSegs) * MathCG::TWO_PI;
+            float x0 = railR * std::cos(rad0), z0 = railR * std::sin(rad0);
+            float x1 = railR * std::cos(rad1), z1 = railR * std::sin(rad1);
+            staticStationMesh_.append(Mesh::createPrismY(x0, deckY - 0.05f, z0, 0.07f, 1.08f, 6, railGrayCol));
+            staticStationMesh_.append(Mesh::createPrismY(x1, deckY - 0.05f, z1, 0.07f, 1.08f, 6, railGrayCol));
+            float mx = 0.5f * (x0 + x1), mz = 0.5f * (z0 + z1);
+            float segLen = std::sqrt((x1 - x0) * (x1 - x0) + (z1 - z0) * (z1 - z0));
+            float yaw = std::atan2(x1 - x0, z1 - z0) * MathCG::RAD2DEG;
+            Mesh topBar = Mesh::createBox(0.0f, deckY + 1.00f, 0.0f, 0.09f, 0.08f, segLen, railGrayCol);
+            Mesh midBar = Mesh::createBox(0.0f, deckY + 0.55f, 0.0f, 0.07f, 0.06f, segLen, steelDarkCol);
+            topBar.rotateY(yaw); topBar.translate(mx, 0.0f, mz);
+            midBar.rotateY(yaw); midBar.translate(mx, 0.0f, mz);
+            staticStationMesh_.append(topBar);
+            staticStationMesh_.append(midBar);
+        }
+
+        // 4. Cầu thang lên sàn đón khách +4.20m ở góc Đông-Nam (nằm trọn trong R <= 7.65m <= 8.0m, ngoài R >= 4.4m)
+        {
+            float sx0 = 3.15f, sz0 = 5.75f; // chân thang dưới đất (R = 6.56m, cả thành thang <= 7.55m)
+            float sx1 = 5.05f, sz1 = 1.80f; // đỉnh thang chạm khít mặt sàn đón +4.2m (R = 5.36m < deckR)
+            float dx = sx0 - sx1, dz = sz0 - sz1;
+            float runLen = std::sqrt(dx * dx + dz * dz);
+            float yawDeg = std::atan2(dx, dz) * MathCG::RAD2DEG;
+            staticStationMesh_.append(Mesh::createSteppedStaircase(
+                sx1, sz1, yawDeg, 0.0f, deckY,
+                runLen, 1.70f, 11, deckStoneCol, steelDarkCol
+            ));
+        }
+
+        // 5. Chòi mái ngói nhỏ đón/chờ khách ở cạnh Đông sàn +4.20m (tâm (5.40, -1.05), R_max <= 7.20m <= 8.0m)
+        {
+            const float gx = 5.40f, gz = -1.05f;
+            Mesh::appendBoxByYRange(staticStationMesh_, gx, 0.00f, deckY + 0.04f, gz, 2.00f, 2.30f, plinthCol);
+            for (int sx : {-1, 1}) {
+                for (int sz : {-1, 1}) {
+                    staticStationMesh_.append(Mesh::createPrismY(
+                        gx + sx * 0.80f, deckY, gz + sz * 0.95f,
+                        0.12f, 2.25f, 8, crimsonCol
+                    ));
+                }
+            }
+            Mesh::appendBoxByYRange(staticStationMesh_, gx + 0.80f, deckY, deckY + 1.05f, gz, 0.22f, 2.00f, concreteCol);
+            Mesh::appendBoxByYRange(staticStationMesh_, gx, 6.36f, 6.64f, gz, 1.98f, 2.25f, steelDarkCol);
+            staticStationMesh_.append(Mesh::createCurvedAsianRoof(
+                gx, 6.60f, gz, 2.00f, 2.30f, 1.05f, 0.60f, roofTileCol
+            ));
+        }
+
+        // 6. Buồng điều khiển nhỏ (Control Room) ở mặt Nam (-1.25, +5.20) [R_in = 4.28m > 3.72m, R_out <= 6.80m <= 8.0m]
+        {
+            const float cx = -1.25f, cz = 5.20f;
+            Mesh::appendBoxByYRange(staticStationMesh_, cx, 0.00f, deckY + 0.04f, cz, 2.20f, 1.85f, plinthCol);
+            Mesh::appendBoxByYRange(staticStationMesh_, cx, deckY, 5.15f, cz, 2.20f, 1.85f, concreteCol);
+            Mesh::appendBoxByYRange(staticStationMesh_, cx, 5.10f, 6.05f, cz + 0.08f, 2.08f, 1.66f, glassCol);
+            for (int sx : {-1, 1}) {
+                for (int sz : {-1, 1}) {
+                    Mesh::appendBoxByYRange(staticStationMesh_, cx + sx * 0.98f, 5.10f, 6.22f, cz + sz * 0.80f, 0.22f, 0.22f, steelDarkCol);
+                }
+            }
+            Mesh::appendBoxByYRange(staticStationMesh_, cx, 6.18f, 6.42f, cz, 2.40f, 2.05f, steelDarkCol);
+            Mesh::appendBoxByYRange(staticStationMesh_, cx, 6.40f, 6.56f, cz, 2.28f, 1.95f, goldCol);
+        }
+
+        // 7. Chỏm HOA SEN VÀNG ở đỉnh cột 47m (cao ~6.0m: y = 47.00 .. 53.00m)
+        //    [Bản vẽ minh họa AI, tham khảo hình dạng]
+        staticStationMesh_.append(Mesh::createLotusCrown(
+            0.0f, totalHeight, 0.0f, towerRadius, lotusHeight, 10, goldCol, deepGoldCol
+        ));
+
+        staticStationMesh_.computeNormals();
+    }
+
+    /**
+     * @brief Hàm vẽ toàn bộ phần tĩnh (Station PolygonMesh + cột tháp 47m + ray thép + vòng vàng)
+     */
+    void drawStaticStructureDirect(bool showNormals) const {
+        // 1. Toàn bộ bệ, sàn đón +4.2m, cầu thang, chòi mái ngói, buồng điều khiển & chỏm hoa sen 6m
+        staticStationMesh_.draw(true, showNormals);
+
+        // 2. Cột tháp kết cấu trung tâm (H = 47m, y = 0 .. 47m)
+        LightingSystem::setMaterial(0.60f, 48.0f);
+        glColor3f(0.92f, 0.94f, 0.96f);
+        ParametricShapes::drawCylinderY(towerRadius, totalHeight, 22, 12, true, showNormals);
+
+        // 3. 4 Thanh ray dẫn hướng bằng thép chạy dọc chiều cao tháp (từ sàn đón lên đỉnh 47m)
+        glColor3f(0.24f, 0.26f, 0.30f);
+        for (int i = 0; i < 4; ++i) {
+            float u = (static_cast<float>(i) / 4) * MathCG::TWO_PI;
+            float rx = std::cos(u);
+            float rz = std::sin(u);
+            MathCG::Vec3 railBase(rx * (towerRadius + 0.12f), 4.0f, rz * (towerRadius + 0.12f));
+            MathCG::Vec3 railTop(rx * (towerRadius + 0.12f), totalHeight, rz * (towerRadius + 0.12f));
+            ParametricShapes::drawCylinderBetween(railBase, railTop, 0.13f, 0.13f, 6, false);
+        }
+
+        // 4. Các vòng tròn trang trí mạ vàng bao quanh thân tháp
+        glColor3f(0.95f, 0.76f, 0.12f);
+        const float ringY[] = { 10.0f, 20.0f, 30.0f, 40.0f, 46.85f };
+        for (float y : ringY) {
+            glPushMatrix();
+            glTranslatef(0.0f, y, 0.0f);
+            ParametricShapes::drawToroidY(towerRadius + 0.08f, 0.10f, 20, 6, false);
+            glPopMatrix();
+        }
+        LightingSystem::resetMaterial();
+    }
+
+    /**
+     * @brief Vòng Gondola: Đai Toroid, 16 ghế hành khách hướng ra ngoài, mái che nắng (compile vào Display List)
+     */
+    void drawGondolaRingDirect(bool showNormals) const {
+        // 1. Ống lót kết cấu bên trong trượt dọc theo cột tháp
+        glColor3f(0.18f, 0.20f, 0.24f);
+        ParametricShapes::drawCylinderY(towerRadius + 0.22f, 2.1f, 18, 2, true, false);
+
+        // 2. Vòng đỡ sàn hành khách chính (Hình xuyến tham số Toroid)
+        LightingSystem::setMaterial(0.70f, 48.0f);
+        glColor3f(0.96f, 0.78f, 0.12f);
+        glPushMatrix();
+        glTranslatef(0.0f, 0.35f, 0.0f);
+        ParametricShapes::drawToroidY(gondolaRadius, 0.32f, 28, 8, showNormals);
+        glPopMatrix();
+
+        // 3. Vòng mái che nắng hình tròn phía trên đầu
+        glColor3f(0.92f, 0.28f, 0.14f);
+        glPushMatrix();
+        glTranslatef(0.0f, 2.35f, 0.0f);
+        ParametricShapes::drawToroidY(gondolaRadius + 0.15f, 0.22f, 28, 8, false);
+        glPopMatrix();
+
+        // 4. 16 Ghế hành khách hướng mặt ra ngoài bố trí quanh vòng tròn
+        for (int i = 0; i < numSeats; ++i) {
+            float angleDeg = (360.0f / numSeats) * i;
+            glPushMatrix();
+            glRotatef(angleDeg, 0.0f, 1.0f, 0.0f);
+            glTranslatef(0.0f, 0.0f, gondolaRadius);
+
+            glColor3f(0.35f, 0.38f, 0.42f);
+            ParametricShapes::drawCylinderBetween(
+                MathCG::Vec3(0.0f, 0.35f, -gondolaRadius + towerRadius + 0.25f),
+                MathCG::Vec3(0.0f, 0.35f, 0.0f),
+                0.08f, 0.08f, 6, false
+            );
+
+            glColor3f(0.85f, 0.14f, 0.12f);
+            drawLocalBox(0.0f, 0.55f, 0.0f, 0.65f, 0.14f, 0.55f);
+            drawLocalBox(0.0f, 1.05f, -0.24f, 0.62f, 0.90f, 0.12f);
+            drawLocalBox(0.0f, 1.62f, -0.22f, 0.42f, 0.28f, 0.14f);
+
+            glColor3f(0.98f, 0.82f, 0.15f);
+            drawLocalBox(-0.16f, 1.08f, -0.04f, 0.09f, 0.72f, 0.28f);
+            drawLocalBox( 0.16f, 1.08f, -0.04f, 0.09f, 0.72f, 0.28f);
+
+            glColor3f(0.50f, 0.52f, 0.56f);
+            drawLocalBox(0.0f, 0.05f, 0.12f, 0.50f, 0.06f, 0.20f);
+
+            glPopMatrix();
+        }
     }
 
     static void drawLocalBox(float cx, float cy, float cz, float sx, float sy, float sz) {

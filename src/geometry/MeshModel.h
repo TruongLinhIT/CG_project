@@ -347,25 +347,15 @@ public:
 
         bool hasVertexNormals = (vertexNormals.size() == vertices.size());
 
-        for (const auto& face : faces) {
-            if (face.vertexIndices.size() < 3) continue;
-
+        auto emitFace = [&](const Face& face) {
             if (face.hasCustomColor) {
                 glColor3f(face.color.r, face.color.g, face.color.b);
             } else {
                 glColor3f(defaultColor.r, defaultColor.g, defaultColor.b);
             }
-
-            // Ở chế độ tô bóng phẳng (Flat Shading) hoặc khi chưa có pháp tuyến đỉnh, truyền 1 pháp tuyến mặt
             if (!smoothShading || !hasVertexNormals) {
                 glNormal3f(face.faceNormal.x, face.faceNormal.y, face.faceNormal.z);
             }
-
-            GLenum mode = GL_POLYGON;
-            if (face.vertexIndices.size() == 3) mode = GL_TRIANGLES;
-            else if (face.vertexIndices.size() == 4) mode = GL_QUADS;
-
-            glBegin(mode);
             for (int vIdx : face.vertexIndices) {
                 if (vIdx >= 0 && vIdx < static_cast<int>(vertices.size())) {
                     if (smoothShading && hasVertexNormals) {
@@ -376,7 +366,39 @@ public:
                     glVertex3f(p.x, p.y, p.z);
                 }
             }
+        };
+
+        bool hasTris = false, hasQuads = false, hasPolys = false;
+        for (const auto& face : faces) {
+            size_t n = face.vertexIndices.size();
+            if (n == 3) hasTris = true;
+            else if (n == 4) hasQuads = true;
+            else if (n > 4) hasPolys = true;
+        }
+
+        // Gộp hàng loạt GL_TRIANGLES và GL_QUADS để giảm glBegin/glEnd khi biên dịch Display List
+        if (hasTris) {
+            glBegin(GL_TRIANGLES);
+            for (const auto& face : faces) {
+                if (face.vertexIndices.size() == 3) emitFace(face);
+            }
             glEnd();
+        }
+        if (hasQuads) {
+            glBegin(GL_QUADS);
+            for (const auto& face : faces) {
+                if (face.vertexIndices.size() == 4) emitFace(face);
+            }
+            glEnd();
+        }
+        if (hasPolys) {
+            for (const auto& face : faces) {
+                if (face.vertexIndices.size() > 4) {
+                    glBegin(GL_POLYGON);
+                    emitFace(face);
+                    glEnd();
+                }
+            }
         }
 
         // Hiển thị trực quan pháp tuyến để kiểm tra (phục vụ giảng dạy & bảo vệ đồ án Chương 6)
@@ -550,37 +572,25 @@ public:
         mesh.defaultColor = col;
         if (sides < 3) sides = 3;
 
-        // Vòng đỉnh đáy dưới [0 .. sides-1]
+        // Vòng đỉnh đáy dưới [0 .. sides-1] và đáy trên [sides .. 2*sides-1] theo chiều CCW (+Y nhìn xuống -> cz - r*sin(u))
         for (int i = 0; i < sides; ++i) {
             float u = (static_cast<float>(i) / sides) * MathCG::TWO_PI;
-            mesh.addVertex(cx + radius * std::cos(u), cy, cz + radius * std::sin(u));
+            mesh.addVertex(cx + radius * std::cos(u), cy, cz - radius * std::sin(u));
         }
-
-        // Vòng đỉnh đáy trên [sides .. 2*sides-1]
         for (int i = 0; i < sides; ++i) {
             float u = (static_cast<float>(i) / sides) * MathCG::TWO_PI;
-            mesh.addVertex(cx + radius * std::cos(u), cy + height, cz + radius * std::sin(u));
+            mesh.addVertex(cx + radius * std::cos(u), cy + height, cz - radius * std::sin(u));
         }
 
-        // Đỉnh tâm đáy dưới (2*sides) & Đỉnh tâm đáy trên (2*sides + 1)
         int bCenter = mesh.addVertex(cx, cy, cz);
         int tCenter = mesh.addVertex(cx, cy + height, cz);
 
-        // Các mặt tứ giác xung quanh thân lăng trụ
         for (int i = 0; i < sides; ++i) {
             int iNext = (i + 1) % sides;
-            int b0 = i;
-            int b1 = iNext;
-            int t0 = sides + i;
-            int t1 = sides + iNext;
-            mesh.addQuad(b0, b1, t1, t0, col, true);
-        }
-
-        // Nắp đáy dưới & nắp đáy trên ghép từ các tam giác chung tâm
-        for (int i = 0; i < sides; ++i) {
-            int iNext = (i + 1) % sides;
-            mesh.addTriangle(bCenter, (i + 1) % sides, i, col, true);       // Đáy dưới (pháp tuyến -Y)
-            mesh.addTriangle(tCenter, sides + i, sides + iNext, col, true);  // Đáy trên (pháp tuyến +Y)
+            int b0 = i, b1 = iNext, t0 = sides + i, t1 = sides + iNext;
+            mesh.addQuad(b0, b1, t1, t0, col, true);                      // Mặt bên CCW hướng ra ngoài
+            mesh.addTriangle(bCenter, iNext, i, col, true);               // Đáy dưới (-Y)
+            mesh.addTriangle(tCenter, sides + i, sides + iNext, col, true); // Đáy trên (+Y)
         }
 
         mesh.computeNormals();
@@ -766,6 +776,317 @@ public:
 
         mesh.computeNormals();
         return mesh;
+    }
+
+    /**
+     * @brief Hàm tiện ích thêm hình hộp theo biên độ cao [yBottom, yTop] đảm bảo chồng khít liền khối
+     */
+    static void appendBoxByYRange(
+        PolygonMesh& target,
+        float cx, float yBottom, float yTop, float cz,
+        float sx, float sz,
+        const MathCG::ColorRGB& col
+    ) {
+        float sy = yTop - yBottom;
+        if (sy <= 1e-4f) return;
+        float cy = 0.5f * (yBottom + yTop);
+        target.append(createBox(cx, cy, cz, sx, sy, sz, col));
+    }
+
+    /**
+     * @brief Lăng trụ bát giác đều (tâm đáy tại (cx, yBottom, cz), cao lên yTop)
+     *        Độ dài từ tâm tới trung điểm mỗi cạnh phẳng = apothemRadius (mặc định xoay 22.5°
+     *        để 4 mặt chính song song với 4 trục Đông/Tây/Nam/Bắc; quy ước CCW ngoài chuẩn).
+     */
+    static PolygonMesh createRegularOctagonalPrism(
+        float cx, float yBottom, float yTop, float cz,
+        float apothemRadius,
+        const MathCG::ColorRGB& col,
+        float rotOffsetDeg = 22.5f
+    ) {
+        PolygonMesh mesh("RegularOctagonalPrism");
+        mesh.defaultColor = col;
+        const int sides = 8;
+        float outerR = apothemRadius / std::cos(MathCG::PI / 8.0f);
+        float rotRad = rotOffsetDeg * MathCG::DEG2RAD;
+
+        for (int i = 0; i < sides; ++i) {
+            float a = rotRad + (static_cast<float>(i) / sides) * MathCG::TWO_PI;
+            mesh.addVertex(cx + outerR * std::cos(a), yBottom, cz - outerR * std::sin(a));
+        }
+        for (int i = 0; i < sides; ++i) {
+            float a = rotRad + (static_cast<float>(i) / sides) * MathCG::TWO_PI;
+            mesh.addVertex(cx + outerR * std::cos(a), yTop, cz - outerR * std::sin(a));
+        }
+        int bCenter = mesh.addVertex(cx, yBottom, cz);
+        int tCenter = mesh.addVertex(cx, yTop, cz);
+
+        for (int i = 0; i < sides; ++i) {
+            int iNext = (i + 1) % sides;
+            mesh.addQuad(i, iNext, sides + iNext, sides + i, col, true); // Mặt bên CCW hướng ra ngoài
+            mesh.addTriangle(bCenter, iNext, i, col, true);             // Đáy dưới (-Y)
+            mesh.addTriangle(tCenter, sides + i, sides + iNext, col, true); // Đáy trên (+Y)
+        }
+        mesh.computeNormals();
+        return mesh;
+    }
+
+    /**
+     * @brief Mái bát giác cong Á Đông nhiều tầng [Bản vẽ minh họa AI, tham khảo hình dạng]
+     *        Tọa độ đặt trên đỉnh tầng bát giác ở cao độ y = cy; có 8 sống đao góc vểnh lên,
+     *        mặt đáy diềm khép kín hoàn toàn (soffit) và cổ lót ôm xuống bên dưới cy - 0.18m.
+     */
+    static PolygonMesh createOctagonalCurvedRoof(
+        float cx, float cy, float cz,
+        float innerApothem,
+        float outerApothem,
+        float height,
+        float eaveLift,
+        float topApothem,
+        const MathCG::ColorRGB& tileCol,
+        const MathCG::ColorRGB& soffitCol
+    ) {
+        PolygonMesh mesh("OctagonalCurvedRoof");
+        mesh.defaultColor = tileCol;
+
+        const int sides = 8;
+        const int subdivPerSide = 2; // 16 góc quanh chu vi -> tạo cạnh mái hơi võng nhẹ & 8 mũi đao sắc nét
+        const int ringSegs = sides * subdivPerSide;
+        const int radialSteps = 4;
+        const float rotRad = 22.5f * MathCG::DEG2RAD;
+        const float cosPi8 = std::cos(MathCG::PI / 8.0f);
+
+        auto octBoundaryPoint = [&](int segIdx, float scaleApothem) {
+            int edge = (segIdx / subdivPerSide) % sides;
+            float frac = static_cast<float>(segIdx % subdivPerSide) / subdivPerSide;
+            float a0 = rotRad + (static_cast<float>(edge) / sides) * MathCG::TWO_PI;
+            float a1 = rotRad + (static_cast<float>((edge + 1) % sides) / sides) * MathCG::TWO_PI;
+            float cornerR = scaleApothem / cosPi8;
+            float x0 = cornerR * std::cos(a0), z0 = -cornerR * std::sin(a0);
+            float x1 = cornerR * std::cos(a1), z1 = -cornerR * std::sin(a1);
+            return std::pair<float, float>(x0 + (x1 - x0) * frac, z0 + (z1 - z0) * frac);
+        };
+
+        // 1. Lưới mặt trên mái bát giác từ đỉnh (j = 0) ra diềm mái (j = radialSteps)
+        for (int j = 0; j <= radialSteps; ++j) {
+            float v = static_cast<float>(j) / radialSteps; // 0 (nóc) .. 1 (diềm ngoài)
+            float curApothem = topApothem + (outerApothem - topApothem) * v;
+            float baseSlopeY = cy + height * std::pow(1.0f - v, 1.48f);
+
+            for (int k = 0; k < ringSegs; ++k) {
+                bool isCorner = (k % subdivPerSide == 0);
+                float flareFactor = isCorner ? 1.07f : 1.0f;
+                auto xz = octBoundaryPoint(k, curApothem * (1.0f + (flareFactor - 1.0f) * v * v));
+                float lift = isCorner ? (eaveLift * v * v) : (eaveLift * 0.12f * v * v);
+                mesh.addVertex(cx + xz.first, baseSlopeY + lift, cz + xz.second);
+            }
+        }
+
+        for (int j = 0; j < radialSteps; ++j) {
+            int row0 = j * ringSegs;
+            int row1 = (j + 1) * ringSegs;
+            for (int k = 0; k < ringSegs; ++k) {
+                int kNext = (k + 1) % ringSegs;
+                // Quy ước CCW (+Y): inner0 -> outer0 -> outer1 -> inner1
+                mesh.addQuad(row0 + k, row1 + k, row1 + kNext, row0 + kNext, tileCol, true);
+            }
+        }
+
+        // 2. Mặt đáy diềm mái khép kín (soffit) nối từ diềm ngoài xuống cổ tường bên trong tại cy - 0.14m
+        int outerRingStart = radialSteps * ringSegs;
+        int innerSoffitStart = static_cast<int>(mesh.vertices.size());
+        for (int k = 0; k < ringSegs; ++k) {
+            auto xz = octBoundaryPoint(k, innerApothem * 0.94f);
+            mesh.addVertex(cx + xz.first, cy - 0.14f, cz + xz.second);
+        }
+        for (int k = 0; k < ringSegs; ++k) {
+            int kNext = (k + 1) % ringSegs;
+            mesh.addQuad(outerRingStart + k, innerSoffitStart + k,
+                         innerSoffitStart + kNext, outerRingStart + kNext, soffitCol, true);
+        }
+
+        // Nắp kín đỉnh mái trên cùng (tránh hở nếu nhìn thẳng từ trên xuống)
+        int topCapCenter = mesh.addVertex(cx, cy + height, cz);
+        for (int k = 0; k < ringSegs; ++k) {
+            int kNext = (k + 1) % ringSegs;
+            mesh.addTriangle(topCapCenter, k, kNext, tileCol, true);
+        }
+
+        // 3. Gờ dầm cổ mái bát giác ôm chặt vào đỉnh tường bên dưới (cy - 0.22m .. cy + 0.08m)
+        mesh.append(createRegularOctagonalPrism(
+            cx, cy - 0.22f, cy + 0.08f, cz,
+            innerApothem * 1.03f, soffitCol, 22.5f
+        ));
+
+        // 4. 8 Đường sống gờ sườn mái nổi uốn cong theo ĐÚNG đường cong mái (không hở cung)
+        MathCG::ColorRGB ridgeCol(
+            std::min(1.0f, tileCol.r * 1.12f + 0.04f),
+            std::min(1.0f, tileCol.g * 1.10f + 0.04f),
+            std::min(1.0f, tileCol.b * 1.05f + 0.02f)
+        );
+        for (int s = 0; s < sides; ++s) {
+            int cornerSeg = s * subdivPerSide;
+            for (int j = 0; j < radialSteps; ++j) {
+                int vIdx0 = j * ringSegs + cornerSeg;
+                int vIdx1 = (j + 1) * ringSegs + cornerSeg;
+                const auto& p0 = mesh.vertices[vIdx0];
+                const auto& p1 = mesh.vertices[vIdx1];
+                float dx = p1.x - p0.x, dy = p1.y - p0.y, dz = p1.z - p0.z;
+                float segLen = std::sqrt(dx * dx + dy * dy + dz * dz);
+                float yaw = std::atan2(dx, dz) * MathCG::RAD2DEG;
+                float pitch = -std::atan2(dy, std::sqrt(dx * dx + dz * dz)) * MathCG::RAD2DEG;
+                PolygonMesh rib = createBox(0.0f, 0.01f, 0.0f, 0.16f, 0.18f, segLen * 1.04f, ridgeCol);
+                rib.rotateX(pitch);
+                rib.rotateY(yaw);
+                rib.translate(0.5f * (p0.x + p1.x), 0.5f * (p0.y + p1.y), 0.5f * (p0.z + p1.z));
+                mesh.append(rib);
+            }
+        }
+
+        mesh.computeNormals();
+        return mesh;
+    }
+
+    /**
+     * @brief Hàm dùng lại xây dựng cầu thang đá đặc nguyên khối từ chân bệ (tại distFromCenter0, yBottom)
+     *        leo dần vào/lên mặt sàn tại (distFromCenter1, yTop) theo góc xoay yawDeg quanh trục Y.
+     *        Gồm toàn bộ bậc bước chồng kín, thân dầm đỡ đặc xuống nền và 2 thành lan can vát 2 bên.
+     */
+    static PolygonMesh createSteppedStaircase(
+        float baseX, float baseZ, float yawDeg,
+        float yBottom, float yTop,
+        float horizRun, float totalWidth, int numSteps,
+        const MathCG::ColorRGB& stepCol,
+        const MathCG::ColorRGB& railCol
+    ) {
+        PolygonMesh stair("SteppedStaircase");
+        if (numSteps < 2) numSteps = 2;
+        float railW = std::min(0.42f, totalWidth * 0.14f);
+        float treadW = totalWidth - 2.0f * railW;
+        float stepRun = horizRun / static_cast<float>(numSteps);
+        float riseH = yTop - yBottom;
+        float stepRise = riseH / static_cast<float>(numSteps);
+
+        // Chiều đi lên cầu thang trong tọa độ cục bộ: đi theo trục -Z từ z = horizRun (chân đất) về z = 0 (sân trên)
+        for (int i = 0; i < numSteps; ++i) {
+            float frac = static_cast<float>(i + 1) / static_cast<float>(numSteps);
+            float curTopY = yBottom + riseH * frac;
+            float zCenter = horizRun - (i + 0.5f) * stepRun;
+            appendBoxByYRange(
+                stair, 0.0f, yBottom, curTopY, zCenter,
+                treadW, stepRun + 0.08f, stepCol
+            );
+            // Hai thành đá lan can bậc thang bậc cấp bám sát bậc bước (+-X)
+            for (int side : {-1, 1}) {
+                appendBoxByYRange(
+                    stair, side * (treadW * 0.5f + railW * 0.5f),
+                    yBottom, curTopY + 0.65f, zCenter,
+                    railW, stepRun + 0.08f, railCol
+                );
+            }
+        }
+        // Hai trụ cột vuông nhỏ ở chân cầu thang
+        for (int side : {-1, 1}) {
+            appendBoxByYRange(
+                stair, side * (treadW * 0.5f + railW * 0.5f),
+                yBottom, yBottom + stepRise + 1.05f, horizRun + 0.18f,
+                railW * 1.35f, railW * 1.35f, railCol
+            );
+        }
+
+        stair.rotateY(yawDeg);
+        stair.translate(baseX, 0.0f, baseZ);
+        stair.computeNormals();
+        return stair;
+    }
+
+    /**
+     * @brief Hàm dùng lại tạo Chỏm Hoa Sen 3D nhiều lớp cánh (Golden Sky Tower crown)
+     *        [Bản vẽ minh họa AI, tham khảo hình dạng]: búp đài sen gắn liền tại baseY - 0.25m,
+     *        vươn cao lên baseY + totalHeight với 2 tầng cánh sen uốn cong & đài nhụy nhọn.
+     */
+    static PolygonMesh createLotusCrown(
+        float cx, float baseY, float cz,
+        float shaftRadius, float totalHeight, int petalsPerRing,
+        const MathCG::ColorRGB& petalGoldCol,
+        const MathCG::ColorRGB& innerGoldCol
+    ) {
+        PolygonMesh lotus("LotusCrown");
+        lotus.defaultColor = petalGoldCol;
+        if (petalsPerRing < 6) petalsPerRing = 6;
+
+        // 1. Cổ đài sen nối khít vào thân cột tại baseY - 0.25m .. baseY + 1.15m
+        lotus.append(createPrismY(cx, baseY - 0.25f, cz, shaftRadius * 1.18f, 0.75f, 16, innerGoldCol));
+        lotus.append(createPrismY(cx, baseY + 0.45f, cz, shaftRadius * 1.36f, 0.55f, 16, petalGoldCol));
+
+        // 2. Hai vòng cánh hoa sen 3D uốn cong (cánh ngoài xòe rộng, cánh trong khum ôm búp)
+        auto addPetalRing = [&](int count, float angleOffsetRad, float yStart, float petalH,
+                                float rBase, float rMidFlare, float rTip, float halfWidthBase,
+                                const MathCG::ColorRGB& col) {
+            const float thickness = 0.16f;
+            for (int p = 0; p < count; ++p) {
+                float a = angleOffsetRad + (static_cast<float>(p) / count) * MathCG::TWO_PI;
+                PolygonMesh petal("LotusPetal");
+
+                // Dựng 1 cánh sen cong 3D theo trục cục bộ +Z (xòe ra) và +Y (lên cao), khép kín 2 mặt dày
+                const int segs = 4;
+                const float yFracs[5]   = { 0.0f, 0.28f, 0.62f, 0.86f, 1.0f };
+                const float rVals[5]    = { rBase, rMidFlare, rMidFlare * 0.98f, (rMidFlare + rTip) * 0.52f, rTip };
+                const float wVals[5]    = { halfWidthBase * 0.72f, halfWidthBase, halfWidthBase * 0.85f, halfWidthBase * 0.36f, 0.04f };
+
+                for (int s = 0; s <= segs; ++s) {
+                    float py = yStart + petalH * yFracs[s];
+                    float pr = rVals[s];
+                    float hw = wVals[s];
+                    float tIn = pr - thickness;
+                    petal.addVertex(-hw, py, pr);   // s*4 + 0: ngoài trái
+                    petal.addVertex( hw, py, pr);   // s*4 + 1: ngoài phải
+                    petal.addVertex( hw, py, tIn);  // s*4 + 2: trong phải
+                    petal.addVertex(-hw, py, tIn);  // s*4 + 3: trong trái
+                }
+                for (int s = 0; s < segs; ++s) {
+                    int b = s * 4;
+                    int n = (s + 1) * 4;
+                    petal.addQuad(b + 0, b + 1, n + 1, n + 0, col, true); // Mặt ngoài cánh (+Z)
+                    petal.addQuad(b + 2, b + 3, n + 3, n + 2, col, true); // Mặt trong cánh (-Z)
+                    petal.addQuad(b + 3, b + 0, n + 0, n + 3, col, true); // Mép trái
+                    petal.addQuad(b + 1, b + 2, n + 2, n + 1, col, true); // Mép phải
+                }
+                petal.addQuad(0, 3, 2, 1, col, true);                     // Đáy cánh
+                int top = segs * 4;
+                petal.addQuad(top + 0, top + 1, top + 2, top + 3, col, true); // Đỉnh cánh
+
+                petal.rotateY(a * MathCG::RAD2DEG);
+                petal.translate(cx, 0.0f, cz);
+                lotus.append(petal);
+            }
+        };
+
+        // Tầng cánh ngoài (cắm sâu từ đài sen y = baseY + 0.45m, xòe ra ~3.0m)
+        addPetalRing(
+            petalsPerRing, 0.0f,
+            baseY + 0.48f, totalHeight * 0.60f,
+            shaftRadius * 1.12f, shaftRadius * 1.80f, shaftRadius * 1.28f,
+            shaftRadius * 0.44f, petalGoldCol
+        );
+        // Tầng cánh trong so le (vươn cao hơn ~76% chiều cao chỏm sen, ôm chặt búp sen)
+        addPetalRing(
+            petalsPerRing, MathCG::PI / static_cast<float>(petalsPerRing),
+            baseY + 0.85f, totalHeight * 0.68f,
+            shaftRadius * 0.92f, shaftRadius * 1.38f, shaftRadius * 0.56f,
+            shaftRadius * 0.36f, innerGoldCol
+        );
+
+        // 3. Búp nhụy sen giật cấp ở chính giữa vươn lên hết chiều cao totalHeight
+        lotus.append(createPrismY(cx, baseY + 0.85f, cz, shaftRadius * 0.88f, totalHeight * 0.54f, 14, innerGoldCol));
+        lotus.append(createPrismY(cx, baseY + 0.85f + totalHeight * 0.50f, cz, shaftRadius * 0.60f, totalHeight * 0.18f, 14, petalGoldCol));
+        lotus.append(createPyramid(
+            cx, baseY + 0.85f + totalHeight * 0.66f, cz,
+            shaftRadius * 0.96f, shaftRadius * 0.96f, totalHeight * 0.20f, petalGoldCol
+        ));
+
+        lotus.computeNormals();
+        return lotus;
     }
 };
 

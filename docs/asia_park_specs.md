@@ -532,6 +532,20 @@ Theo yêu cầu điều chỉnh số 1 & 2, cả 5 hạng mục dưới đây đ
   - **GĐ B — Mở rộng có thể đối chiếu ảnh vệ tinh / ảnh thật:** Quần thể Đền Angkor Wat thu gọn `26×26 m` trên sân sao `~28×28 m` tại `(-185, 0, -254)` (hở Monorail `7.15 m`) + chi tiết mái Ga Monorail Nam/Nepal.
   - **GĐ C — 8 công trình mới chỉ có trong bản vẽ AI (`"mô phỏng, chưa xác minh"`, bật/tắt độc lập để giữ nguyên hiện trạng 2019):** `Panda (+148, -86)`, `Merlion (+102, -45)`, `Thuyền Rồng (+18, -152)`, `Nhà hát Âu Cơ (+135, +12)`, `Vườn Trúc (+226, -35)`, `Symphony of River (+88, -242)`, `Dino Island (+268, -72)`, `The Flying Kirins (+74, -118)` (tất cả cách dầm/trụ Monorail `≥ 22.9 m`, không đè lối đi hay cây hiện có).
 
+### 13.4. Nhật ký triển khai LÔ A1 (`Tháp Đồng Hồ` & `Golden Sky Tower`)
+- **Trạng thái:** Đã hoàn tất & commit riêng LÔ A1 trên nhánh `shape-upgrade-from-wave7` (giữ nguyên Sun Wheel, Queen Cobra, Monorail và toàn bộ tọa độ đã xác minh).
+- **Hàm dùng lại mới trong [`src/geometry/MeshModel.h`](../src/geometry/MeshModel.h):** `PolygonMesh::appendBoxByYRange`, `createRegularOctagonalPrism`, `createOctagonalCurvedRoof`, `createSteppedStaircase`, `createLotusCrown`, đồng thời gộp lô `GL_TRIANGLES`/`GL_QUADS` trong `PolygonMesh::draw()` và sửa chiều quấn mặt ngoài `CCW` của `createPrismY`.
+- **Tháp Đồng Hồ ([`NgoMonGate.h`](../src/rides/NgoMonGate.h) tại `(+10.7, 0.0, +61.6)`):** `[Bản vẽ minh họa AI, tham khảo hình dạng]` Chân đế đá `3` vòm cuốn mỗi mặt + bậc tam cấp Nam/Bắc + `2` cầu thang đá cao Đông/Tây, `4` cánh mái cong nhỏ ở chân, thân bát giác `5` tầng mái cong chồng khít, `4` mặt đồng hồ phát sáng ở tầng giữa (`y = 17.35 m`), chóp nhọn bát giác (`H = 29.40 m ~ 29 m`); kích thước thực tế đo được `24.07 × 21.07 m` (`≤ 25 × 24 m`), hở `PATH_MAIN_SPINE` `4.27 m`, `0` va chạm chòi/cây/đèn/người đi bộ.
+- **Golden Sky Tower ([`SkyTower.h`](../src/rides/SkyTower.h) tại `(-260.0, 0.0, -54.6)`):** `[Bản vẽ minh họa AI, tham khảo hình dạng]` Giữ thân `47.0 m` & animation rơi tự do `5` pha (`minY = 4.35 m > +4.20 m`); bổ sung chỏm hoa sen `3D` `~6.0 m` (`47..53.01 m`), sàn đón khách `+4.20 m` có lan can, cầu thang lên sàn, buồng điều khiển nhỏ và chòi mái ngói; biên dịch phần tĩnh & vòng ghế vào Display List; bán kính lớn nhất ở chân đế = **`7.48 m` (`≤ 8.0 m`)**, hở Monorail `13.92 m`, `PATH_WEST_SPINE` `6.02 m`.
+- **Hiệu năng đo tại `1280 × 768` (200 khung hình, Windows 11 / Intel UHD Graphics 770 ICD, Sunset):**
+  - Trước Lô A1 (nền Đợt 7 `b1ed25e`): **`51.2 FPS`** (FBO, `3.910 s`) / **`54.7 FPS`** (Backbuf, `3.659 s`).
+  - Sau Lô A1: **`61.8 FPS`** (FBO, `3.234 s`) / **`65.9 FPS`** (Backbuf, `3.035 s`) — tăng **`+10.6–11.2 FPS`** nhưng trên driver Windows hiện tại vẫn **`< 100 FPS`** (dừng báo cáo giới hạn trước khi sang Lô A2).
+- **Bộ ảnh kiểm tra 3 chế độ (Ngày / Hoàng hôn / Đêm):**
+  - [`img/lote_a1_clock_front_day.png`](img/lote_a1_clock_front_day.png) — Cận 1: Tháp Đồng Hồ chính diện (Ngày).
+  - [`img/lote_a1_clock_angle_night.png`](img/lote_a1_clock_angle_night.png) — Cận 2: Tháp Đồng Hồ góc xiên Tây-Bắc & mặt đồng hồ phát sáng (Đêm).
+  - [`img/lote_a1_skytower_sunset.png`](img/lote_a1_skytower_sunset.png) — Cận 3: Golden Sky Tower đủ chân đế `+4.2 m` & chỏm hoa sen `6 m` (Hoàng hôn).
+  - [`img/lote_a1_overview_sunset.png`](img/lote_a1_overview_sunset.png) — Toàn cảnh công viên Lô A1 (Hoàng hôn).
+
 ---
 
 ## Phụ lục A. Đỉnh polygon OSM `way 667422708` (Da Nang Downtown, tham chiếu)

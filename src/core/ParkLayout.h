@@ -60,6 +60,13 @@ constexpr MathCG::Vec3 LAKESIDE_PAVILION_POS(-5.4f, 0.0f, -107.7f);
 
 // 2.3. Tháp rơi tự do Golden Sky Tower (cao 47m) - [Ước lượng từ ảnh vệ tinh] ±10m (16.04065°N, 108.22595°E)
 constexpr MathCG::Vec3 SKY_TOWER_POS(-260.0f, 0.0f, -54.6f);
+// Lô A1 - Chi tiết nâng cấp hình dáng trong khung bán kính <= 8.0m [Bản vẽ minh họa AI, tham khảo hình dạng]
+constexpr float        SKY_TOWER_SHAFT_HEIGHT        = 47.0f;  // [Đã xác minh] Chiều cao thân tháp thép
+constexpr float        SKY_TOWER_LOTUS_CROWN_HEIGHT  =  6.0f;  // [Bản vẽ minh họa AI, tham khảo hình dạng] Chỏm hoa sen đỉnh (~6 m)
+constexpr float        SKY_TOWER_BASE_MAX_RADIUS     =  7.75f; // Giữ gọn trong bán kính cho phép <= 8.0m
+constexpr float        SKY_TOWER_DECK_RADIUS         =  6.20f; // Sàn đón khách tròn trên cao
+constexpr float        SKY_TOWER_BOARDING_DECK_Y     =  4.20f; // [Bản vẽ minh họa AI, tham khảo hình dạng] Sàn đón khách cao +4.2m
+constexpr float        SKY_TOWER_GONDOLA_MIN_Y       =  4.35f; // Điểm dừng thấp nhất của vòng ghế ngay trên sàn +4.2m
 
 // 2.4. Cổng Ngọ Môn & Tháp Đồng Hồ (mốc 2019) - [Ước lượng từ ảnh vệ tinh] ±8m
 // Cổng Ngọ Môn tại 16.03890°N, 108.22853°E (rộng thực tế ~35m -> scale 0.76 từ mô hình gốc 46m)
@@ -68,6 +75,16 @@ constexpr float        NGO_MON_GATE_SCALE            = 0.76f;
 // Tháp Đồng Hồ (2019) tại 16.03960°N, 108.22848°E (cách Cổng Ngọ Môn ~77.5m về phía Bắc, scale 1.0)
 constexpr MathCG::Vec3 CLOCK_TOWER_POS(10.7f, 0.0f, 61.6f);
 constexpr float        CLOCK_TOWER_SCALE             = 1.00f;
+// Lô A1 - Khung bao chân đế theo vệ tinh (<= 25x24m), cao ~29m; hình dạng [Bản vẽ minh họa AI, tham khảo hình dạng]
+constexpr float        CLOCK_TOWER_PODIUM_W          = 17.60f; // Khối thân đế đá chính 17.6x17.0m (chứa 3 vòm cuốn mỗi mặt)
+constexpr float        CLOCK_TOWER_PODIUM_D          = 17.00f;
+constexpr float        CLOCK_TOWER_PODIUM_H          =  4.85f;
+constexpr float        CLOCK_TOWER_MAX_FOOTPRINT_W   = 24.00f; // Gồm cả 4 cầu thang trục (<= 25.0m vệ tinh)
+constexpr float        CLOCK_TOWER_MAX_FOOTPRINT_D   = 23.40f; // Gồm cả 4 cầu thang trục (<= 24.0m vệ tinh)
+constexpr float        CLOCK_TOWER_TOTAL_HEIGHT      = 29.40f; // Cao ~29m theo bóng tháp vệ tinh & bản vẽ #04
+constexpr float        CLOCK_TOWER_DIAL_Y            = 17.35f; // Tầng giữa trong thân bát giác 5 tầng mái cong
+constexpr float        CLOCK_TOWER_DIAL_OFFSET       =  4.02f; // Độ nhô khung dormer gắn mặt đồng hồ (4 hướng)
+constexpr float        CLOCK_TOWER_DIAL_RADIUS       =  1.58f; // Bán kính mặt đồng hồ (bộ kim + vạch giờ)
 
 // 2.5. Đu quay Ngựa gỗ (Festival Carousel) - [Chưa xác minh / dùng tạm ứng viên mái nón kẻ sọc 16.03923°N, 108.22689°E]
 constexpr MathCG::Vec3 CAROUSEL_POS_UNVERIFIED(-159.4f, 0.0f, 102.5f);
