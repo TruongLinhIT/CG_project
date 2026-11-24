@@ -2,7 +2,7 @@
 
 > Tài liệu phục vụ chuẩn hóa bố cục và tỷ lệ dự án **Mô phỏng 3D Công viên Châu Á (Asia Park / Da Nang Downtown)**.
 > **Mốc hiện trạng mô hình:** Khoảng **năm 2019** (`SNAPSHOT_YEAR = 2019` — thời điểm công viên còn nguyên Tháp Đồng Hồ tại quảng trường trung tâm, đầy đủ các trò chơi phía Tây và khu vực nửa phía Đông ranh giới là nền cỏ đơn giản nơi tuyến Monorail chạy qua).
-> Cập nhật: 2026-11-22 (đã cập nhật 5 quyết định duyệt kế hoạch 3 đợt & hoàn thành Đợt 1).
+> Cập nhật: 2026-11-24 (nền Đợt 7 `118.7 FPS`, tạm dừng Đợt 8 trên nhánh `shape-upgrade-from-wave7`; bổ sung Mục 13 kiểm toán 18 ảnh bản vẽ AI trong `docs/img/ref/` và kế hoạch nâng cấp 3 giai đoạn GĐ A/B/C tại `docs/refs/drawings_summary.md` chờ duyệt).
 
 ## 0. Quy tắc dữ liệu & thang tin cậy
 
@@ -504,6 +504,33 @@ Theo yêu cầu điều chỉnh số 1 & 2, cả 5 hạng mục dưới đây đ
 6. Wikimedia Commons (ảnh mặt đất gắn EXIF GPS & hướng la bàn): [49356303688 (Cổng Ngọ Môn)](https://commons.wikimedia.org/wiki/File:Sun_World_Asia_Park,_Da_Nang_(49356303688).jpg), [49370578306 (Biển ga Monorail)](https://commons.wikimedia.org/wiki/File:Sun_World_Asia_Park,_Da_Nang_(49370578306).jpg), [49374882021 (Biển chỉ khu Tây)](https://commons.wikimedia.org/wiki/File:Sun_World_Asia_Park,_Da_Nang_(49374882021).jpg), [49358003906 (Góc nhìn Sky Tower)](https://commons.wikimedia.org/wiki/File:Sun_World_Asia_Park,_Da_Nang_(49358003906).jpg), [49374702231 (Tàu Monorail qua ga Nepal)](https://commons.wikimedia.org/wiki/File:Sun_World_Asia_Park,_Da_Nang_(49374702231).jpg), [49373970611](https://commons.wikimedia.org/wiki/File:Sun_World_Asia_Park,_Da_Nang_(49373970611).jpg)
 7. OpenStreetMap / Nominatim (`way 667422708`, `1331565206`, `1392384112`, `1392384120`, `1392384128`, `667422707`, `302765736`, `1280089217`, `302765742`, `643263435`, `node 11882946634`, `relation 19756034`)
 8. Esri World Imagery & Wayback Historical Releases (`release 4756` 2019-12-12, `release 45134` 2022-12-14, current `2026-03-01`)
+
+---
+
+## 13. Nguồn tham khảo: bản vẽ minh họa AI
+
+> **Phạm vi & nguồn gốc tệp:** Thư mục [`docs/img/ref/`](img/ref/) hiện chứa **18 ảnh PNG** (`1024×572 px`, đặt tên `1795453337010_image.png` → `1795453403998_image.png`; **ảnh thứ 19 (`#19`) chưa có trên đĩa**, trong khi nhóm tàu lượn nhỏ Đợt 5A còn `Highway Boat` chưa có bản vẽ riêng). Toàn bộ 18 ảnh là **bản vẽ minh họa do một AI khác (Gemini) tạo ra**, **KHÔNG phải hồ sơ kỹ thuật chính thức của Sun World / Asia Park**.
+
+### 13.1. Thứ tự ưu tiên nguồn & quy tắc gắn nhãn bắt buộc
+1. **Ưu tiên 1 (thắng tuyệt đối):** Dữ liệu đã xác minh trong tài liệu này (Esri Wayback 2019/2022, RCDB, Wikimedia Commons EXIF GPS, nguồn web chính thức) luôn quyết định **tọa độ, sự tồn tại năm 2019 và khung bao ngoài**. Không dùng kích thước AI để dời công trình đã xác minh hoặc lấn lối đi / dầm Monorail.
+2. **Ưu tiên 2 (tham khảo hình dáng):** 17 bản vẽ chi tiết (`#02`–`#18`) chỉ dùng để tham khảo **hình dáng kiến trúc** (số tầng mái, số vòm, kiểu mái, cầu thang, chỏm hoa sen, nhà ga...) và tỷ lệ tương đối; mọi thông số lấy từ đây phải gắn nhãn **`[Bản vẽ minh họa AI, tham khảo hình dạng]`**.
+3. **Ưu tiên 3 (sơ đồ tổng quát `#01` — không dùng tỷ lệ/tọa độ):** Sơ đồ `1795453337010_image.png` bị sai định hướng Sông Hàn/Sun Wheel, sai thước tỷ lệ và vẽ lặp `VƯỜN TRÚC` ở hai góc khác nhau; chỉ dùng tham khảo định tính lân cận, **tuyệt đối không suy ra tọa độ**.
+
+### 13.2. Giới hạn độ tin cậy & các lỗi kiểm toán đã phát hiện
+- **Các đoạn kích thước cộng không khớp tổng:** Gần như toàn bộ bản vẽ chi tiết tự mâu thuẫn số học ngay trên cùng một mặt chiếu:
+  - Tháp Đồng Hồ (`#04`): tổng `28.0 m` nhưng đoạn cộng `5+5+5 = 15.0 m`; mặt bằng ghi `550 m²` nhưng hai cạnh ghi `12.5 × 12/13 m`; chuỗi cao cộng `46.0 m` dưới tổng `29.0 m`.
+  - Đền Angkor Wat (`#06`): trộn lẫn tổng `36 m` / `38 m` / `26 m` (rộng) và `20 m` / `26 m` / `31 m` (cao/sâu), các đoạn ngang cộng `39.0 m` hoặc `20.5 m`.
+  - Nhà hàng Panda (`#07`): tổng `26.0 m` nhưng 9 đoạn con cộng `73.8 m`. Thuyền Rồng (`#09`): tổng `22.0 m` nhưng đoạn trên cộng `39.0 m`. Symphony of River (`#14`): tổng `42.0 m` nhưng hai mặt chiếu cộng `60.5 m` và `14.9 m`. Vườn Trúc (`#18`): tổng `24×20 m` nhưng đoạn con cộng `17/19 × 8.7 m`.
+- **Nhân bản cao độ, sai ngày & sai chính tả AI:** Dán trùng mốc `+47.00 m` ở 3 tầng cao khác nhau (Golden Sky Tower `#05`), `+14.00 m` lặp 3 lần (Garuda Valley `#16`, Panda `#07`), `+12.00 m` lặp 2 lần (Nhà hát Âu Cơ `#15`); ngày ghi `21/18/2018`, `23/11/5820`, `31/11/2016`, `31/16/2019`; nhãn sai chính tả hàng loạt (`MASTEN PLAN`, `PANOA`, `OANUDA`, `KOIN SREM`, `Queue nines`, `Funtian pools`).
+- **Rủi ro va chạm nếu tin số đo AI thay cho ảnh vệ tinh:** Lấy bề rộng AI `28 m` cho Tháp Đồng Hồ sẽ chạm lấn mép `PATH_MAIN_SPINE` (`-0.65 m`, so với `25 × 24 m` vệ tinh còn hở `1.84 m`); lấy đường kính AI `Ø24 m` cho Festival Carousel sẽ thu hẹp khe `PATH_WEST_SPINE` còn `1.50 m` (so với `Ø17 m` vệ tinh còn hở `5.00 m`).
+
+### 13.3. Liên kết hồ sơ đối chiếu & lộ trình nâng cấp chờ duyệt (`GĐ A / GĐ B / GĐ C`)
+- **Bảng tổng hợp đủ 18 bản vẽ, thiếu ảnh `#19`, đối chiếu `ParkLayout.h` (mốc Đợt 7 `118.7 FPS`), kiểm tra khoảng hở Monorail/lối đi/hồ và kế hoạch chi tiết 3 giai đoạn:** [`docs/refs/drawings_summary.md`](refs/drawings_summary.md).
+- **Ảnh overlay tọa độ ứng viên trên nền Wave 7 + Wayback 2019:** [`docs/refs/candidates_overlay.png`](refs/candidates_overlay.png).
+- **Tóm tắt 3 giai đoạn đề xuất (chưa sửa code, chờ duyệt):**
+  - **GĐ A — Nâng cấp hình dáng công trình đã có (giữ vị trí & khung bao):** Tháp Đồng Hồ (`25×24 m`, 5 tầng mái bát giác `~29 m`), Golden Sky Tower (chỏm hoa sen + sàn đón `+4.20 m` & chòi nhỏ), nhà ga tàu lượn nhỏ (`Garuda Valley` mái Minangkabau, `Port of Sky Treasure` nhà ga bến cảng gỗ mái 2 dốc), `Festival Carousel` 2 tầng thu tỷ lệ `~0.71` về `Ø17 m` (`~10 m` cao). Tối ưu Display List thêm cho toa xe & sân lát để giữ `≥ 100 FPS`.
+  - **GĐ B — Mở rộng có thể đối chiếu ảnh vệ tinh / ảnh thật:** Quần thể Đền Angkor Wat thu gọn `26×26 m` trên sân sao `~28×28 m` tại `(-185, 0, -254)` (hở Monorail `7.15 m`) + chi tiết mái Ga Monorail Nam/Nepal.
+  - **GĐ C — 8 công trình mới chỉ có trong bản vẽ AI (`"mô phỏng, chưa xác minh"`, bật/tắt độc lập để giữ nguyên hiện trạng 2019):** `Panda (+148, -86)`, `Merlion (+102, -45)`, `Thuyền Rồng (+18, -152)`, `Nhà hát Âu Cơ (+135, +12)`, `Vườn Trúc (+226, -35)`, `Symphony of River (+88, -242)`, `Dino Island (+268, -72)`, `The Flying Kirins (+74, -118)` (tất cả cách dầm/trụ Monorail `≥ 22.9 m`, không đè lối đi hay cây hiện có).
 
 ---
 
