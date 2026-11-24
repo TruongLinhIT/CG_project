@@ -351,26 +351,26 @@ static void drawFlatPolylineStrip(
  *        Hồ nước phản xạ bán trong suốt phía Bắc Sun Wheel (y = 0) & Hệ thống lối đi nội bộ
  */
 static void emitParkHorizonBand(TimeOfDay tod) {
-    float inR = 0.18f, inG = 0.35f, inB = 0.20f;
-    float midR = 0.32f, midG = 0.52f, midB = 0.48f;
+    float inR  = 0.16f, inG  = 0.35f, inB  = 0.18f;
+    float midR = 0.28f, midG = 0.48f, midB = 0.42f;
     float skyR = 0.52f, skyG = 0.77f, skyB = 0.96f;
     float mtnR = 0.38f, mtnG = 0.56f, mtnB = 0.76f;
 
     if (tod == TimeOfDay::SUNSET) {
-        inR  = 0.22f; inG  = 0.28f; inB  = 0.18f;
-        midR = 0.52f; midG = 0.36f; midB = 0.26f;
+        inR  = 0.20f; inG  = 0.25f; inB  = 0.14f;
+        midR = 0.46f; midG = 0.33f; midB = 0.24f;
         skyR = 0.88f; skyG = 0.48f; skyB = 0.30f;
         mtnR = 0.56f; mtnG = 0.34f; mtnB = 0.32f;
     } else if (tod == TimeOfDay::NIGHT) {
-        inR  = 0.06f; inG  = 0.11f; inB  = 0.10f;
-        midR = 0.05f; midG = 0.08f; midB = 0.12f;
-        skyR = 0.03f; skyG = 0.04f; skyB = 0.09f;
-        mtnR = 0.06f; mtnG = 0.08f; mtnB = 0.16f;
+        inR  = 0.055f; inG = 0.115f; inB = 0.085f;
+        midR = 0.05f;  midG = 0.08f;  midB = 0.12f;
+        skyR = 0.03f;  skyG = 0.04f;  skyB = 0.09f;
+        mtnR = 0.06f;  mtnG = 0.08f;  mtnB = 0.16f;
     }
 
     const int   horizonSlices = 48;
-    const float rInner = 280.0f;
-    const float rMid   = 820.0f;
+    const float rInner = 560.0f;
+    const float rMid   = 1150.0f;
     const float rOuter = 2150.0f;
     const float yBase  = -0.10f;
 
@@ -420,15 +420,9 @@ static void emitParkHorizonBand(TimeOfDay tod) {
     }
     glEnd();
 
-    // 2. Mặt phẳng cỏ công viên theo ranh giới thực tế (~36.1 ha) — vẽ đồng nhất 1 màu phẳng khi tắt GL_LIGHTING
-    //    để không bị chia thành các mảng tam giác hay khung chữ nhật khác màu.
-    if (tod == TimeOfDay::SUNSET) {
-        glColor3f(0.20f, 0.25f, 0.14f);
-    } else if (tod == TimeOfDay::NIGHT) {
-        glColor3f(0.055f, 0.115f, 0.085f);
-    } else {
-        glColor3f(0.16f, 0.35f, 0.18f);
-    }
+    // 2. Mặt phẳng cỏ công viên theo ranh giới thực tế (~36.1 ha) + lấp kín toàn bộ lòng & bờ Bắc/Đông/Tây hồ nước
+    //    để mặt cỏ và mặt nước hồ liền lạc tuyệt đối 100%, không còn khe hở giữa bờ hồ và thảm cỏ.
+    glColor3f(inR, inG, inB);
     glNormal3f(0.0f, 1.0f, 0.0f);
 
     glBegin(GL_TRIANGLE_FAN);
@@ -459,19 +453,96 @@ static void emitParkHorizonBand(TimeOfDay tod) {
     glVertex3f(ParkLayout::PARK_BOUNDARY_POLY[15].x, -0.04f, ParkLayout::PARK_BOUNDARY_POLY[15].z);
     glVertex3f( 200.0f, -0.04f, -100.0f);
     glEnd();
+
+    // Lấp kín hoàn toàn vùng đất bao quanh lòng hồ, bán đảo Queen Cobra và bờ Bắc/Đông/Tây hồ ở cùng cao độ y = -0.04f
+    glBegin(GL_QUADS);
+    glVertex3f(-370.0f, -0.04f,  -65.0f);
+    glVertex3f( 245.0f, -0.04f,  -65.0f);
+    glVertex3f( 245.0f, -0.04f, -535.0f);
+    glVertex3f(-370.0f, -0.04f, -535.0f);
+    glEnd();
+}
+
+// Xây dựng bờ kè đá 3D liền khối ôm trọn chu vi 11 đỉnh của hồ nước (nối từ y = -0.045m dưới cỏ/nước lên y = +0.033m)
+static void emitLakeStoneEmbankment() {
+    constexpr int N = ParkLayout::NUM_LAKE_OUTLINE_PTS;
+    float nx[N], nz[N];
+    for (int i = 0; i < N; ++i) {
+        const auto& p0 = ParkLayout::LAKE_OUTLINE_POLY[i];
+        const auto& p1 = ParkLayout::LAKE_OUTLINE_POLY[(i + 1) % N];
+        float dx = p1.x - p0.x;
+        float dz = p1.z - p0.z;
+        float len = std::max(1e-4f, std::hypot(dx, dz));
+        // Vector pháp tuyến hướng từ lòng hồ ra bờ đất
+        nx[i] = -dz / len;
+        nz[i] =  dx / len;
+    }
+
+    float mx[N], mz[N];
+    for (int i = 0; i < N; ++i) {
+        int prev = (i + N - 1) % N;
+        float sx = nx[prev] + nx[i];
+        float sz = nz[prev] + nz[i];
+        float sl = std::hypot(sx, sz);
+        if (sl < 1e-4f) {
+            mx[i] = nx[i];
+            mz[i] = nz[i];
+        } else {
+            sx /= sl;
+            sz /= sl;
+            float dot = std::max(0.45f, sx * nx[i] + sz * nz[i]);
+            mx[i] = sx / dot;
+            mz[i] = sz / dot;
+        }
+    }
+
+    const float rIn   = -0.15f;
+    const float rTop  =  1.85f;
+    const float rOut  =  2.25f;
+    const float yBot  = -0.045f;
+    const float yTop  =  0.033f;
+
+    glBegin(GL_QUADS);
+    for (int i = 0; i < N; ++i) {
+        int j = (i + 1) % N;
+        const auto& p0 = ParkLayout::LAKE_OUTLINE_POLY[i];
+        const auto& p1 = ParkLayout::LAKE_OUTLINE_POLY[j];
+
+        float ix0 = p0.x + mx[i] * rIn,  iz0 = p0.z + mz[i] * rIn;
+        float ix1 = p1.x + mx[j] * rIn,  iz1 = p1.z + mz[j] * rIn;
+        float tx0 = p0.x + mx[i] * rTop, tz0 = p0.z + mz[i] * rTop;
+        float tx1 = p1.x + mx[j] * rTop, tz1 = p1.z + mz[j] * rTop;
+        float ox0 = p0.x + mx[i] * rOut, oz0 = p0.z + mz[i] * rOut;
+        float ox1 = p1.x + mx[j] * rOut, oz1 = p1.z + mz[j] * rOut;
+
+        // Mặt thành kè đứng phía lòng hồ (hướng pháp tuyến vào lòng hồ -nx, +Y, -nz, thứ tự đỉnh CCW)
+        glNormal3f(-nx[i], 0.25f, -nz[i]);
+        glColor3f(0.50f, 0.48f, 0.44f);
+        glVertex3f(ix0, yTop, iz0);
+        glVertex3f(ix1, yTop, iz1);
+        glVertex3f(ix1, yBot, iz1);
+        glVertex3f(ix0, yBot, iz0);
+
+        // Mặt đỉnh bờ kè lát đá phẳng (hướng pháp tuyến +Y, thứ tự đỉnh CCW khi nhìn từ trên xuống)
+        glNormal3f(0.0f, 1.0f, 0.0f);
+        glColor3f(0.70f, 0.66f, 0.58f);
+        glVertex3f(ix0, yTop, iz0);
+        glVertex3f(tx0, yTop, tz0);
+        glVertex3f(tx1, yTop, tz1);
+        glVertex3f(ix1, yTop, iz1);
+
+        // Mặt vát ngoài bờ kè ăn liền xuống thảm cỏ y = -0.045m (thứ tự đỉnh CCW)
+        glNormal3f(nx[i], 0.5f, nz[i]);
+        glColor3f(0.56f, 0.53f, 0.48f);
+        glVertex3f(tx0, yTop, tz0);
+        glVertex3f(ox0, yBot, oz0);
+        glVertex3f(ox1, yBot, oz1);
+        glVertex3f(tx1, yTop, tz1);
+    }
+    glEnd();
 }
 
 static void emitParkSurfacesAndPathsStatic() {
-    glNormal3f(0.0f, 1.0f, 0.0f);
-    glColor3f(0.28f, 0.52f, 0.30f);
-    glLineWidth(1.5f);
-    glBegin(GL_LINE_LOOP);
-    for (int i = 0; i < ParkLayout::NUM_PARK_BOUNDARY_PTS; ++i) {
-        glVertex3f(ParkLayout::PARK_BOUNDARY_POLY[i].x, 0.015f, ParkLayout::PARK_BOUNDARY_POLY[i].z);
-    }
-    glEnd();
-    glLineWidth(1.0f);
-
     // 3. Dải mặt nước Sông Hàn
     glColor3f(0.06f, 0.24f, 0.44f);
     glNormal3f(0.0f, 1.0f, 0.0f);
@@ -487,30 +558,8 @@ static void emitParkSurfacesAndPathsStatic() {
     drawFlatPolylineStrip(ParkLayout::ROAD_EAST_BORDER, ParkLayout::NUM_ROAD_EAST_BORDER_PTS, ParkLayout::ROAD_EAST_BORDER_WIDTH, -0.02f, 0.22f, 0.24f, 0.27f);
     drawFlatPolylineStrip(ParkLayout::ROAD_WEST_BORDER, ParkLayout::NUM_ROAD_WEST_BORDER_PTS, ParkLayout::ROAD_WEST_BORDER_WIDTH, -0.02f, 0.22f, 0.24f, 0.27f);
 
-    // 5. Hồ nước thực tế phía Bắc Sun Wheel (GL_BLEND) & bờ kè
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glColor4f(0.08f, 0.28f, 0.48f, 0.68f);
-    glNormal3f(0.0f, 1.0f, 0.0f);
-    glBegin(GL_QUADS);
-    for (int q = 0; q < ParkLayout::NUM_LAKE_CONVEX_QUADS; ++q) {
-        const auto& quad = ParkLayout::LAKE_CONVEX_QUADS[q];
-        glVertex3f(quad.v[0].x, 0.0f, quad.v[0].z);
-        glVertex3f(quad.v[1].x, 0.0f, quad.v[1].z);
-        glVertex3f(quad.v[2].x, 0.0f, quad.v[2].z);
-        glVertex3f(quad.v[3].x, 0.0f, quad.v[3].z);
-    }
-    glEnd();
-    glDisable(GL_BLEND);
-
-    glColor3f(0.55f, 0.56f, 0.58f);
-    glLineWidth(2.0f);
-    glBegin(GL_LINE_LOOP);
-    for (int i = 0; i < ParkLayout::NUM_LAKE_OUTLINE_PTS; ++i) {
-        glVertex3f(ParkLayout::LAKE_OUTLINE_POLY[i].x, 0.03f, ParkLayout::LAKE_OUTLINE_POLY[i].z);
-    }
-    glEnd();
-    glLineWidth(1.0f);
+    // 5. Bờ kè đá 3D liền khối ôm sát toàn bộ chu vi hồ nước (nối liền mặt nước 0.00m và mặt cỏ -0.04m)
+    emitLakeStoneEmbankment();
 
     // 6. Hệ thống lối đi nội bộ, các lối dẫn nhánh vào công trình/trò chơi & cầu gỗ ra Thủy đình
     for (int i = 0; i < ParkLayout::NUM_PARK_BRANCH_WALKWAYS; ++i) {
@@ -604,7 +653,72 @@ static void drawParkGroundAndLake() {
     if (wasCull) glEnable(GL_CULL_FACE);
     if (wasLit)  glEnable(GL_LIGHTING);
 
-    // 3..6. Sông Hàn, 3 đường nhựa, hồ nước, bờ kè & lối đi tĩnh
+    // 3. Mặt hồ nước phía Bắc Sun Wheel & Phản xạ phẳng qua y = 0 (Chương 4)
+    {
+        float deepR = 0.04f, deepG = 0.16f, deepB = 0.28f;
+        float surfR = 0.08f, surfG = 0.28f, surfB = 0.48f, surfA = 0.36f;
+        if (gLighting.timeOfDay == TimeOfDay::SUNSET) {
+            deepR = 0.12f; deepG = 0.15f; deepB = 0.26f;
+            surfR = 0.24f; surfG = 0.22f; surfB = 0.34f; surfA = 0.35f;
+        } else if (gLighting.timeOfDay == TimeOfDay::NIGHT) {
+            deepR = 0.015f; deepG = 0.035f; deepB = 0.095f;
+            surfR = 0.03f;  surfG = 0.08f;  surfB = 0.18f;  surfA = 0.30f;
+        }
+
+        auto emitLakeQuads = []() {
+            glNormal3f(0.0f, 1.0f, 0.0f);
+            glBegin(GL_QUADS);
+            for (int q = 0; q < ParkLayout::NUM_LAKE_CONVEX_QUADS; ++q) {
+                const auto& quad = ParkLayout::LAKE_CONVEX_QUADS[q];
+                glVertex3f(quad.v[0].x, 0.0f, quad.v[0].z);
+                glVertex3f(quad.v[1].x, 0.0f, quad.v[1].z);
+                glVertex3f(quad.v[2].x, 0.0f, quad.v[2].z);
+                glVertex3f(quad.v[3].x, 0.0f, quad.v[3].z);
+            }
+            glEnd();
+        };
+
+        // Lượt 1: Vẽ đáy mặt hồ màu nước sâu và đặt độ sâu Z-buffer = 1.0 trong phạm vi mặt hồ
+        //         để bóng phản xạ Sun Wheel (y < 0) chỉ hiện trên mặt hồ mà không bị nền cỏ (y = -0.04m) che khuất
+        glDisable(GL_LIGHTING);
+        glDepthFunc(GL_ALWAYS);
+        glDepthRange(1.0, 1.0);
+        glColor3f(deepR, deepG, deepB);
+        emitLakeQuads();
+        glDepthRange(0.0, 1.0);
+        glDepthFunc(GL_LESS);
+        if (wasLit) glEnable(GL_LIGHTING);
+
+        // Lượt 2: Vẽ bóng phản xạ của Vòng quay Sun Wheel và Thủy đình qua mặt phẳng nước y = 0
+        if (gState.lakeReflection) {
+            glPushMatrix();
+            MathCG::Mat4 reflectMat = MathCG::Mat4::reflectionAcrossYPlane(0.0f);
+            glMultMatrixf(reflectMat.m);
+
+            const GLdouble clipEq[4] = { 0.0, 1.0, 0.0, -0.10 };
+            glClipPlane(GL_CLIP_PLANE0, clipEq);
+            glEnable(GL_CLIP_PLANE0);
+
+            if (wasCull) glFrontFace(GL_CW);
+            drawHierarchicalSunWheelPreview();
+            drawLakesidePavilionMesh();
+            if (wasCull) glFrontFace(GL_CCW);
+
+            glDisable(GL_CLIP_PLANE0);
+            glPopMatrix();
+        }
+
+        // Lượt 3: Phủ lớp nước bán trong suốt trên mặt hồ y = 0.0f và khôi phục Z-buffer mặt hồ chuẩn (y = 0.0f)
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthFunc(GL_ALWAYS);
+        glColor4f(surfR, surfG, surfB, surfA);
+        emitLakeQuads();
+        glDepthFunc(GL_LESS);
+        glDisable(GL_BLEND);
+    }
+
+    // 4..6. Sông Hàn, 3 đường nhựa, bờ kè đá 3D & hệ thống lối đi tĩnh
     if (sGroundStaticList != 0) {
         glCallList(sGroundStaticList);
     } else {
@@ -715,21 +829,7 @@ static void displayCallback() {
         queenFrame.tangent
     );
 
-    // 4. Lượt vẽ phản xạ qua mặt phẳng hồ trung tâm y = 0 (Chương 4)
-    if (gState.lakeReflection) {
-        glPushMatrix();
-        MathCG::Mat4 reflectMat = MathCG::Mat4::reflectionAcrossYPlane(0.0f);
-        glMultMatrixf(reflectMat.m);
-
-        // Phép phản xạ làm đảo chiều định hướng đỉnh đa giác (CCW <-> CW)
-        if (gState.backFaceCulling) glFrontFace(GL_CW);
-        drawHierarchicalSunWheelPreview();
-        if (gState.backFaceCulling) glFrontFace(GL_CCW);
-
-        glPopMatrix();
-    }
-
-    // 5. Vẽ cảnh 3D chính
+    // 4. Vẽ cảnh 3D chính (phản xạ mặt hồ y = 0 đã được xử lý trực tiếp trong drawParkGroundAndLake)
     bool isNightOrSunset = (gLighting.timeOfDay != TimeOfDay::DAY);
     bool smooth = (gLighting.shadingModel == ShadingModel::GOURAUD_SMOOTH);
 

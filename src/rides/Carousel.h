@@ -479,13 +479,13 @@ private:
             }
         }
 
-        // 2c. Sàn xoay tầng 2 + trần dưới kem sáng & lan can đồng tầng 2
-        rotatingBodyMesh_.append(Mesh::createPrismY(0.0f, deck2Y - 0.26f, 0.0f, deck2R - 0.04f, 0.08f, 32, creamCol));
-        rotatingBodyMesh_.append(Mesh::createPrismY(0.0f, deck2Y - 0.18f, 0.0f, deck2R, 0.18f, 32, woodWarm));
-        appendAnnularRing(rotatingBodyMesh_, deck2R - 0.12f, deck2R + 0.03f, deck2Y - 0.28f, deck2Y + 0.02f, 32, oakLight, crimsonCol);
-        appendCircularBalustrade(rotatingBodyMesh_, deck2R - 0.14f, 166.0f, 501.0f, deck2Y, 0.88f, 30, 3, brassCol, crimsonCol);
+        // 2c. Sàn xoay tầng 2 (mâm xoay trong R = 4.72 m quay cùng ngựa tầng 2; vành hành lang ngoài & lan can đứng yên cùng cầu thang)
+        rotatingBodyMesh_.append(Mesh::createPrismY(0.0f, deck2Y - 0.26f, 0.0f, 4.70f, 0.08f, 32, creamCol));
+        rotatingBodyMesh_.append(Mesh::createPrismY(0.0f, deck2Y - 0.18f, 0.0f, 4.72f, 0.18f, 32, woodWarm));
+        appendAnnularRing(staticBaseMesh_, 4.72f, deck2R + 0.03f, deck2Y - 0.28f, deck2Y + 0.02f, 32, oakLight, crimsonCol);
+        appendCircularBalustrade(staticBaseMesh_, deck2R - 0.14f, 166.0f, 501.0f, deck2Y, 0.88f, 30, 3, brassCol, crimsonCol);
 
-        // 2d. Cầu thang cong nối liền sàn tầng 1 (34°) lên sàn tầng 2 (141°)
+        // 2d. Cầu thang cong CỐ ĐỊNH (đứng yên trong staticBaseMesh_) nối từ tầng 1 (34°) lên hành lang tầng 2 (141°)
         {
             const int nSteps = 12;
             const float stDeg0 = 34.0f, stDeg1 = 141.0f;
@@ -499,58 +499,59 @@ private:
                 float a0 = (stDeg0 + (stDeg1 - stDeg0) * t0) * MathCG::DEG2RAD;
                 float a1 = (stDeg0 + (stDeg1 - stDeg0) * t1) * MathCG::DEG2RAD;
                 float yTop = deck1Y + (k + 1) * stepH;
-                float ySoffit = std::max(deck1Y, yTop - 0.42f);
+                float ySoffit = (k == 0) ? 0.48f : std::max(deck1Y + 0.04f, yTop - 0.42f);
 
                 float c0 = std::cos(a0), s0 = -std::sin(a0);
                 float c1 = std::cos(a1), s1 = -std::sin(a1);
 
-                int ib0 = rotatingBodyMesh_.addVertex(rInS  * c0, ySoffit, rInS  * s0);
-                int ib1 = rotatingBodyMesh_.addVertex(rInS  * c1, ySoffit, rInS  * s1);
-                int it0 = rotatingBodyMesh_.addVertex(rInS  * c0, yTop,    rInS  * s0);
-                int it1 = rotatingBodyMesh_.addVertex(rInS  * c1, yTop,    rInS  * s1);
-                int ob0 = rotatingBodyMesh_.addVertex(rOutS * c0, ySoffit, rOutS * s0);
-                int ob1 = rotatingBodyMesh_.addVertex(rOutS * c1, ySoffit, rOutS * s1);
-                int ot0 = rotatingBodyMesh_.addVertex(rOutS * c0, yTop,    rOutS * s0);
-                int ot1 = rotatingBodyMesh_.addVertex(rOutS * c1, yTop,    rOutS * s1);
+                int ib0 = staticBaseMesh_.addVertex(rInS  * c0, ySoffit, rInS  * s0);
+                int ib1 = staticBaseMesh_.addVertex(rInS  * c1, ySoffit, rInS  * s1);
+                int it0 = staticBaseMesh_.addVertex(rInS  * c0, yTop,    rInS  * s0);
+                int it1 = staticBaseMesh_.addVertex(rInS  * c1, yTop,    rInS  * s1);
+                int ob0 = staticBaseMesh_.addVertex(rOutS * c0, ySoffit, rOutS * s0);
+                int ob1 = staticBaseMesh_.addVertex(rOutS * c1, ySoffit, rOutS * s1);
+                int ot0 = staticBaseMesh_.addVertex(rOutS * c0, yTop,    rOutS * s0);
+                int ot1 = staticBaseMesh_.addVertex(rOutS * c1, yTop,    rOutS * s1);
 
-                rotatingBodyMesh_.addQuad(ob0, ob1, ot1, ot0, velvetCol, true);
-                rotatingBodyMesh_.addQuad(ib1, ib0, it0, it1, velvetCol, true);
-                rotatingBodyMesh_.addQuad(ot0, ot1, it1, it0, oakLight, true);
-                rotatingBodyMesh_.addQuad(ob1, ob0, ib0, ib1, velvetCol, true);
-                rotatingBodyMesh_.addQuad(ib0, ob0, ot0, it0, woodWarm, true);
-                rotatingBodyMesh_.addQuad(ob1, ib1, it1, ot1, woodWarm, true);
+                staticBaseMesh_.addQuad(ob0, ob1, ot1, ot0, velvetCol, true);
+                staticBaseMesh_.addQuad(ib1, ib0, it0, it1, velvetCol, true);
+                staticBaseMesh_.addQuad(ot0, ot1, it1, it0, oakLight, true);
+                staticBaseMesh_.addQuad(ob1, ob0, ib0, ib1, velvetCol, true);
+                staticBaseMesh_.addQuad(ib0, ob0, ot0, it0, woodWarm, true);
+                staticBaseMesh_.addQuad(ob1, ib1, it1, ot1, woodWarm, true);
 
                 float am = 0.5f * (a0 + a1);
                 float cm = std::cos(am), sm = -std::sin(am);
                 float railY = yTop + 0.86f;
                 if (k % 2 == 0 || k == nSteps - 1) {
-                    rotatingBodyMesh_.append(Mesh::createPrismY(rOutS * cm, yTop, rOutS * sm, 0.036f, 0.86f, 6, brassCol));
-                    rotatingBodyMesh_.append(Mesh::createPrismY(rInS  * cm, yTop, rInS  * sm, 0.036f, 0.86f, 6, brassCol));
+                    staticBaseMesh_.append(Mesh::createPrismY(rOutS * cm, yTop, rOutS * sm, 0.036f, 0.86f, 6, brassCol));
+                    staticBaseMesh_.append(Mesh::createPrismY(rInS  * cm, yTop, rInS  * sm, 0.036f, 0.86f, 6, brassCol));
                 }
-                int rO = rotatingBodyMesh_.addVertex((rOutS - 0.03f) * cm, railY - 0.03f, (rOutS - 0.03f) * sm);
-                int rI = rotatingBodyMesh_.addVertex((rOutS + 0.03f) * cm, railY - 0.03f, (rOutS + 0.03f) * sm);
-                int rOT = rotatingBodyMesh_.addVertex((rOutS - 0.03f) * cm, railY + 0.04f, (rOutS - 0.03f) * sm);
-                int rIT = rotatingBodyMesh_.addVertex((rOutS + 0.03f) * cm, railY + 0.04f, (rOutS + 0.03f) * sm);
+                int rO = staticBaseMesh_.addVertex((rOutS - 0.03f) * cm, railY - 0.03f, (rOutS - 0.03f) * sm);
+                int rI = staticBaseMesh_.addVertex((rOutS + 0.03f) * cm, railY - 0.03f, (rOutS + 0.03f) * sm);
+                int rOT = staticBaseMesh_.addVertex((rOutS - 0.03f) * cm, railY + 0.04f, (rOutS - 0.03f) * sm);
+                int rIT = staticBaseMesh_.addVertex((rOutS + 0.03f) * cm, railY + 0.04f, (rOutS + 0.03f) * sm);
                 if (k > 0) {
                     int pO = rOutRails.back();
-                    rotatingBodyMesh_.addQuad(pO + 1, rI, rIT, pO + 3, brassCol, true);
-                    rotatingBodyMesh_.addQuad(pO + 0, pO + 2, rOT, rO, brassCol, true);
-                    rotatingBodyMesh_.addQuad(pO + 3, rIT, rOT, pO + 2, crimsonCol, true);
+                    staticBaseMesh_.addQuad(pO + 1, rI, rIT, pO + 3, brassCol, true);
+                    staticBaseMesh_.addQuad(pO + 0, pO + 2, rOT, rO, brassCol, true);
+                    staticBaseMesh_.addQuad(pO + 3, rIT, rOT, pO + 2, crimsonCol, true);
                 }
                 rOutRails.push_back(rO);
 
-                int irO = rotatingBodyMesh_.addVertex((rInS - 0.03f) * cm, railY - 0.03f, (rInS - 0.03f) * sm);
-                int irI = rotatingBodyMesh_.addVertex((rInS + 0.03f) * cm, railY - 0.03f, (rInS + 0.03f) * sm);
-                int irOT = rotatingBodyMesh_.addVertex((rInS - 0.03f) * cm, railY + 0.04f, (rInS - 0.03f) * sm);
-                int irIT = rotatingBodyMesh_.addVertex((rInS + 0.03f) * cm, railY + 0.04f, (rInS + 0.03f) * sm);
+                int irO = staticBaseMesh_.addVertex((rInS - 0.03f) * cm, railY - 0.03f, (rInS - 0.03f) * sm);
+                int irI = staticBaseMesh_.addVertex((rInS + 0.03f) * cm, railY - 0.03f, (rInS + 0.03f) * sm);
+                int irOT = staticBaseMesh_.addVertex((rInS - 0.03f) * cm, railY + 0.04f, (rInS - 0.03f) * sm);
+                int irIT = staticBaseMesh_.addVertex((rInS + 0.03f) * cm, railY + 0.04f, (rInS + 0.03f) * sm);
                 if (k > 0) {
                     int pI = rInRails.back();
-                    rotatingBodyMesh_.addQuad(pI + 1, irI, irIT, pI + 3, brassCol, true);
-                    rotatingBodyMesh_.addQuad(pI + 0, pI + 2, irOT, irO, brassCol, true);
-                    rotatingBodyMesh_.addQuad(pI + 3, irIT, irOT, pI + 2, crimsonCol, true);
+                    staticBaseMesh_.addQuad(pI + 1, irI, irIT, pI + 3, brassCol, true);
+                    staticBaseMesh_.addQuad(pI + 0, pI + 2, irOT, irO, brassCol, true);
+                    staticBaseMesh_.addQuad(pI + 3, irIT, irOT, pI + 2, crimsonCol, true);
                 }
                 rInRails.push_back(irO);
             }
+            staticBaseMesh_.computeNormals();
         }
 
         // 2e. 16 cột đồng vòng ngoài + 8 cột đồng tầng 2 + 20 cột ngựa
