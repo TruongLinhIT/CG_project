@@ -52,6 +52,24 @@ public:
         buildStaticStationMesh();
     }
 
+    ~SkyTower() {
+        if (staticList_ != 0) {
+            glDeleteLists(staticList_, 1);
+            staticList_ = 0;
+        }
+        if (gondolaList_ != 0) {
+            glDeleteLists(gondolaList_, 1);
+            gondolaList_ = 0;
+        }
+        if (stationLampsList_ != 0) {
+            glDeleteLists(stationLampsList_, 1);
+            stationLampsList_ = 0;
+        }
+    }
+
+    SkyTower(const SkyTower&) = delete;
+    SkyTower& operator=(const SkyTower&) = delete;
+
     /**
      * @brief Cập nhật vật lý: Điều khiển chu kỳ rơi tự do đa pha (giữ nguyên animation, khớp sàn đón +4.2m)
      */
@@ -127,25 +145,50 @@ public:
             drawStaticStructureDirect(true);
         }
 
-        // 2. Đèn hiệu cảnh báo hàng không gắn khít ngay trên đỉnh búp hoa sen (y ~ 53.05m)
+        // 2. Đèn hiệu cảnh báo hàng không gắn khít ngay trên đỉnh búp hoa sen (y ~ 53.0m)
         glPushMatrix();
         glTranslatef(0.0f, totalHeight + lotusHeight - 0.02f, 0.0f);
         if (isNightOrSunset) {
             float strobe = std::fmod(cycleTime * 3.0f, 1.0f);
-            float intensity = (strobe < 0.25f) ? 1.0f : 0.15f;
-            GLfloat emit[4] = { 1.0f * intensity, 0.1f * intensity, 0.1f * intensity, 1.0f };
+            float intensity = (strobe < 0.25f) ? 1.0f : 0.18f;
+            GLfloat emit[4] = { 1.0f * intensity, 0.12f * intensity, 0.10f * intensity, 1.0f };
             glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, emit);
             glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, emit);
-            glColor3f(1.0f * intensity, 0.1f * intensity, 0.1f * intensity);
+            glColor3f(1.0f * intensity, 0.12f * intensity, 0.10f * intensity);
         } else {
             glColor3f(0.90f, 0.15f, 0.15f);
         }
-        ParametricShapes::drawSphere(0.36f, 10, 8, false);
+        ParametricShapes::drawSphere(0.42f, 12, 10, false);
         if (isNightOrSunset) {
             GLfloat zeroEmit[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
             glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, zeroEmit);
+            LightingSystem::resetMaterial();
         }
         glPopMatrix();
+
+        // 2b. 4 đèn vàng ấm phát sáng ban đêm/hoàng hôn (2 đèn dưới mái chòi sảnh Đông +4.2m & 2 đèn trụ lan can sàn đón)
+        if (isNightOrSunset) {
+            GLfloat warmEmit[4] = { 1.0f, 0.88f, 0.42f, 1.0f };
+            glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, warmEmit);
+            glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, warmEmit);
+        } else {
+            glColor3f(0.96f, 0.90f, 0.68f);
+        }
+        if (!showNormals) {
+            ensureDisplayLists();
+            if (stationLampsList_ != 0) {
+                glCallList(stationLampsList_);
+            } else {
+                stationLampsMesh_.draw(true, false);
+            }
+        } else {
+            stationLampsMesh_.draw(true, true);
+        }
+        if (isNightOrSunset) {
+            GLfloat zeroEmit[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+            glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, zeroEmit);
+            LightingSystem::resetMaterial();
+        }
 
         // 3. Khung Gondola chở khách động học phân cấp (Display List khung + LED ban đêm)
         glPushMatrix();
@@ -183,8 +226,10 @@ public:
 
 private:
     mutable Geometry::PolygonMesh staticStationMesh_;
-    mutable GLuint staticList_  = 0;
-    mutable GLuint gondolaList_ = 0;
+    mutable Geometry::PolygonMesh stationLampsMesh_;
+    mutable GLuint staticList_       = 0;
+    mutable GLuint gondolaList_      = 0;
+    mutable GLuint stationLampsList_ = 0;
 
     void ensureDisplayLists() const {
         if (staticList_ == 0) {
@@ -203,6 +248,14 @@ private:
                 glEndList();
             }
         }
+        if (stationLampsList_ == 0) {
+            stationLampsList_ = glGenLists(1);
+            if (stationLampsList_ != 0) {
+                glNewList(stationLampsList_, GL_COMPILE);
+                stationLampsMesh_.draw(true, false);
+                glEndList();
+            }
+        }
     }
 
     /**
@@ -213,6 +266,8 @@ private:
         using Mesh = Geometry::PolygonMesh;
         staticStationMesh_.clear();
         staticStationMesh_.name = "SkyTowerStationAndLotusA1";
+        stationLampsMesh_.clear();
+        stationLampsMesh_.name = "SkyTowerWarmStationLamps";
 
         const float deckY = ParkLayout::SKY_TOWER_BOARDING_DECK_Y; // +4.20m
         const float deckR = 6.00f;                                 // Giữ toàn bộ hạng mục gọn trong bán kính <= 8.0m
@@ -298,6 +353,29 @@ private:
             staticStationMesh_.append(Mesh::createCurvedAsianRoof(
                 gx, 6.60f, gz, 2.00f, 2.30f, 1.05f, 0.60f, roofTileCol
             ));
+
+            // 2 đèn lồng treo vàng ấm gắn khít dưới trần chòi sảnh Đông +4.2m (không dùng GL_LIGHT)
+            const MathCG::ColorRGB warmLampCol(1.0f, 0.90f, 0.45f);
+            for (int sz : {-1, 1}) {
+                float lz = gz + sz * 0.50f;
+                staticStationMesh_.append(Mesh::createPrismY(gx, 6.22f, lz, 0.045f, 0.16f, 6, deepGoldCol));
+                staticStationMesh_.append(Mesh::createPrismY(gx, 6.18f, lz, 0.09f,  0.05f, 8, steelDarkCol));
+                stationLampsMesh_.append(Mesh::createBox(gx, 6.08f, lz, 0.17f, 0.20f, 0.17f, warmLampCol));
+            }
+        }
+
+        // 5b. 2 đèn trụ vàng ấm gắn khít trên trụ lan can sàn +4.20m (góc 45 độ đầu cầu thang & 180 độ phía Tây)
+        {
+            const MathCG::ColorRGB warmLampCol(1.0f, 0.90f, 0.45f);
+            const float lampAnglesDeg[2] = { 45.0f, 180.0f };
+            for (float deg : lampAnglesDeg) {
+                float rad = deg * MathCG::DEG2RAD;
+                float lx = railR * std::cos(rad);
+                float lz = railR * std::sin(rad);
+                staticStationMesh_.append(Mesh::createPrismY(lx, deckY + 1.00f, lz, 0.10f, 0.10f, 8, goldCol));
+                stationLampsMesh_.append(Mesh::createBox(lx, deckY + 1.19f, lz, 0.17f, 0.18f, 0.17f, warmLampCol));
+                staticStationMesh_.append(Mesh::createPyramid(lx, deckY + 1.28f, lz, 0.22f, 0.22f, 0.10f, steelDarkCol));
+            }
         }
 
         // 6. Buồng điều khiển nhỏ (Control Room) ở mặt Nam (-1.25, +5.20) [R_in = 4.28m > 3.72m, R_out <= 6.80m <= 8.0m]
@@ -322,6 +400,7 @@ private:
         ));
 
         staticStationMesh_.computeNormals();
+        stationLampsMesh_.computeNormals();
     }
 
     /**

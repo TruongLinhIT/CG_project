@@ -613,41 +613,45 @@ private:
         }
 
         // =========================================================================
-        // 4. ĐÈN TRANG TRÍ BAN ĐÊM / HOÀNG HÔN (chỉ vẽ khi đêm/hoàng hôn)
+        // 4. ĐÈN TRANG TRÍ BAN ĐÊM / HOÀNG HÔN (chỉ vẽ khi đêm/hoàng hôn, 1 Display List dlNightLights_)
+        //    Bám khít ngoài mép diềm mái Lô A3 (valOuterR = 7.65m) & viền sàn tầng 2 (deck2R + 0.03 = 4.98m)
+        //    với khoảng hở >= 1.5cm để triệt tiêu Z-fighting, cỡ bóng 0.16-0.17m, vàng ấm {1.0, 0.90, 0.45}
         // =========================================================================
         nightLightsMesh_ = Mesh("CarouselNightLights");
-        const MathCG::ColorRGB warmBulb(1.0f, 0.90f, 0.48f);
-        const MathCG::ColorRGB roseBulb(1.0f, 0.60f, 0.34f);
+        const MathCG::ColorRGB warmBulb(1.0f, 0.92f, 0.50f);
         for (int k = 0; k < 32; ++k) {
             float a = (static_cast<float>(k) / 32.0f) * 2.0f * MathCG::PI;
-            float br = 7.66f;
+            const float br = 7.76f; // mặt trong 7.76 - 0.085 = 7.675m > 7.65m (sát mép diềm, 0 Z-fighting)
             bool isPeak = (k % 2 == 0);
-            float by = isPeak ? (eaveY + 0.18f) : (eaveY - 0.36f);
-            nightLightsMesh_.append(Mesh::createBox(br * std::cos(a), by, -br * std::sin(a), 0.12f, 0.12f, 0.12f, isPeak ? warmBulb : roseBulb));
+            float by = isPeak ? (eaveY + 0.14f) : (eaveY - 0.12f);
+            nightLightsMesh_.append(Mesh::createBox(br * std::cos(a), by, -br * std::sin(a), 0.17f, 0.17f, 0.17f, warmBulb));
         }
-        for (int k = 0; k < 16; ++k) {
-            float a = (static_cast<float>(k) / 16.0f) * 2.0f * MathCG::PI;
-            nightLightsMesh_.append(Mesh::createBox(5.02f * std::cos(a), deck2Y - 0.14f, -5.02f * std::sin(a), 0.11f, 0.11f, 0.11f, warmBulb));
+        for (int k = 0; k < 20; ++k) {
+            float a = (static_cast<float>(k) / 20.0f) * 2.0f * MathCG::PI;
+            const float r2 = 5.08f; // mặt trong 5.08 - 0.08 = 5.00m > 4.98m (sát viền sàn tầng 2, 0 Z-fighting)
+            nightLightsMesh_.append(Mesh::createBox(r2 * std::cos(a), deck2Y - 0.13f, -r2 * std::sin(a), 0.16f, 0.16f, 0.16f, warmBulb));
         }
         // Đèn rọi gầm trần nội thất giúp ngựa gỗ 2 tầng rực sáng hơn vào ban đêm
         for (int k = 0; k < 8; ++k) {
             float a = (static_cast<float>(k) / 8.0f) * 2.0f * MathCG::PI;
-            nightLightsMesh_.append(Mesh::createBox(5.50f * std::cos(a), eaveY - 0.22f, -5.50f * std::sin(a), 0.16f, 0.12f, 0.16f, warmBulb));
+            nightLightsMesh_.append(Mesh::createBox(5.50f * std::cos(a), eaveY - 0.22f, -5.50f * std::sin(a), 0.17f, 0.12f, 0.17f, warmBulb));
         }
         nightLightsMesh_.append(Mesh::createPrismY(0.0f, eaveY + ParkLayout::CAROUSEL_CONE_HEIGHT + 0.10f, 0.0f, 1.425f, 0.36f, 16, warmBulb));
         nightLightsMesh_.computeNormals();
     }
 
     void drawNightLightsDirect(bool showNormals) const {
-        const GLfloat glow[4] = { 0.90f, 0.75f, 0.28f, 1.0f };
+        const GLfloat emit[4] = { 1.0f, 0.90f, 0.45f, 1.0f };
         const GLfloat zero[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-        glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, glow);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, emit);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, emit);
         if (showNormals) {
             nightLightsMesh_.draw(false, true);
         } else {
             emitSingleBatchTriangles(nightLightsMesh_);
         }
         glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, zero);
+        LightingSystem::resetMaterial();
     }
 
     void ensureDisplayLists() const {
