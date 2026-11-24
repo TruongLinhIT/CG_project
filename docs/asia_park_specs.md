@@ -627,6 +627,21 @@ Theo yêu cầu điều chỉnh số 1 & 2, cả 5 hạng mục dưới đây đ
   - [`img/lote_b1_angkor_night.png`](img/lote_b1_angkor_night.png) — Cận 3: Góc Tây-Nam với 8 đèn đá chân cổng phát sáng dịu (Đêm).
   - [`img/lote_b1_overview_day.png`](img/lote_b1_overview_day.png) — Toàn cảnh khu Tây-Bắc cùng Monorail (`7.27 m`), Ga Nepal & Highway Boat (Ngày).
 
+### 13.9. Nhật ký triển khai LÔ L1 (Đồng bộ chiếu sáng ban đêm/hoàng hôn trên nhánh `integrate-lighting`)
+- **Phạm vi & nhánh làm việc:** Nhánh `integrate-lighting` tách từ `shape-upgrade-from-wave7` (tag `shape-ab-ok` tại `7e31a6b`), giữ nguyên `main` (`b3d5b94`, sao lưu tại `backup-main-before-lighting`). Không lấy `MasterPlan8c.h` và chưa thêm phím `[K]` (để dành cho Giai đoạn C).
+- **Nâng cấp chi tiết chiếu sáng (dùng vật liệu `GL_EMISSION`, không thêm nguồn `GL_LIGHTi`):**
+  - [`src/rides/Carousel.h`](../src/rides/Carousel.h): chỉnh dải đèn LED trong `nightLightsMesh_` / `dlNightLights_` sang sắc vàng ấm `{1.0f, 0.90f, 0.45f, 1.0f}` (bật cả `GL_DIFFUSE` & `GL_EMISSION` và gọi `LightingSystem::resetMaterial()` sau khi tắt emission), cỡ bóng `0.16–0.17 m` đặt sát ngoài mép diềm mái Lô A3 (`br = 7.76f > 7.65f`, `32` bóng) và viền sàn tầng 2 (`r2 = 5.08f > 4.98f`, `20` bóng) tránh Z-fighting, giữ nguyên 1 Display List `dlNightLights_` (0 tăng draw call).
+  - [`src/rides/SkyTower.h`](../src/rides/SkyTower.h): đồng bộ đèn chớp đỏ cảnh báo hàng không tại đỉnh búp hoa sen (`~53.0 m`, bán kính `0.42f`, mức nghỉ `0.18f`, RGB `{1.0, 0.12, 0.10}`) và bổ sung 4 đèn vàng ấm phát sáng ban đêm/hoàng hôn (2 đèn treo dưới trần chòi sảnh Đông `+4.2 m` và 2 đèn trụ trên lan can sàn đón tại góc `45°` & `180°`, cache trong Display List `stationLampsList_`).
+- **Kiểm chứng kỹ thuật & hiệu năng (`1280 × 768`, Windows 11):**
+  - Biên dịch `-Wall -Wextra`: **0 cảnh báo**. Số `GL_LIGHT*` đang bật trong cảnh: **`3/8`** ở Đêm/Hoàng hôn (`GL_LIGHT0..2`) và **`2/8`** ở Ngày (`GL_LIGHT0..1`).
+  - Hồi quy hình ảnh & va chạm: các góc Ngọ Môn, Tháp Đồng Hồ, Sun Wheel + Sân khấu ở Đêm & Hoàng hôn **khớp 100% từng pixel** với trước L1; `verify_lote_a1` & `verify_lote_a3` đều **`PASS`** (`SkyTower Base MaxR = 7.48 m <= 8.00 m`; `Carousel MaxR = 8.50 m`).
+  - Đo FPS (`1280 × 768`, 200 khung Sunset): trước L1 **`65.4 FPS`** (FBO) / **`75.0 FPS`** (Backbuf) → sau L1 **`67.7 FPS`** (FBO, `14.774 ms/khung`) / **`73.1 FPS`** (Backbuf, `13.677 ms/khung`), đạt mục tiêu `≥ 60 FPS`.
+- **Ảnh kiểm chứng 3 chế độ (Ngày / Hoàng hôn / Đêm):**
+  - [`img/lote_l1_carousel_night.png`](img/lote_l1_carousel_night.png), [`img/lote_l1_carousel_sunset.png`](img/lote_l1_carousel_sunset.png)
+  - [`img/lote_l1_skytower_deck_night.png`](img/lote_l1_skytower_deck_night.png), [`img/lote_l1_skytower_night.png`](img/lote_l1_skytower_night.png), [`img/lote_l1_skytower_sunset.png`](img/lote_l1_skytower_sunset.png)
+  - [`img/lote_l1_overview_night.png`](img/lote_l1_overview_night.png), [`img/lote_l1_overview_day.png`](img/lote_l1_overview_day.png)
+- **Dọn kho lưu trữ (commit riêng kế tiếp):** gỡ theo dõi `AsiaPark3D.exe` khỏi git index (`git rm --cached AsiaPark3D.exe`), thêm `.gitignore` (`*.exe`), xóa git worktree tạm của `main`.
+
 ---
 
 ## Phụ lục A. Đỉnh polygon OSM `way 667422708` (Da Nang Downtown, tham chiếu)
