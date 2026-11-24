@@ -1232,30 +1232,8 @@ private:
             glEnd();
         }
 
-        // 6. ĐỢT 6A: Các mảng cỏ đậm / nhạt phân vùng tự nhiên (y = -0.022m, trên nền cỏ gốc -0.04m và dưới lối đi +0.035m)
-        struct GrassZoneRect {
-            float x1, z1, x2, z2;
-            float r, g, b;
-        };
-        const GrassZoneRect grassZones[8] = {
-            { -290.0f,  55.0f, -135.0f, 178.0f, 0.16f, 0.34f, 0.17f }, // Thảm cỏ sáng khu Tây-Nam
-            { -135.0f,  42.0f,  -30.0f, 130.0f, 0.12f, 0.27f, 0.14f }, // Thảm cỏ đậm quanh Sân bông hoa
-            { -275.0f, -45.0f, -145.0f,  52.0f, 0.17f, 0.35f, 0.18f }, // Thảm cỏ sáng khu Port of Sky Treasure
-            { -145.0f, -62.0f,  -45.0f,  32.0f, 0.13f, 0.28f, 0.14f }, // Thảm cỏ đậm quanh Đu quay tròn #9-#10
-            { -285.0f,-195.0f, -155.0f, -60.0f, 0.15f, 0.33f, 0.16f }, // Thảm cỏ trung gian khu Paradise Fall
-            { -155.0f,-195.0f,  -78.0f, -65.0f, 0.12f, 0.26f, 0.13f }, // Thảm cỏ ven bờ Tây hồ nước
-            { -280.0f,-340.0f, -150.0f,-195.0f, 0.17f, 0.34f, 0.17f }, // Thảm cỏ sáng khu Nepal - Angkor
-            {   72.0f,-160.0f,  340.0f,  95.0f, 0.16f, 0.33f, 0.16f }  // Trảng cỏ tự nhiên nửa phía Đông
-        };
-        glBegin(GL_QUADS);
-        for (const auto& gz : grassZones) {
-            glColor3f(gz.r, gz.g, gz.b);
-            glVertex3f(gz.x1, -0.022f, gz.z1);
-            glVertex3f(gz.x1, -0.022f, gz.z2);
-            glVertex3f(gz.x2, -0.022f, gz.z2);
-            glVertex3f(gz.x2, -0.022f, gz.z1);
-        }
-        glEnd();
+        // 6. Nền cỏ thống nhất một màu theo đa giác ranh giới công viên (y = -0.04m trong main.cpp),
+        //    đã bỏ các mảng chữ nhật grassZones nhiều màu để mặt cỏ liền mạch tự nhiên.
 
         // 7. ĐỢT 6A: Các mảng sân lát đá / gạch bao quanh các cụm trò chơi và nhà mái ngói khu Tây (y = 0.022m)
         struct PavedCourtRect {

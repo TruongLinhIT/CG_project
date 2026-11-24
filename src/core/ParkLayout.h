@@ -374,6 +374,63 @@ constexpr PointXZ PATH_CENTRAL_CONNECTOR[NUM_PATH_CENTRAL_CONNECTOR_PTS] = {
     { -188.0f,   42.0f }  // 4: Nhập vào trục chính phía Tây tại ngã ba (-188, +42)
 };
 
+// 5.7. Hệ thống lối dẫn nhánh nối từ các trục đường chính vào tất cả công trình và khu trò chơi
+struct BranchWalkwaySeg {
+    float x0, z0;
+    float x1, z1;
+    float width;
+};
+
+constexpr int NUM_PARK_BRANCH_WALKWAYS = 34;
+constexpr BranchWalkwaySeg PARK_BRANCH_WALKWAYS[NUM_PARK_BRANCH_WALKWAYS] = {
+    // 1. Nhánh nối Ga Monorail Nam (-24.6, 128.0) với trục Tây & Sân trước Ngọ Môn
+    {  -24.6f, 112.5f,  -24.6f, 124.0f, 3.6f },
+    {   -6.0f, 124.0f,  -20.0f, 124.0f, 3.4f },
+    // 2. Nhánh từ trục Tây (-126, 83) đi qua Nhà mái xanh Nam #8 (-102.7, 118.0) xuống sân đá Garuda Valley (-124.1, 155.7)
+    { -126.0f,  83.0f, -126.0f, 143.0f, 3.6f },
+    { -126.0f, 118.0f, -102.7f, 118.0f, 3.4f },
+    { -106.0f,  84.5f, -102.7f, 118.0f, 3.4f },
+    // 3. Nhánh nối Sân bông hoa (-108, 76) với trục Tây (-113.4, 81.5), xuyên qua Nhà mái xanh Bắc #7 (-113.4, 55) tới đường nối ngang
+    { -113.4f,  81.5f, -108.0f,  76.0f, 3.8f },
+    { -109.5f,  76.0f, -112.0f,  34.8f, 3.5f },
+    // 4. Nhánh nối trục Tây (-159.4, 86.5) vào sân Đu quay Ngựa gỗ Carousel (-159.4, 102.5)
+    { -159.4f,  86.5f, -159.4f,  93.5f, 4.2f },
+    // 5. Nhánh nối từ trục Tây & sân Carousel sang khu Xe va chạm Bumper Cars (-206.5, 108.1)
+    { -170.0f,  70.5f, -196.0f,  78.0f, 3.5f },
+    { -196.0f,  78.0f, -206.5f, 100.0f, 3.5f },
+    { -169.0f, 111.5f, -194.5f, 111.5f, 3.4f },
+    // 6. Nhánh nối Dãy quầy mái sọc #6 (-50, 12) với Quảng trường Trung tâm & đường nối ngang
+    {  -50.0f,  27.5f,  -50.0f,  36.0f, 3.2f },
+    {  -42.0f,  12.0f,  -26.5f,  12.0f, 3.4f },
+    // 7. Nhánh nối đường nối ngang vào sân 2 Đu quay tròn #9 (-132.7, 12.9) và #10 (-94.2, 17.3)
+    { -132.7f,  34.3f, -132.7f,  26.5f, 3.5f },
+    {  -94.2f,  35.4f,  -94.2f,  26.5f, 3.5f },
+    // 8. Nhánh nối sân Đu quay tròn #9-#10 qua Sân chơi trẻ em Playground (-104.9, -24.7) tới Nhà ngói đỏ ven hồ #12 (-94.2, -71.2)
+    { -104.0f,   3.5f, -104.0f, -13.0f, 3.4f },
+    { -103.0f, -28.0f,  -98.0f, -59.5f, 3.4f },
+    {  -80.5f, -71.2f,  -64.8f, -71.2f, 3.4f },
+    // 9. Nhánh nối trục Tây vào tàu lượn Port of Sky Treasure (-224, 22) và Thuyền Cướp Biển Pirate Ship (-172, -2)
+    { -190.2f,  22.0f, -206.5f,  22.0f, 3.8f },
+    { -193.0f,  -2.0f, -182.0f,  -2.0f, 3.6f },
+    { -161.5f,   1.5f, -145.0f,   7.5f, 3.2f },
+    // 10. Nhánh nối trục Tây vào chân tháp Golden Sky Tower (-260, -54.6), Nhà mái xanh #15 (-256, -128.7) & Paradise Fall
+    { -244.0f, -54.6f, -253.5f, -54.6f, 4.0f },
+    { -233.0f,-114.0f, -215.5f,-114.0f, 3.6f },
+    { -231.8f,-128.7f, -250.0f,-128.7f, 3.5f },
+    // 11. Nhánh nối khu Paradise Fall, cụm Đu quay #13-#14 (-142, -158), Highway Boat (-176, -214), Ga Nepal, Nhà #18 & Đền Angkor Wat B1
+    { -160.5f,-120.0f, -154.5f,-125.5f, 3.4f },
+    { -129.5f,-124.0f,  -73.8f,-123.0f, 3.4f },
+    { -176.0f,-128.5f, -176.0f,-200.5f, 3.5f },
+    { -154.5f,-190.5f, -162.0f,-200.5f, 3.4f },
+    { -193.5f,-214.0f, -230.5f,-214.0f, 3.6f },
+    { -185.0f,-227.5f, -185.0f,-284.5f, 3.6f },
+    { -198.5f,-258.0f, -220.5f,-258.0f, 3.4f },
+    { -171.5f,-246.0f, -118.0f,-242.0f, 3.4f },
+    // 12. Nhánh nối 2 chòi cánh Sun Wheel (±40, -22.2) với sân khấu quảng trường
+    {  -34.0f, -22.2f,  -25.5f, -22.2f, 3.0f },
+    {   25.5f, -22.2f,   34.0f, -22.2f, 3.0f }
+};
+
 // ============================================================================
 // 6. CÁC CÔNG TRÌNH KIẾN TRÚC ĐỢT 4: CỔNG NGỌ MÔN 2 CÁNH TƯỜNG THÀNH,
 //    HỒ SEN, SÂN TRƯỚC, QUẢNG TRƯỜNG, SÂN KHẤU SUN WHEEL & CÁC CHÒI MÁI NGÓI

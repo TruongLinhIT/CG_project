@@ -419,11 +419,16 @@ static void emitParkHorizonBand(TimeOfDay tod) {
         glVertex3f(1980.0f * ca, hPeak, -120.0f + 1980.0f * sa);
     }
     glEnd();
-}
 
-static void emitParkSurfacesAndPathsStatic() {
-    // 2. Mặt phẳng cỏ công viên theo ranh giới thực tế (~36.1 ha)
-    glColor3f(0.16f, 0.36f, 0.18f);
+    // 2. Mặt phẳng cỏ công viên theo ranh giới thực tế (~36.1 ha) — vẽ đồng nhất 1 màu phẳng khi tắt GL_LIGHTING
+    //    để không bị chia thành các mảng tam giác hay khung chữ nhật khác màu.
+    if (tod == TimeOfDay::SUNSET) {
+        glColor3f(0.20f, 0.25f, 0.14f);
+    } else if (tod == TimeOfDay::NIGHT) {
+        glColor3f(0.055f, 0.115f, 0.085f);
+    } else {
+        glColor3f(0.16f, 0.35f, 0.18f);
+    }
     glNormal3f(0.0f, 1.0f, 0.0f);
 
     glBegin(GL_TRIANGLE_FAN);
@@ -454,7 +459,10 @@ static void emitParkSurfacesAndPathsStatic() {
     glVertex3f(ParkLayout::PARK_BOUNDARY_POLY[15].x, -0.04f, ParkLayout::PARK_BOUNDARY_POLY[15].z);
     glVertex3f( 200.0f, -0.04f, -100.0f);
     glEnd();
+}
 
+static void emitParkSurfacesAndPathsStatic() {
+    glNormal3f(0.0f, 1.0f, 0.0f);
     glColor3f(0.28f, 0.52f, 0.30f);
     glLineWidth(1.5f);
     glBegin(GL_LINE_LOOP);
@@ -504,7 +512,12 @@ static void emitParkSurfacesAndPathsStatic() {
     glEnd();
     glLineWidth(1.0f);
 
-    // 6. Hệ thống lối đi nội bộ & cầu gỗ ra Thủy đình
+    // 6. Hệ thống lối đi nội bộ, các lối dẫn nhánh vào công trình/trò chơi & cầu gỗ ra Thủy đình
+    for (int i = 0; i < ParkLayout::NUM_PARK_BRANCH_WALKWAYS; ++i) {
+        const auto& bw = ParkLayout::PARK_BRANCH_WALKWAYS[i];
+        const ParkLayout::PointXZ seg[2] = { { bw.x0, bw.z0 }, { bw.x1, bw.z1 } };
+        drawFlatPolylineStrip(seg, 2, bw.width, ParkLayout::PATH_Y_SECONDARY, 0.66f, 0.62f, 0.54f);
+    }
     drawFlatPolylineStrip(ParkLayout::PATH_MAIN_SPINE, ParkLayout::NUM_PATH_MAIN_SPINE_PTS, ParkLayout::PATH_MAIN_SPINE_WIDTH, ParkLayout::PATH_Y_MAIN, 0.74f, 0.68f, 0.58f);
     drawFlatPolylineStrip(ParkLayout::PATH_SOUTH_LAKE_PROM, ParkLayout::NUM_PATH_SOUTH_LAKE_PROM_PTS, ParkLayout::PATH_SOUTH_LAKE_PROM_WIDTH, ParkLayout::PATH_Y_MAIN, 0.74f, 0.68f, 0.58f);
     drawFlatPolylineStrip(ParkLayout::PATH_WEST_SPINE, ParkLayout::NUM_PATH_WEST_SPINE_PTS, ParkLayout::PATH_WEST_SPINE_WIDTH, ParkLayout::PATH_Y_MAIN, 0.74f, 0.68f, 0.58f);
@@ -578,7 +591,7 @@ static void drawParkGroundAndLake() {
         }
     }
 
-    // 1. Mặt đất đường chân trời (tắt tạm LIGHTING & CULL_FACE bên ngoài Display List)
+    // 1..2. Mặt đất đường chân trời & nền cỏ công viên 1 màu đồng nhất (tắt tạm LIGHTING & CULL_FACE ngoài Display List)
     GLboolean wasLit  = glIsEnabled(GL_LIGHTING);
     GLboolean wasCull = glIsEnabled(GL_CULL_FACE);
     glDisable(GL_LIGHTING);
@@ -591,7 +604,7 @@ static void drawParkGroundAndLake() {
     if (wasCull) glEnable(GL_CULL_FACE);
     if (wasLit)  glEnable(GL_LIGHTING);
 
-    // 2..6. Nền cỏ, Sông Hàn, 3 đường nhựa, hồ nước, bờ kè & lối đi tĩnh
+    // 3..6. Sông Hàn, 3 đường nhựa, hồ nước, bờ kè & lối đi tĩnh
     if (sGroundStaticList != 0) {
         glCallList(sGroundStaticList);
     } else {

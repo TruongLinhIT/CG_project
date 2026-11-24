@@ -838,9 +838,10 @@ private:
 
         const MathCG::Vec3& ps = ParkLayout::PIRATE_SHIP_TARGET_POS;
         for (int s : {-1, 1}) {
-            addRing(ps.x + s * 7.0f, ps.z, 1.05f, 7.20f, 8,
+            addRing(ps.x, ps.z + s * 2.25f, 0.72f, 10.55f, 8,
                     MathCG::ColorRGB(1.00f, 0.66f, 0.28f), 0.60f, 0.4f + 0.2f * static_cast<float>(s));
         }
+        addPool(ps.x, ps.z, 12.5f, MathCG::ColorRGB(1.00f, 0.68f, 0.30f), 0.35f);
 
         // Quần thể Đền Angkor Wat Lô B1: viền nền sân sao + viền mái hành lang + đỉnh 5 tháp Prang thật (±5.75m -> 11.78m, tâm -> 15.08m)
         const MathCG::Vec3& ak = ParkLayout::ANGKOR_STAR_PLAZA_POS;
