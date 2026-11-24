@@ -548,16 +548,16 @@ Theo yêu cầu điều chỉnh số 1 & 2, cả 5 hạng mục dưới đây đ
 
 ### 13.5. Nhật ký triển khai LÔ A2 (`Nhà ga Garuda Valley`, `Port of Sky Treasure`, `Paradise Fall`)
 - **Trạng thái:** Đã hoàn tất & commit riêng LÔ A2 trên nhánh `shape-upgrade-from-wave7` (chỉ nâng cấp kiến trúc nhà ga, giữ nguyên 100% đường ray, đoàn tàu, Sun Wheel, Queen Cobra và Monorail).
-- **Hàm dùng lại mới trong [`src/geometry/MeshModel.h`](../src/geometry/MeshModel.h):** `PolygonMesh::createMinangkabauRoof` (mái yên ngựa cong vểnh sừng trâu kèm vách đầu hồi đặc & mào trang trí) và `PolygonMesh::createGableRoofWithTruss` (mái 2 dốc gỗ kèm hệ vì kèo tam giác king-post lộ thiên), đồng thời tối ưu bỏ trùng lặp `glColor3f` trong `PolygonMesh::draw()`.
+- **Hàm dùng lại mới trong [`src/geometry/MeshModel.h`](../src/geometry/MeshModel.h):** `PolygonMesh::createMinangkabauRoof` (mái yên ngựa cong vểnh 2 sừng nhọn cân đối, võng giữa nhẹ `~17%` chiều cao sừng, sống mái liền mạch và đầu sừng tô vàng — đã bỏ gai ngang sau duyệt Lô A2) và `PolygonMesh::createGableRoofWithTruss` (mái 2 dốc gỗ kèm hệ vì kèo tam giác king-post lộ thiên), đồng thời tối ưu bỏ trùng lặp `glColor3f` trong `PolygonMesh::draw()`.
 - **3 Nhà ga tàu lượn nhỏ nâng cấp trong [`src/rides/MiniCoaster.h`](../src/rides/MiniCoaster.h) (`[Bản vẽ minh họa AI, tham khảo hình dạng]`):**
-  - **Garuda Valley (`(-124.1, 0, +155.7)`):** Nhà ga mái yên ngựa cong kiểu Minangkabau trên cột (`eaveY = 5.35 m`, đỉnh sừng `~10.0 m`) kèm mái sừng phụ lối cầu thang phía Tây và bệ đón `+2.05 m`; hở toa tàu ngang `0.55 m`, đứng `0.34 m`, hở cây `#50` `2.30 m`.
+  - **Garuda Valley (`(-124.1, 0, +155.7)`):** Nhà ga mái yên ngựa cong kiểu Minangkabau trên cột (`eaveY = 5.35 m`, đỉnh sừng `~9.96 m`) kèm mái sừng phụ lối cầu thang phía Tây và bệ đón `+2.05 m`; hở toa tàu ngang `0.55 m`, đứng `0.34 m` (gầm mái hở đỉnh tàu `0.84 m`), hở cây `#50` `2.30 m`.
   - **Port of Sky Treasure (`(-224.0, 0, +22.0)`):** Nhà ga bến cảng gỗ mái 2 dốc có vì kèo tam giác, **gian giữa nâng cao (`6.25..8.85 m`) hơn hai bên (`5.45..7.25 m`)**, sàn bến gỗ `+2.15 m` và cầu thang phía Đông; hở toa tàu ngang `0.25 m`, đứng `0.53 m`, hở Monorail `37.53 m`.
   - **Paradise Fall (`PARADISE_FALL_BLDG_POS (-179.8, 0, -91.1)`):** Giữ nguyên toàn bộ tòa nhà núi đá thật, gộp dựng cùng **lầu ga mái cong 2 tầng trên bệ đá `+2.60 m` có cầu thang Đông và nhịp cầu nối sang sườn Bắc núi đá** tại offset `(+7.3, 0, -12.7)` (`world (-172.5, 0, -103.8)`); cách đường ray số 8 **`10.69 m`** (`0` chạm ray), cách cây `8.70 m`, nằm trọn trong sân đá `#13`.
 - **Hiệu năng đo tại `1280 × 768` (200 khung hình, Windows 11 / Intel UHD Graphics 770 ICD, Sunset):**
   - Trước Lô A2 (mốc sau A1 `035f91d`): **`61.8 FPS`** (FBO, `3.234 s`) / **`65.9 FPS`** (Backbuf, `3.035 s`).
-  - Sau Lô A2: **`61.8 FPS`** (FBO, `3.234 s`) / **`66.9 FPS`** (Backbuf, `2.990 s`) — đạt đủ yêu cầu **không thấp hơn mốc trước lô và `≥ 60 FPS`**.
+  - Sau Lô A2 (kèm chỉnh mái Garuda): **`62.8 FPS`** (FBO, `3.185 s`) / **`65.9 FPS`** (Backbuf, `3.036 s`) — đạt đủ yêu cầu **không thấp hơn mốc trước lô và `≥ 60 FPS`**.
 - **Bộ ảnh kiểm tra 3 chế độ (Ngày / Hoàng hôn / Đêm):**
-  - [`img/lote_a2_garuda_day.png`](img/lote_a2_garuda_day.png) — Cận 1: Nhà ga Garuda Valley mái yên ngựa Minangkabau & cầu thang (Ngày).
+  - [`img/lote_a2_garuda_day.png`](img/lote_a2_garuda_day.png) & [`img/lote_a2_garuda_side_day.png`](img/lote_a2_garuda_side_day.png) — Cận 1 (chính diện Tây & bên hông Nam sau chỉnh sửa): Nhà ga Garuda Valley mái yên ngựa Minangkabau 2 sừng nhọn, võng nhẹ `~17%` và sống mái cong liền (Ngày).
   - [`img/lote_a2_portsky_sunset.png`](img/lote_a2_portsky_sunset.png) — Cận 2: Nhà ga gỗ Port of Sky Treasure mái 2 dốc có vì kèo, gian giữa cao hơn hai bên (Hoàng hôn).
   - [`img/lote_a2_paradisefall_night.png`](img/lote_a2_paradisefall_night.png) — Cận 3: Núi đá giữ nguyên & lầu ga mái cong 2 tầng trên bệ có cầu thang tại Paradise Fall (Đêm).
   - [`img/lote_a2_overview_day.png`](img/lote_a2_overview_day.png) — Toàn cảnh khu Tây & công viên Lô A2 (Ngày).

@@ -1107,19 +1107,22 @@ public:
         PolygonMesh roof("MinangkabauSaddleRoof");
         roof.defaultColor = roofCol;
 
-        const int uSteps = 6;
-        const int vSteps = 8;
+        const int uSteps = 8;
+        const int vSteps = 14;
         const float hw = baseW * 0.5f;
         const float hd = baseD * 0.5f;
         const float thick = 0.16f;
+        // Độ võng ở giữa nhẹ ~17% chiều cao sừng (nằm gọn trong khoảng 15-20% theo yêu cầu)
+        const float effMidH = std::max(midSaddleH, hornPeakH * 0.83f);
 
         auto evalRoofXZ = [&](float rx, float rz, float& outX, float& outY, float& outZ) {
             float vAbs = std::fabs(rz);
-            float ridgeY = midSaddleH + (hornPeakH - midSaddleH) * std::pow(vAbs, 2.15f);
-            float eaveLiftY = 0.28f * hornPeakH * vAbs * vAbs;
-            float sideCurve = std::pow(std::max(0.0f, 1.0f - std::fabs(rx)), 1.45f);
-            float flare = hornFlareLen * (1.0f - 0.72f * rx * rx) * std::pow(vAbs, 1.75f);
-            outX = rx * hw;
+            float ridgeY = effMidH + (hornPeakH - effMidH) * std::pow(vAbs, 2.35f);
+            float eaveLiftY = 0.04f * hornPeakH * vAbs * vAbs; // Mép diềm hông gần phẳng, không vểnh như cánh dơi
+            float sideCurve = std::pow(std::max(0.0f, 1.0f - std::fabs(rx)), 1.60f);
+            float flare = hornFlareLen * sideCurve * std::pow(vAbs, 1.85f);
+            float endTaper = 1.0f - 0.14f * std::pow(vAbs, 2.6f);
+            outX = rx * hw * endTaper;
             outY = cy + eaveLiftY + (ridgeY - eaveLiftY) * sideCurve;
             outZ = (hd + flare) * rz;
         };
@@ -1193,15 +1196,52 @@ public:
             }
         }
 
-        // 4. Mào trang trí chạm trổ dọc sống mái yên ngựa (theo bản vẽ #16)
-        MathCG::ColorRGB crestCol(0.95f, 0.78f, 0.20f);
-        if (numCrestSpikes > 0) {
-            for (int k = 0; k < numCrestSpikes; ++k) {
-                float rz = (numCrestSpikes == 1) ? 0.0f : (-0.82f + 1.64f * (static_cast<float>(k) / (numCrestSpikes - 1)));
-                float rx, ry, rzz;
-                evalRoofXZ(0.0f, rz, rx, ry, rzz);
-                float spikeH = 0.42f + 0.32f * std::fabs(rz);
-                roof.append(createPyramid(0.0f, ry - 0.12f, rzz, 0.24f, 0.34f, spikeH, crestCol));
+        // 4. Sống mái là một đường cong liền mạch dễ nhận diện + hai đầu sừng nhọn tô vàng vuốt xuôi theo tiếp tuyến sừng
+        (void)numCrestSpikes;
+        const MathCG::ColorRGB ridgeGoldCol(0.82f, 0.63f, 0.20f);
+        const MathCG::ColorRGB goldTipCol(0.96f, 0.80f, 0.22f);
+        const float ridgeHW = 0.11f;
+        const float ridgeBeamH = 0.20f;
+        int ridgeBotStart = static_cast<int>(roof.vertices.size());
+        for (int j = 0; j <= vSteps; ++j) {
+            float rz = (static_cast<float>(j) / vSteps - 0.5f) * 2.0f;
+            float rx0, ry0, rz0;
+            evalRoofXZ(0.0f, rz, rx0, ry0, rz0);
+            float tipBoost = 0.06f * std::pow(std::fabs(rz), 4.0f);
+            roof.addVertex(-ridgeHW, ry0 - 0.06f,                   rz0); // 0: đáy trái
+            roof.addVertex( ridgeHW, ry0 - 0.06f,                   rz0); // 1: đáy phải
+            roof.addVertex( ridgeHW * 0.55f, ry0 + ridgeBeamH + tipBoost, rz0); // 2: đỉnh phải
+            roof.addVertex(-ridgeHW * 0.55f, ry0 + ridgeBeamH + tipBoost, rz0); // 3: đỉnh trái
+        }
+        for (int j = 0; j < vSteps; ++j) {
+            int k0 = ridgeBotStart + j * 4;
+            int k1 = ridgeBotStart + (j + 1) * 4;
+            bool nearTip = (j <= 1 || j >= vSteps - 2);
+            const MathCG::ColorRGB& rCol = nearTip ? goldTipCol : ridgeGoldCol;
+            roof.addQuad(k0 + 3, k1 + 3, k1 + 2, k0 + 2, rCol, true); // Đỉnh sống mái (+Y)
+            roof.addQuad(k0 + 0, k0 + 3, k1 + 3, k1 + 0, rCol, true); // Sườn trái (-X)
+            roof.addQuad(k0 + 1, k1 + 1, k1 + 2, k0 + 2, rCol, true); // Sườn phải (+X)
+        }
+        // Chóp đầu sừng nhọn tô vàng vuốt liền mạch từ mép diềm đỉnh tới mũi sừng tại Bắc (j = 0) & Nam (j = vSteps)
+        for (float dirZ : { -1.0f, 1.0f }) {
+            float rxT, ryT, rzT;
+            evalRoofXZ(0.0f, dirZ, rxT, ryT, rzT);
+            int kTipBase = static_cast<int>(roof.vertices.size());
+            roof.addVertex(-ridgeHW,         ryT - thick,               rzT);
+            roof.addVertex( ridgeHW,         ryT - thick,               rzT);
+            roof.addVertex( ridgeHW * 0.55f, ryT + ridgeBeamH + 0.06f,  rzT);
+            roof.addVertex(-ridgeHW * 0.55f, ryT + ridgeBeamH + 0.06f,  rzT);
+            int apex = roof.addVertex(0.0f, ryT + ridgeBeamH + 0.16f, rzT + dirZ * 0.36f);
+            if (dirZ > 0.0f) {
+                roof.addTriangle(kTipBase + 0, kTipBase + 1, apex, goldTipCol, true);
+                roof.addTriangle(kTipBase + 1, kTipBase + 2, apex, goldTipCol, true);
+                roof.addTriangle(kTipBase + 2, kTipBase + 3, apex, goldTipCol, true);
+                roof.addTriangle(kTipBase + 3, kTipBase + 0, apex, goldTipCol, true);
+            } else {
+                roof.addTriangle(kTipBase + 1, kTipBase + 0, apex, goldTipCol, true);
+                roof.addTriangle(kTipBase + 2, kTipBase + 1, apex, goldTipCol, true);
+                roof.addTriangle(kTipBase + 3, kTipBase + 2, apex, goldTipCol, true);
+                roof.addTriangle(kTipBase + 0, kTipBase + 3, apex, goldTipCol, true);
             }
         }
 
