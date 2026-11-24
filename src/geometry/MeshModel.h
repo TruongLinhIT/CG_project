@@ -1319,6 +1319,178 @@ public:
         mesh.computeNormals();
         return mesh;
     }
+
+    /**
+     * @brief Hàm dùng lại tạo Mái nón lễ hội nhiều múi sọc, diềm mái lượn sóng & chóp đèn vương miện
+     *        [Bản vẽ minh họa AI, tham khảo hình dạng]: dựng từ tiết diện tròn đồng tâm (CCW ngoài trời),
+     *        bít kín mặt trần dưới (không rỗng khi ngước nhìn) và đúc liền đỉnh chóp.
+     */
+    static PolygonMesh createCarouselConicalRoof(
+        float cx, float eaveY, float cz,
+        float outerR, float coneH, float totalAboveEaveH,
+        int gores,
+        const MathCG::ColorRGB& colorA,
+        const MathCG::ColorRGB& colorB,
+        const MathCG::ColorRGB& trimCol,
+        const MathCG::ColorRGB& goldCol
+    ) {
+        PolygonMesh mesh("CarouselConicalRoof");
+        mesh.defaultColor = colorA;
+
+        const int safeGores = std::max(8, gores);
+        const int subPerGore = 4;
+        const int angSteps = safeGores * subPerGore;
+        const float twoPi = 2.0f * MathCG::PI;
+        const float cupolaR = std::max(0.95f, outerR * 0.21f);
+        const float cupBaseY = eaveY + coneH;
+        const float topY = eaveY + std::max(coneH + 0.6f, totalAboveEaveH);
+        const float roofThick = 0.14f;
+        const MathCG::ColorRGB ceilingCol(0.92f, 0.87f, 0.75f);
+
+        auto ringPt = [&](float r, float y, int aIdx) -> MathCG::Vec3 {
+            float a = twoPi * static_cast<float>(aIdx % angSteps) / static_cast<float>(angSteps);
+            return MathCG::Vec3(r * std::cos(a), y, -r * std::sin(a));
+        };
+
+        // 1. Mái nón 16 múi sọc xen kẽ (độ võng lều nhẹ hướng tâm) + mặt trần kín bên dưới
+        const int rSteps = 5;
+        std::vector<int> topRings(rSteps + 1);
+        std::vector<int> botRings(rSteps + 1);
+        for (int ri = 0; ri <= rSteps; ++ri) {
+            float t = static_cast<float>(ri) / static_cast<float>(rSteps);
+            float r = outerR + (cupolaR - outerR) * t;
+            float profile = 0.68f * t + 0.32f * t * t;
+            float yTop = eaveY + coneH * profile;
+            float yBot = yTop - roofThick;
+            topRings[ri] = static_cast<int>(mesh.vertices.size());
+            for (int ai = 0; ai < angSteps; ++ai) {
+                MathCG::Vec3 p = ringPt(r, yTop, ai);
+                mesh.addVertex(p.x, p.y, p.z);
+            }
+            botRings[ri] = static_cast<int>(mesh.vertices.size());
+            for (int ai = 0; ai < angSteps; ++ai) {
+                MathCG::Vec3 p = ringPt(r, yBot, ai);
+                mesh.addVertex(p.x, p.y, p.z);
+            }
+        }
+        for (int ri = 0; ri < rSteps; ++ri) {
+            for (int ai = 0; ai < angSteps; ++ai) {
+                int aNext = (ai + 1) % angSteps;
+                int goreIdx = ai / subPerGore;
+                const MathCG::ColorRGB& gCol = (goreIdx % 2 == 0) ? colorA : colorB;
+                mesh.addQuad(topRings[ri] + ai, topRings[ri] + aNext,
+                             topRings[ri + 1] + aNext, topRings[ri + 1] + ai, gCol, true);
+                mesh.addQuad(botRings[ri] + aNext, botRings[ri] + ai,
+                             botRings[ri + 1] + ai, botRings[ri + 1] + aNext, ceilingCol, true);
+            }
+        }
+
+        // Gân nổi mảnh màu vàng đồng dọc ranh giới 16 múi mái
+        for (int g = 0; g < safeGores; ++g) {
+            float a = twoPi * static_cast<float>(g) / static_cast<float>(safeGores);
+            float da = 0.011f;
+            int prevLo = -1, prevHi = -1;
+            for (int ri = 0; ri <= rSteps; ++ri) {
+                float t = static_cast<float>(ri) / static_cast<float>(rSteps);
+                float r = (outerR + 0.03f) + (cupolaR - outerR) * t;
+                float yTop = eaveY + coneH * (0.68f * t + 0.32f * t * t) + 0.045f;
+                int v0 = mesh.addVertex(r * std::cos(a - da), yTop, -r * std::sin(a - da));
+                int v1 = mesh.addVertex(r * std::cos(a + da), yTop, -r * std::sin(a + da));
+                if (ri > 0) {
+                    mesh.addQuad(prevLo, prevHi, v1, v0, goldCol, true);
+                }
+                prevLo = v0; prevHi = v1;
+            }
+        }
+
+        // 2. Diềm mái lượn sóng (scalloped valence) + mào gợn tại các đỉnh múi
+        const float valOuterR = outerR + 0.03f;
+        const float valInnerR = outerR - 0.12f;
+        std::vector<int> oBot(angSteps), oMid(angSteps), oTop(angSteps);
+        std::vector<int> iBot(angSteps), iMid(angSteps), iTop(angSteps);
+        for (int ai = 0; ai < angSteps; ++ai) {
+            int sub = ai % subPerGore;
+            float phase = static_cast<float>(sub) / static_cast<float>(subPerGore);
+            // Điểm đỉnh gợn (sub == 0): nhô chóp trên + rủ mũi nhọn dưới; giữa múi: vòm uốn lên trên
+            float archS = std::sin(MathCG::PI * phase);
+            float yB = eaveY - 0.58f + 0.34f * archS;
+            float yM = yB + 0.11f;
+            float yT = (sub == 0) ? (eaveY + 0.34f) : (eaveY + 0.09f);
+
+            MathCG::Vec3 poB = ringPt(valOuterR, yB, ai), poM = ringPt(valOuterR, yM, ai), poT = ringPt(valOuterR, yT, ai);
+            MathCG::Vec3 piB = ringPt(valInnerR, yB, ai), piM = ringPt(valInnerR, yM, ai), piT = ringPt(valInnerR, yT, ai);
+            oBot[ai] = mesh.addVertex(poB.x, poB.y, poB.z);
+            oMid[ai] = mesh.addVertex(poM.x, poM.y, poM.z);
+            oTop[ai] = mesh.addVertex(poT.x, poT.y, poT.z);
+            iBot[ai] = mesh.addVertex(piB.x, piB.y, piB.z);
+            iMid[ai] = mesh.addVertex(piM.x, piM.y, piM.z);
+            iTop[ai] = mesh.addVertex(piT.x, piT.y, piT.z);
+        }
+        for (int ai = 0; ai < angSteps; ++ai) {
+            int an = (ai + 1) % angSteps;
+            // Viền vàng gợn sóng dưới
+            mesh.addQuad(oBot[ai], oBot[an], oMid[an], oMid[ai], goldCol, true);
+            mesh.addQuad(iBot[an], iBot[ai], iMid[ai], iMid[an], goldCol, true);
+            // Thân diềm lượn sóng đỏ thẫm
+            mesh.addQuad(oMid[ai], oMid[an], oTop[an], oTop[ai], trimCol, true);
+            mesh.addQuad(iMid[an], iMid[ai], iTop[ai], iTop[an], trimCol, true);
+            // Bịt đáy & đỉnh dải diềm
+            mesh.addQuad(iBot[ai], iBot[an], oBot[an], oBot[ai], goldCol, true);
+            mesh.addQuad(oTop[ai], oTop[an], iTop[an], iTop[ai], goldCol, true);
+        }
+        // Chấm nụ trang trí vàng tại từng đỉnh mào gợn diềm mái
+        for (int g = 0; g < safeGores; ++g) {
+            float a = twoPi * static_cast<float>(g) / static_cast<float>(safeGores);
+            mesh.append(createPyramid(
+                (valOuterR - 0.04f) * std::cos(a), eaveY + 0.32f, -(valOuterR - 0.04f) * std::sin(a),
+                0.18f, 0.18f, 0.24f, goldCol));
+        }
+
+        // 3. Chóp đèn lồng tầng trên (Cupola) + Mái nón vương miện + Chỏm đỉnh
+        const float span = topY - cupBaseY;
+        const float drumH = span * 0.36f;
+        const float crownConeY = cupBaseY + drumH;
+        const float crownConeH = span * 0.40f;
+        const float orbY = crownConeY + crownConeH;
+
+        mesh.append(createPrismY(0.0f, cupBaseY - 0.08f, 0.0f, cupolaR + 0.12f, 0.18f, 16, goldCol));
+        mesh.append(createPrismY(0.0f, cupBaseY + 0.08f, 0.0f, cupolaR * 0.88f, drumH - 0.06f, 16, colorB));
+        // 8 cột vàng nổi quanh lầu đèn
+        for (int k = 0; k < 8; ++k) {
+            float a = twoPi * static_cast<float>(k) / 8.0f;
+            float pr = cupolaR * 0.92f;
+            mesh.append(createPrismY(pr * std::cos(a), cupBaseY + 0.08f, -pr * std::sin(a), 0.10f, drumH - 0.04f, 6, goldCol));
+        }
+        mesh.append(createPrismY(0.0f, crownConeY - 0.04f, 0.0f, cupolaR + 0.18f, 0.14f, 16, trimCol));
+
+        // Chóp nón mini 16 múi sọc đỉnh
+        int cBot = static_cast<int>(mesh.vertices.size());
+        for (int ai = 0; ai < safeGores; ++ai) {
+            float a = twoPi * static_cast<float>(ai) / static_cast<float>(safeGores);
+            mesh.addVertex((cupolaR + 0.14f) * std::cos(a), crownConeY + 0.06f, -(cupolaR + 0.14f) * std::sin(a));
+        }
+        int cTop = static_cast<int>(mesh.vertices.size());
+        for (int ai = 0; ai < safeGores; ++ai) {
+            float a = twoPi * static_cast<float>(ai) / static_cast<float>(safeGores);
+            mesh.addVertex(0.18f * std::cos(a), orbY, -0.18f * std::sin(a));
+        }
+        for (int ai = 0; ai < safeGores; ++ai) {
+            int an = (ai + 1) % safeGores;
+            const MathCG::ColorRGB& cCol = (ai % 2 == 0) ? colorA : goldCol;
+            mesh.addQuad(cBot + ai, cBot + an, cTop + an, cTop + ai, cCol, true);
+        }
+        mesh.append(createPrismY(0.0f, orbY - 0.04f, 0.0f, 0.19f, 0.06f, safeGores, goldCol));
+
+        // Quả cầu & mũi chóp nhọn trên cùng tới đúng y = topY
+        const float spireH = std::max(0.25f, topY - orbY);
+        mesh.append(createPrismY(0.0f, orbY - 0.02f, 0.0f, 0.25f, spireH * 0.26f, 12, goldCol));
+        mesh.append(createPrismY(0.0f, orbY + spireH * 0.22f, 0.0f, 0.30f, spireH * 0.20f, 12, goldCol));
+        mesh.append(createPyramid(0.0f, orbY + spireH * 0.40f, 0.0f, 0.30f, 0.30f, spireH * 0.60f, goldCol));
+
+        mesh.translate(cx, 0.0f, cz);
+        mesh.computeNormals();
+        return mesh;
+    }
 };
 
 } // namespace Geometry

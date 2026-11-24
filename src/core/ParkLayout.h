@@ -87,7 +87,20 @@ constexpr float        CLOCK_TOWER_DIAL_OFFSET       =  4.02f; // Độ nhô khu
 constexpr float        CLOCK_TOWER_DIAL_RADIUS       =  1.58f; // Bán kính mặt đồng hồ (bộ kim + vạch giờ)
 
 // 2.5. Đu quay Ngựa gỗ (Festival Carousel) - [Chưa xác minh / dùng tạm ứng viên mái nón kẻ sọc 16.03923°N, 108.22689°E]
+//      Giữ nguyên tâm (-159.4, 0.0, +102.5) và ĐK 17m theo vệ tinh (chừa 5.00m tới mép lối đi PATH_WEST_SPINE).
+//      Hình dáng 2 tầng kiểu Venice + mái nón 16 múi sọc diềm lượn sóng + chóp đỉnh + quầy vé [Bản vẽ minh họa AI, tham khảo hình dạng]
 constexpr MathCG::Vec3 CAROUSEL_POS_UNVERIFIED(-159.4f, 0.0f, 102.5f);
+constexpr float CAROUSEL_OUTER_RADIUS     = 8.50f;  // Bán kính ngoài cùng (bệ bậc, hàng rào, quầy vé) = ĐK 17.0 m
+constexpr float CAROUSEL_TURNTABLE_RADIUS = 7.36f;  // Bán kính mâm xoay tầng 1
+constexpr float CAROUSEL_TIER1_Y          = 0.75f;  // Cao độ mặt sàn tầng 1 (thu ~0.71 từ bản vẽ)
+constexpr float CAROUSEL_TIER2_RADIUS     = 4.95f;  // Bán kính sàn tầng 2 quay đồng trục
+constexpr float CAROUSEL_TIER2_Y          = 3.70f;  // Cao độ sàn tầng 2 (~0.71 x 5.20 m)
+constexpr float CAROUSEL_EAVE_Y           = 6.50f;  // Cao độ diềm mái che hình nón
+constexpr float CAROUSEL_VALENCE_DROP     = 0.62f;  // Độ rủ diềm mái lượn sóng (5.88..6.62 m)
+constexpr float CAROUSEL_CONE_HEIGHT      = 2.00f;  // Chiều cao phần mái nón 16 múi (6.50..8.50 m)
+constexpr float CAROUSEL_TOTAL_HEIGHT     = 10.00f; // Tổng cao tới đỉnh chóp vương miện (~10 m)
+constexpr int   CAROUSEL_TIER1_HORSES     = 12;     // 12 ngựa tầng 1 (8 vòng ngoài + 4 vòng trong)
+constexpr int   CAROUSEL_TIER2_HORSES     = 8;      // 8 ngựa tầng 2 (vòng trên R=3.55 m)
 
 // 2.6. Tàu lượn Queen Cobra (Phương án B: tịnh tiến + xoay -25°, KHÔNG scale, giữ nguyên hình học & animation)
 // Tâm đường ray gốc trong RollerCoaster.h: (-85.35, -2.15), nhà ga gốc tại (-68.0, 6.0, 39.0)

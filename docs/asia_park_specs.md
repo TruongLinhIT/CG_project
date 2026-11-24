@@ -562,6 +562,28 @@ Theo yêu cầu điều chỉnh số 1 & 2, cả 5 hạng mục dưới đây đ
   - [`img/lote_a2_paradisefall_night.png`](img/lote_a2_paradisefall_night.png) — Cận 3: Núi đá giữ nguyên & lầu ga mái cong 2 tầng trên bệ có cầu thang tại Paradise Fall (Đêm).
   - [`img/lote_a2_overview_day.png`](img/lote_a2_overview_day.png) — Toàn cảnh khu Tây & công viên Lô A2 (Ngày).
 
+### 13.6. Nhật ký triển khai LÔ A3 (`Festival Carousel` 2 tầng Ø17 m, cao 10 m)
+- **Trạng thái:** Đã hoàn tất & commit riêng LÔ A3 trên nhánh `shape-upgrade-from-wave7` (chưa thực hiện tối ưu Display List cho Monorail/Queen Cobra/MiniCoaster hay Lô B1 Angkor Wat theo đúng chỉ đạo).
+- **Nhãn vị trí & nguồn hình dáng:**
+  - Tâm đặt giữ nguyên tại [`CAROUSEL_POS_UNVERIFIED (-159.4, 0.0, +102.5)`](../src/core/ParkLayout.h#L92) **`[Chưa xác minh]`** (không dịch tâm, không chỉnh `PATH_WEST_SPINE`, không đụng Monorail/Sun Wheel/Queen Cobra).
+  - Hình dạng thu tỷ lệ `~0.71` từ bản vẽ `#11` **`[Bản vẽ minh họa AI, tham khảo hình dạng]`** về **`Ø17.00 m` (`R_max = 8.500 m`)**, tổng cao **`10.00 m`** (`Y [-0.02..10.00] m`).
+- **Hằng số & kiến trúc trong [`src/core/ParkLayout.h`](../src/core/ParkLayout.h), [`src/geometry/MeshModel.h`](../src/geometry/MeshModel.h) và [`src/rides/Carousel.h`](../src/rides/Carousel.h):**
+  - Hàm dùng lại mới [`PolygonMesh::createCarouselConicalRoof`](../src/geometry/MeshModel.h): mái nón 16 múi sọc xen kẽ đỏ-kem có gân nổi vàng, diềm mái lượn sóng (`scalloped valence`) kèm mào đỉnh nhọn, trần gầm mái kín, lầu đèn 8 cột trên đỉnh (`Cupola`) và chỏm vương miện đạt `10.00 m`.
+  - Cụm tĩnh (`R <= 8.500 m`): bệ đá giật cấp 3 bậc tròn + 2 cổng bậc cấp Bắc/Nam + hàng rào bảo vệ vòng ngoài + quầy vé nhỏ đặt gọn trên rìa Đông-Bắc sát cổng Bắc.
+  - Khối xoay 2 tầng giữ nguyên animation quay `35°/s` & nhấp nhô ngựa gỗ: sàn tầng 1 (`+0.75 m`, `R = 7.36 m`), trục gương trung tâm Venice, cầu thang cong 12 bậc kèm tay vịn đồng nối lên sàn tầng 2 (`+3.70 m`, `R = 4.95 m`) có lan can vòng, cột đồng 2 tầng và **`20` ngựa gỗ điêu khắc** (`12` tầng 1 + `8` tầng 2, giữ `getHorseWorldPosition(0..11)` tương thích camera).
+  - Tối ưu hiệu năng bằng **7 Display List** biên dịch đơn batch `GL_TRIANGLES` (`staticBase`, `rotatingBody`, 4 nhóm pha dao động ngựa gỗ, và `nightLights`).
+- **Kiểm tra va chạm & hình học (`verify_lote_a3.exe`):**
+  - Kích thước đo thực tế: `Static MaxR = 8.500 m` (`Ø17.00 m`), `Rotating MaxR = 7.737 m`, `Height Y [-0.02..10.00] m`, nằm gọn trong sân gạch `#2` (`21 × 21 m`).
+  - Hở mép lối đi `PATH_WEST_SPINE` (đoạn `3->4`): **`5.000 m`** (`≥ 5.0 m`); hở Monorail: **`16.62 m`**; hở cây gần nhất: **`10.07 m`**; hở bồn hoa: **`12.16 m`**; hở đèn đường: **`13.27 m`**.
+- **Hiệu năng đo tại `1280 × 768` (200 khung hình, Windows 11 / Intel UHD Graphics 770 ICD, Sunset):**
+  - Trước Lô A3 (sau chỉnh mái Garuda): **`62.8 FPS`** (FBO, `3.185 s`) / **`65.9 FPS`** (Backbuf, `3.036 s`).
+  - Sau Lô A3: **`63.7 FPS`** (FBO, `3.141 s`) / **`67.3 FPS`** (Backbuf, `2.971 s`) — vượt mốc trước lô và `≥ 60 FPS`.
+- **Bộ ảnh kiểm tra 3 chế độ (Ngày / Hoàng hôn / Đêm):**
+  - [`img/lote_a3_carousel_front_day.png`](img/lote_a3_carousel_front_day.png) — Cận 1: Chính diện cổng Bắc, bậc cấp, quầy vé, cầu thang cong, 2 tầng ngựa gỗ & mái nón 16 múi sọc chóp đỉnh (Ngày).
+  - [`img/lote_a3_carousel_angle_sunset.png`](img/lote_a3_carousel_angle_sunset.png) — Cận 2: Góc nghiêng Đông-Bắc lộ cầu thang cong lên tầng 2, diềm mái lượn sóng & lầu đèn (Hoàng hôn).
+  - [`img/lote_a3_carousel_night.png`](img/lote_a3_carousel_night.png) — Cận 3: Góc thấp Tây-Nam với vòng đèn diềm mái, đèn rọi gầm trần & lầu đèn phát sáng trên nền Sun Wheel và Tháp Đồng Hồ (Đêm).
+  - [`img/lote_a3_overview_sunset.png`](img/lote_a3_overview_sunset.png) — Toàn cảnh Lô A3 cùng `PATH_WEST_SPINE` & khu Tây công viên (Hoàng hôn).
+
 ---
 
 ## Phụ lục A. Đỉnh polygon OSM `way 667422708` (Da Nang Downtown, tham chiếu)
