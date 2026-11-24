@@ -86,6 +86,13 @@ public:
         }
     }
 
+    static Geometry::PolygonMesh buildAngkorTempleMesh(const MathCG::Vec3& centerPos = ParkLayout::ANGKOR_STAR_PLAZA_POS) {
+        Geometry::PolygonMesh m("AngkorWatTemple");
+        appendAngkorStarPlazaTowers(m, centerPos);
+        m.computeNormals();
+        return m;
+    }
+
 private:
     mutable Geometry::PolygonMesh staticArchMesh;
     mutable Geometry::PolygonMesh emissiveLampMesh;
@@ -388,7 +395,11 @@ private:
     }
 
     /**
-     * @brief Dựng Quảng trường Ngôi sao & 4 tháp chòi nhọn Angkor (#19 - ANGKOR_STAR_PLAZA_POS)
+     * @brief Lô B1 - Dựng quần thể Đền Angkor Wat đầy đủ tại Quảng trường Ngôi sao (#19 - ANGKOR_STAR_PLAZA_POS)
+     *        - Vị trí & sân sao: [Chưa xác minh tên/chi tiết chính thức] tại (-185.0, 0.0, -254.0).
+     *        - Hình dáng [Bản vẽ minh họa AI, tham khảo hình dạng] (#06) thu gọn vào 26x26m trên sân sao 27.8x27.8m
+     *          để chừa 7.15m tới tim dầm Monorail: nền đá 5 bậc giật cấp hình chữ thập, 4 cầu thang trục chữ thập,
+     *          hành lang cột bao quanh + 4 cổng Gopura đầu hồi tam giác và 5 tháp búp sen Prang Khmer.
      */
     static void appendAngkorStarPlazaTowers(
         Geometry::PolygonMesh& target,
@@ -396,59 +407,187 @@ private:
     ) {
         const float cx = centerPos.x;
         const float cz = centerPos.z;
-        const MathCG::ColorRGB stoneBase(0.55f, 0.49f, 0.41f);
-        const MathCG::ColorRGB sandstone(0.68f, 0.58f, 0.44f);
-        const MathCG::ColorRGB darkStone(0.42f, 0.36f, 0.30f);
-        const MathCG::ColorRGB goldTip(0.92f, 0.74f, 0.22f);
+        const MathCG::ColorRGB sandLight(0.75f, 0.66f, 0.52f);
+        const MathCG::ColorRGB sandMid  (0.62f, 0.53f, 0.41f);
+        const MathCG::ColorRGB sandDark (0.44f, 0.37f, 0.29f);
+        const MathCG::ColorRGB roofSlate(0.49f, 0.43f, 0.36f);
+        const MathCG::ColorRGB goldTip  (0.88f, 0.70f, 0.24f);
 
-        // Hàm nội bộ dựng 1 tháp chòi nhọn Angkor (Prang Khmer) nhiều tầng thuôn nhọn liền khối
-        auto buildAngkorTower = [&](float tx, float tz, float baseS, float totalScale) {
-            float y0 = 0.0f;
-            // Bệ tháp đá
-            appendBoxByYRange(target, tx, y0, y0 + 0.65f * totalScale, tz, baseS + 1.0f, baseS + 1.0f, darkStone);
-            // Thân chòi vuông + 4 trụ góc + cửa thông 4 hướng (y = 0.60 .. 3.80m)
-            float h1 = 3.80f * totalScale;
-            for (int sx : {-1, 1}) {
-                for (int sz : {-1, 1}) {
-                    appendBoxByYRange(
-                        target,
-                        tx + sx * (baseS * 0.36f),
-                        0.60f * totalScale, h1,
-                        tz + sz * (baseS * 0.36f),
-                        baseS * 0.28f, baseS * 0.28f, sandstone
-                    );
+        const float topY   = ParkLayout::ANGKOR_PLATFORM_TOP_Y;     // 2.85 m
+        const float eaveY  = ParkLayout::ANGKOR_GALLERY_EAVE_Y;     // 5.65 m
+        const float roofY  = ParkLayout::ANGKOR_GALLERY_ROOF_TOP_Y; // 6.45 m
+
+        // 1. Nền đá 5 bậc giật cấp hình chữ thập đối xứng 4 hướng (neo âm -0.04m, đỉnh +2.85m;
+        //    bậc trên cùng mở nhánh chữ thập tới ±8.90m để đỡ trọn 4 cổng Gopura không hở đáy)
+        const int numBaseSteps = 5;
+        const float stepH = topY / static_cast<float>(numBaseSteps);
+        for (int t = 0; t < numBaseSteps; ++t) {
+            float yBot = t * stepH - 0.04f;
+            float yTop = (t + 1) * stepH + ((t < numBaseSteps - 1) ? 0.02f : 0.0f);
+            float mainS = 18.80f - static_cast<float>(t) * 1.12f; // 18.80 -> 14.32 m
+            float armL  = 21.80f - static_cast<float>(t) * 1.00f; // 21.80 -> 17.80 m (±8.90 m)
+            float armW  =  5.40f - static_cast<float>(t) * 0.35f; //  5.40 ->  4.00 m
+            const MathCG::ColorRGB& sc = (t % 2 == 0) ? sandDark : sandMid;
+
+            appendBoxByYRange(target, cx, yBot, yTop, cz, mainS, mainS, sc);
+            appendBoxByYRange(target, cx, yBot, yTop, cz, armL,  armW,  sc);
+            appendBoxByYRange(target, cx, yBot, yTop, cz, armW,  armL,  sc);
+        }
+
+        // 2. 4 Cầu thang đá trục chữ thập từ mép ngoài (±12.88m <= 13.0m) bước lên sân tầng 1 (+2.85m)
+        const int stairSteps = 8;
+        const float dOuter = 12.88f; // 2 * 12.88 = 25.76 m <= 26.0 m
+        const float dInner =  8.40f;
+        const float runPerStep = (dOuter - dInner) / static_cast<float>(stairSteps);
+        const float risePerStep = topY / static_cast<float>(stairSteps);
+
+        auto addAxisStairAndGopura = [&](float dirX, float dirZ, float rotYDeg) {
+            bool alongX = (std::fabs(dirX) > 0.5f);
+            float perpX = alongX ? 0.0f : 1.0f;
+            float perpZ = alongX ? 1.0f : 0.0f;
+
+            // 2a. 8 bậc đá đặc liền khối neo xuống sân sao (y = -0.04m)
+            for (int k = 0; k < stairSteps; ++k) {
+                float d0 = dOuter - k * runPerStep;
+                float d1 = dOuter - (k + 1) * runPerStep - 0.10f; // gối khít vào bậc trên
+                float dm = 0.5f * (d0 + d1);
+                float sl = std::fabs(d0 - d1);
+                float stY = (k + 1) * risePerStep;
+                const MathCG::ColorRGB& stepCol = (k % 2 == 0) ? sandLight : sandMid;
+
+                float bx = cx + dirX * dm;
+                float bz = cz + dirZ * dm;
+                appendBoxByYRange(target, bx, -0.04f, stY, bz,
+                                  alongX ? sl : 3.00f, alongX ? 3.00f : sl, stepCol);
+            }
+            // 2b. Má lan can đá bậc giật cấp hai bên cầu thang & trụ chân thang
+            for (int side : {-1, 1}) {
+                float offP = side * 1.66f;
+                for (int blk = 0; blk < 4; ++blk) {
+                    float dA = dOuter - blk * (2.0f * runPerStep);
+                    float dB = dOuter - (blk + 1) * (2.0f * runPerStep) - 0.06f;
+                    float dm = 0.5f * (dA + dB);
+                    float bl = std::fabs(dA - dB);
+                    float topH = (blk + 1) * (2.0f * risePerStep) + 0.36f;
+                    appendBoxByYRange(target, cx + dirX * dm + perpX * offP, -0.04f, topH,
+                                      cz + dirZ * dm + perpZ * offP,
+                                      alongX ? bl : 0.36f, alongX ? 0.36f : bl, sandDark);
+                }
+                // Trụ đầu chân cầu thang Khmer (nằm gọn trong <= 12.86m)
+                float pDist = dOuter - 0.28f;
+                appendBoxByYRange(target, cx + dirX * pDist + perpX * offP, -0.04f, 1.15f,
+                                  cz + dirZ * pDist + perpZ * offP, 0.48f, 0.48f, sandLight);
+                target.append(Geometry::PolygonMesh::createPyramid(
+                    cx + dirX * pDist + perpX * offP, 1.14f, cz + dirZ * pDist + perpZ * offP,
+                    0.44f, 0.44f, 0.38f, sandDark
+                ));
+            }
+
+            // 2c. Tiền sảnh & Cổng đầu hồi tam giác Gopura tại ±7.95m trên trục chữ thập
+            float gDist = 7.95f;
+            float gx = cx + dirX * gDist;
+            float gz = cz + dirZ * gDist;
+            // Sàn tiền sảnh nối đầu thang vào hành lang
+            appendBoxByYRange(target, gx, topY - 0.18f, topY + 0.04f, gz,
+                              alongX ? 1.80f : 3.90f, alongX ? 3.90f : 1.80f, sandLight);
+            // 4 trụ cổng tiền sảnh + vách cửa tối
+            for (int fb : {-1, 1}) {
+                float fd = (fb > 0) ? 8.55f : 7.35f;
+                for (int lr : {-1, 1}) {
+                    float colX = cx + dirX * fd + perpX * (lr * 1.48f);
+                    float colZ = cz + dirZ * fd + perpZ * (lr * 1.48f);
+                    appendBoxByYRange(target, colX, topY, topY + 0.24f, colZ, 0.62f, 0.62f, sandDark);
+                    appendBoxByYRange(target, colX, topY + 0.24f, eaveY - 0.10f, colZ, 0.46f, 0.46f, sandLight);
+                    appendBoxByYRange(target, colX, eaveY - 0.14f, eaveY + 0.10f, colZ, 0.62f, 0.62f, sandMid);
                 }
             }
-            // Lõi đá giữa tháp
-            appendBoxByYRange(target, tx, 0.60f * totalScale, h1, tz, baseS * 0.52f, baseS * 0.52f, darkStone);
-            // 3 tầng cổ tháp thu nhỏ dần kiểu kiến trúc Angkor
-            float curY = h1 - 0.05f;
-            float curS = baseS + 0.4f;
-            for (int tier = 0; tier < 3; ++tier) {
-                float th = (1.05f - tier * 0.15f) * totalScale;
-                appendBoxByYRange(target, tx, curY, curY + th, tz, curS, curS, (tier % 2 == 0) ? sandstone : stoneBase);
-                curY += th - 0.04f;
-                curS *= 0.72f;
-            }
-            // Chóp tháp bút sen nhọn trên đỉnh (createPyramid)
-            target.append(Geometry::PolygonMesh::createPyramid(
-                tx, curY, tz,
-                curS * 1.05f, curS * 1.05f, 3.2f * totalScale, sandstone
-            ));
-            target.append(Geometry::PolygonMesh::createPyramid(
-                tx, curY + 3.05f * totalScale, tz,
-                0.55f, 0.55f, 1.15f * totalScale, goldTip
+            // Khối xà nối cửa vào và vòm tam giác Gopura nhô cao 2 tầng (+7.75m)
+            appendBoxByYRange(target, gx, eaveY - 0.22f, eaveY + 0.16f, gz,
+                              alongX ? 2.10f : 3.80f, alongX ? 3.80f : 2.10f, sandDark);
+            target.append(Geometry::PolygonMesh::createKhmerGopuraPediment(
+                gx, eaveY + 0.12f, gz,
+                3.85f, 2.20f, 2.10f,
+                sandLight, roofSlate, rotYDeg
             ));
         };
 
-        // 4 tháp chòi nhọn Angkor ở 4 góc quảng trường ngôi sao (±7.8m, ±7.8m)
-        for (int sx : {-1, 1}) {
-            for (int sz : {-1, 1}) {
-                buildAngkorTower(cx + sx * 7.8f, cz + sz * 7.8f, 4.4f, 1.0f);
+        addAxisStairAndGopura( 1.0f,  0.0f,  90.0f); // Đông (+X)
+        addAxisStairAndGopura(-1.0f,  0.0f, -90.0f); // Tây (-X)
+        addAxisStairAndGopura( 0.0f,  1.0f,   0.0f); // Nam (+Z)
+        addAxisStairAndGopura( 0.0f, -1.0f, 180.0f); // Bắc (-Z)
+
+        // 3. Sân tầng 1 (+2.85m) & Hệ hành lang 20 cột đá bao quanh cùng mái đá Khmer
+        appendBoxByYRange(target, cx, topY - 0.16f, topY + 0.02f, cz, 14.30f, 14.30f, sandLight);
+
+        // 20 cột vòng ngoài chạy theo 4 cạnh ±6.65m (bỏ vị trí 0 cho 4 cổng Gopura)
+        const float colGrid[6] = { -6.65f, -4.45f, -2.25f, 2.25f, 4.45f, 6.65f };
+        auto addGalleryColumn = [&](float lx, float lz) {
+            float wx = cx + lx, wz = cz + lz;
+            appendBoxByYRange(target, wx, topY, topY + 0.24f, wz, 0.56f, 0.56f, sandDark);
+            appendBoxByYRange(target, wx, topY + 0.24f, eaveY - 0.16f, wz, 0.40f, 0.40f, sandLight);
+            appendBoxByYRange(target, wx, eaveY - 0.18f, eaveY + 0.06f, wz, 0.56f, 0.56f, sandMid);
+        };
+        for (int i = 0; i < 6; ++i) {
+            addGalleryColumn(colGrid[i], -6.65f); // Cạnh Bắc
+            addGalleryColumn(colGrid[i],  6.65f); // Cạnh Nam
+            if (i > 0 && i < 5) {
+                addGalleryColumn(-6.65f, colGrid[i]); // Cạnh Tây (không trùng 4 góc)
+                addGalleryColumn( 6.65f, colGrid[i]); // Cạnh Đông
             }
         }
-        // Đài tháp tâm ngôi sao ở chính giữa quảng trường
-        buildAngkorTower(cx, cz, 3.4f, 0.82f);
+
+        // Khối lõi trung tâm tầng 2 & tường trong hành lang (có 4 hốc cửa sảnh nối chữ thập)
+        appendBoxByYRange(target, cx, topY, roofY - 0.10f, cz, 9.50f, 9.50f, sandMid);
+        appendBoxByYRange(target, cx, topY, eaveY, cz, 10.10f, 3.00f, sandDark); // Hành lang chữ thập lõi Đ-T
+        appendBoxByYRange(target, cx, topY, eaveY, cz, 3.00f, 10.10f, sandDark); // Hành lang chữ thập lõi B-N
+        // Cánh tường nối mái chữ thập từ tâm ra 4 cổng Gopura (theo Top Roof Plan #06)
+        appendBoxByYRange(target, cx, eaveY - 0.12f, roofY + 0.10f, cz, 14.20f, 2.30f, roofSlate);
+        appendBoxByYRange(target, cx, eaveY - 0.12f, roofY + 0.10f, cz, 2.30f, 14.20f, roofSlate);
+
+        // Vòng xà & mái hành lang đá Khmer 2 cấp bao quanh 4 mặt (khép kín vòng vuông tại R_mid = 5.75m)
+        const float galMid = 5.75f;
+        const float galLen = 14.10f;
+        for (int side : {-1, 1}) {
+            // Dầm xà dọc cạnh Bắc/Nam (Z = ±5.75) & Đông/Tây (X = ±5.75)
+            appendBoxByYRange(target, cx, eaveY - 0.12f, eaveY + 0.24f, cz + side * galMid, galLen, 2.35f, sandDark);
+            appendBoxByYRange(target, cx + side * galMid, eaveY - 0.12f, eaveY + 0.24f, cz, 2.35f, galLen, sandDark);
+            // Mái bậc dưới hành lang
+            appendBoxByYRange(target, cx, eaveY + 0.22f, eaveY + 0.56f, cz + side * galMid, galLen - 0.25f, 1.90f, roofSlate);
+            appendBoxByYRange(target, cx + side * galMid, eaveY + 0.22f, eaveY + 0.56f, cz, 1.90f, galLen - 0.25f, roofSlate);
+            // Gờ nóc mái hành lang
+            appendBoxByYRange(target, cx, eaveY + 0.54f, roofY, cz + side * galMid, galLen - 0.65f, 1.05f, sandMid);
+            appendBoxByYRange(target, cx + side * galMid, eaveY + 0.54f, roofY, cz, 1.05f, galLen - 0.65f, sandMid);
+        }
+
+        // 4. Bệ đền thượng trung tâm & Hệ 5 Tháp Búp Sen (Prang Khmer) đối xứng
+        appendBoxByYRange(target, cx, roofY - 0.20f, ParkLayout::ANGKOR_CENTER_PRANG_BASE_Y + 0.08f, cz, 6.20f, 6.20f, sandMid);
+        appendBoxByYRange(target, cx, roofY - 0.18f, ParkLayout::ANGKOR_CENTER_PRANG_BASE_Y + 0.06f, cz, 10.40f, 2.70f, sandMid);
+        appendBoxByYRange(target, cx, roofY - 0.18f, ParkLayout::ANGKOR_CENTER_PRANG_BASE_Y + 0.06f, cz, 2.70f, 10.40f, sandMid);
+
+        // 4 Tháp góc Prang Khmer đứng trên 4 giao điểm vòng mái hành lang (±5.75m, ±5.75m), cao tới 11.70m
+        for (int sx : {-1, 1}) {
+            for (int sz : {-1, 1}) {
+                target.append(Geometry::PolygonMesh::createKhmerPrangTower(
+                    cx + sx * galMid,
+                    ParkLayout::ANGKOR_CORNER_PRANG_BASE_Y,
+                    cz + sz * galMid,
+                    2.75f,
+                    ParkLayout::ANGKOR_CORNER_PRANG_HEIGHT,
+                    5,
+                    sandMid, sandLight, sandDark, goldTip
+                ));
+            }
+        }
+        // 1 Tháp Trung tâm Prang Khmer nổi bật tại tâm (0, 0) -> cao tới 15.00m
+        target.append(Geometry::PolygonMesh::createKhmerPrangTower(
+            cx,
+            ParkLayout::ANGKOR_CENTER_PRANG_BASE_Y,
+            cz,
+            4.15f,
+            ParkLayout::ANGKOR_CENTER_PRANG_HEIGHT,
+            6,
+            sandMid, sandLight, sandDark, goldTip
+        ));
     }
 
     /**
@@ -611,6 +750,23 @@ private:
                     );
                 }
             }
+        }
+
+        // 8 đèn đá chân công trình phát sáng ấm vào ban đêm tại 4 cổng Gopura Đền Angkor Wat
+        const MathCG::Vec3& ap = ParkLayout::ANGKOR_STAR_PLAZA_POS;
+        const float legD = 8.95f;
+        const float legOff = 1.65f;
+        const MathCG::ColorRGB stoneDark(0.42f, 0.36f, 0.28f);
+        const float lanternCoords[8][2] = {
+            { legD, -legOff }, { legD,  legOff }, { -legD, -legOff }, { -legD,  legOff },
+            { -legOff, legD }, {  legOff, legD }, { -legOff, -legD }, {  legOff, -legD }
+        };
+        for (int k = 0; k < 8; ++k) {
+            float lx = ap.x + lanternCoords[k][0];
+            float lz = ap.z + lanternCoords[k][1];
+            appendBoxByYRange(target, lx, ParkLayout::ANGKOR_PLATFORM_TOP_Y, ParkLayout::ANGKOR_PLATFORM_TOP_Y + 0.42f, lz, 0.30f, 0.30f, stoneDark);
+            emissiveLampMesh.append(Geometry::PolygonMesh::createBox(lx, ParkLayout::ANGKOR_PLATFORM_TOP_Y + 0.54f, lz, 0.24f, 0.22f, 0.24f, bulbWarmCol));
+            target.append(Geometry::PolygonMesh::createPyramid(lx, ParkLayout::ANGKOR_PLATFORM_TOP_Y + 0.65f, lz, 0.38f, 0.38f, 0.24f, stoneDark));
         }
 
         emissiveLampMesh.computeNormals();
@@ -1049,11 +1205,13 @@ private:
         }
 
         // 5. Nền lát hình Ngôi Sao 8 cánh tại Quảng trường Angkor (#19 - ANGKOR_STAR_PLAZA_POS: -185.0, 0, -254.0)
+        //    Mở rộng lên 27.8 x 27.8 m (vệ tinh ~28x28m) để ôm trọn 4 góc chân đền 26 x 26 m
         {
             const float ax = ParkLayout::ANGKOR_STAR_PLAZA_POS.x;
             const float az = ParkLayout::ANGKOR_STAR_PLAZA_POS.z;
             const float ay = 0.044f;
-            const float hs = 11.8f;
+            const float hs = ParkLayout::ANGKOR_STAR_PLAZA_HALF;
+            const float starOuterR = ParkLayout::ANGKOR_STAR_OUTER_RADIUS;
             // Nền đá vuông
             glColor3f(0.60f, 0.55f, 0.47f);
             glBegin(GL_QUADS);
@@ -1068,7 +1226,7 @@ private:
             glVertex3f(ax, ay + 0.004f, az);
             for (int i = 0; i <= 16; ++i) {
                 float a = (static_cast<float>(i) / 16.0f) * MathCG::TWO_PI;
-                float r = (i % 2 == 0) ? 11.0f : 4.5f;
+                float r = (i % 2 == 0) ? starOuterR : 5.2f;
                 glVertex3f(ax + r * std::cos(a), ay + 0.004f, az - r * std::sin(a));
             }
             glEnd();

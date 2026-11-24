@@ -1509,6 +1509,109 @@ public:
         mesh.computeNormals();
         return mesh;
     }
+
+    /**
+     * @brief Hàm dùng lại tạo Tháp búp sen Khmer (Prang Angkor Wat) nhiều tầng thuôn nhọn có chóp mũi giáo 4 góc
+     *        [Bản vẽ minh họa AI, tham khảo hình dạng]: neo âm -0.10m vào bệ dưới, thân chữ thập & chóp sen vàng đồng.
+     */
+    static PolygonMesh createKhmerPrangTower(
+        float cx, float baseY, float cz,
+        float baseW, float totalHeight,
+        int numTiers,
+        const MathCG::ColorRGB& stoneMainCol,
+        const MathCG::ColorRGB& stoneLightCol,
+        const MathCG::ColorRGB& stoneDarkCol,
+        const MathCG::ColorRGB& goldCol
+    ) {
+        PolygonMesh mesh("KhmerPrangTower");
+        mesh.defaultColor = stoneMainCol;
+
+        const int tiers = std::max(3, numTiers);
+        const float plinthH = totalHeight * 0.09f;
+        const float bodyH   = totalHeight * 0.22f;
+        const float spireZoneH = totalHeight * 0.56f;
+
+        // 1. Bệ chân tháp chữ thập (neo âm 0.10m vào bệ đền bên dưới để liền khối tuyệt đối)
+        appendBoxByYRange(mesh, 0.0f, -0.10f, plinthH, 0.0f, baseW * 1.08f, baseW * 1.08f, stoneDarkCol);
+        appendBoxByYRange(mesh, 0.0f, -0.08f, plinthH * 0.85f, 0.0f, baseW * 1.18f, baseW * 0.56f, stoneMainCol);
+        appendBoxByYRange(mesh, 0.0f, -0.08f, plinthH * 0.85f, 0.0f, baseW * 0.56f, baseW * 1.18f, stoneMainCol);
+
+        // 2. Thân điện thờ chữ thập (garbhagriha) với 4 cổng hốc vòm nhô 4 mặt
+        float yCur = plinthH - 0.03f;
+        float yBodyTop = yCur + bodyH;
+        appendBoxByYRange(mesh, 0.0f, yCur, yBodyTop, 0.0f, baseW * 0.90f, baseW * 0.90f, stoneMainCol);
+        appendBoxByYRange(mesh, 0.0f, yCur, yBodyTop * 0.96f, 0.0f, baseW * 1.04f, baseW * 0.44f, stoneLightCol);
+        appendBoxByYRange(mesh, 0.0f, yCur, yBodyTop * 0.96f, 0.0f, baseW * 0.44f, baseW * 1.04f, stoneLightCol);
+        // 4 mũi tam giác nhô trên cửa tháp (pediments) & hốc cửa tối
+        for (int side : {-1, 1}) {
+            mesh.append(createPyramid(side * baseW * 0.48f, yBodyTop - 0.08f, 0.0f, 0.26f, baseW * 0.42f, bodyH * 0.48f, stoneLightCol));
+            mesh.append(createPyramid(0.0f, yBodyTop - 0.08f, side * baseW * 0.48f, baseW * 0.42f, 0.26f, bodyH * 0.48f, stoneLightCol));
+            appendBoxByYRange(mesh, side * baseW * 0.50f, yCur + 0.05f, yBodyTop * 0.72f, 0.0f, 0.14f, baseW * 0.22f, stoneDarkCol);
+            appendBoxByYRange(mesh, 0.0f, yCur + 0.05f, yBodyTop * 0.72f, side * baseW * 0.50f, baseW * 0.22f, 0.14f, stoneDarkCol);
+        }
+
+        // 3. Các tầng cổ tháp thuôn parabol dạng búp sen kèm 4 mũi giáo góc đặc trưng (antefixes)
+        yCur = yBodyTop - 0.04f;
+        const float tierStepH = spireZoneH / static_cast<float>(tiers);
+        for (int t = 0; t < tiers; ++t) {
+            float frac = static_cast<float>(t) / static_cast<float>(tiers);
+            float scale = std::pow(1.0f - frac * 0.68f, 0.85f);
+            float tw = baseW * 0.88f * scale;
+            float th = tierStepH * (1.08f - 0.16f * frac);
+
+            const MathCG::ColorRGB& tCol = (t % 2 == 0) ? stoneMainCol : stoneLightCol;
+            appendBoxByYRange(mesh, 0.0f, yCur, yCur + th, 0.0f, tw, tw, tCol);
+            appendBoxByYRange(mesh, 0.0f, yCur + 0.02f, yCur + th * 0.90f, 0.0f, tw * 1.14f, tw * 0.44f, tCol);
+            appendBoxByYRange(mesh, 0.0f, yCur + 0.02f, yCur + th * 0.90f, 0.0f, tw * 0.44f, tw * 1.14f, tCol);
+            // Phào chỉ đá sẫm tách tầng rõ nét
+            appendBoxByYRange(mesh, 0.0f, yCur, yCur + th * 0.20f, 0.0f, tw * 1.06f, tw * 1.06f, stoneDarkCol);
+
+            // 4 mũi giáo đá nhỏ dựng đứng ở 4 góc mỗi tầng
+            float cornerOff = tw * 0.48f;
+            float peakW = std::max(0.14f, tw * 0.19f);
+            float peakH = th * 0.82f;
+            for (int sx : {-1, 1}) {
+                for (int sz : {-1, 1}) {
+                    mesh.append(createPyramid(sx * cornerOff, yCur + th * 0.35f, sz * cornerOff,
+                                              peakW, peakW, peakH, stoneLightCol));
+                }
+            }
+            yCur += tierStepH * 0.96f;
+        }
+
+        // 4. Đỉnh búp sen bát giác thuôn nhọn & chóp vàng đồng (vừa đúng totalHeight)
+        float crownBaseW = baseW * 0.28f;
+        float lotusR = crownBaseW * 0.62f;
+        float remH = std::max(0.35f, totalHeight - yCur);
+        mesh.append(createPrismY(0.0f, yCur - 0.04f, 0.0f, lotusR, remH * 0.34f + 0.04f, 8, stoneLightCol));
+        mesh.append(createPyramid(0.0f, yCur + remH * 0.28f, 0.0f, crownBaseW * 0.88f, crownBaseW * 0.88f, remH * 0.48f, stoneMainCol));
+        mesh.append(createPyramid(0.0f, yCur + remH * 0.70f, 0.0f, crownBaseW * 0.36f, crownBaseW * 0.36f, remH * 0.30f, goldCol));
+
+        mesh.translate(cx, baseY, cz);
+        mesh.computeNormals();
+        return mesh;
+    }
+
+    /**
+     * @brief Hàm dùng lại tạo Mái đầu hồi tam giác 2 cấp kiểu cổng Gopura đền Khmer (trục cổng theo Z)
+     */
+    static PolygonMesh createKhmerGopuraPediment(
+        float cx, float baseY, float cz,
+        float spanW, float depthD, float heightH,
+        const MathCG::ColorRGB& roofCol,
+        const MathCG::ColorRGB& trimCol,
+        float rotYDeg = 0.0f
+    ) {
+        PolygonMesh mesh("KhmerGopuraPediment");
+        // Khối đỡ 2 dốc + viền bậc đầu hồi tam giác 2 tầng Khmer (đặc khít, không rỗng gầm)
+        appendBoxByYRange(mesh, 0.0f, -0.05f, heightH * 0.26f, 0.0f, spanW, depthD, trimCol);
+        mesh.append(createPyramid(0.0f, heightH * 0.22f, 0.0f, spanW * 0.96f, depthD * 0.96f, heightH * 0.56f, roofCol));
+        mesh.append(createPyramid(0.0f, heightH * 0.60f, 0.0f, spanW * 0.52f, depthD * 0.56f, heightH * 0.40f, trimCol));
+        if (std::fabs(rotYDeg) > 1e-3f) mesh.rotateY(rotYDeg);
+        mesh.translate(cx, baseY, cz);
+        mesh.computeNormals();
+        return mesh;
+    }
 };
 
 } // namespace Geometry

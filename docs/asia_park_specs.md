@@ -607,6 +607,26 @@ Theo yêu cầu điều chỉnh số 1 & 2, cả 5 hạng mục dưới đây đ
   - **Sau Lô O1:** **`77.2 FPS`** (FBO, `2.591 s`, `12.955 ms/khung` — **`+18.8%`**) / **`80.5 FPS`** (Backbuf, `2.483 s`, `12.417 ms/khung` — **`+31.5%`**), vượt mục tiêu `≥ +10%`.
 - **Ảnh kiểm chứng 3 chế độ sau tối ưu:** [`img/lote_o1_day.png`](img/lote_o1_day.png), [`img/lote_o1_sunset.png`](img/lote_o1_sunset.png), [`img/lote_o1_night.png`](img/lote_o1_night.png).
 
+### 13.8. Nhật ký triển khai LÔ B1 (`Đền Angkor Wat` trên Quảng trường Ngôi sao `#19`)
+- **Trạng thái & nhãn nguồn:** Đã hoàn tất & commit riêng LÔ B1 trên nhánh `shape-upgrade-from-wave7`.
+  - **Vị trí & bằng chứng:** Đặt giữ nguyên tại [`ANGKOR_STAR_PLAZA_POS (-185.0, 0.0, -254.0)`](../src/core/ParkLayout.h#L525) (`step0_wave4_6_candidates.png` `#19` thấy rõ sân sao `~28×28 m`, gắn nhãn **`[Chưa xác minh tên/chi tiết chính thức]`**).
+  - **Hình dạng & tỷ lệ:** Theo bản vẽ `#06` **`[Bản vẽ minh họa AI, tham khảo hình dạng]`** thu gọn chân đế vào **`25.76 × 25.76 m`** (`≤ 26×26 m`) trên nền sân sao **`27.8 × 27.8 m`** (`ANGKOR_STAR_PLAZA_HALF = 13.90 m`, `ANGKOR_STAR_OUTER_RADIUS = 12.70 m`), không dời Monorail hay lối đi.
+- **Hàm dùng lại mới & kiến trúc trong [`src/geometry/MeshModel.h`](../src/geometry/MeshModel.h) và [`src/rides/ParkArchitecture.h`](../src/rides/ParkArchitecture.h):**
+  - `PolygonMesh::createKhmerPrangTower`: tháp búp sen Prang Khmer thân chữ thập nhiều tầng thuôn parabol có mũi giáo góc (`antefixes`) & chóp sen vàng đồng.
+  - `PolygonMesh::createKhmerGopuraPediment`: mái đầu hồi tam giác 2 cấp kiểu cổng Gopura Khmer.
+  - **Quần thể Đền (`appendAngkorStarPlazaTowers` / `buildAngkorTempleMesh`, `3,162` mặt / `3,896` đỉnh nằm gọn trong `archSmoothList`):** nền đá sa thạch 5 bậc giật cấp hình chữ thập (`0 -> +2.85 m`), 4 cầu thang đá trục chữ thập 8 bậc có má lan can giật cấp & trụ đá, hành lang bao quanh **20 cột** đá & 4 cổng Gopura (`y = 2.85..6.45 m`), hệ **5 tháp Prang** (4 tháp góc đạt `11.70 m`, 1 tháp trung tâm đạt **`15.00 m`**), kèm 8 đèn đá chân cổng đưa vào `emissiveLampMesh` phát sáng ấm ban đêm.
+- **Kiểm tra va chạm (`verify_lote_b1.exe`, kèm hồi quy `verify_lote_a2` & `verify_lote_a3`):** **`PASS`**
+  - Kích thước thực đo: `25.76 × 25.76 m`, `Y [-0.04..15.00] m`, nằm trọn trong sân sao `27.8 × 27.8 m`.
+  - Hở tim dầm Monorail: **`7.27 m`** (`≥ 3.0 m`); hở mép `PATH_WEST_SPINE`: **`15.59 m`**; hở `PATH_LAKESIDE_WEST`: **`11.81 m`**; hở cây gần nhất: **`12.12 m`**; hở ray `MiniCoaster` gần nhất: **`15.57 m`**.
+- **Hiệu năng đo tại `1280 × 768` (200 khung hình, Sunset, Windows 11 / Intel UHD Graphics 770):**
+  - Mốc đệm trước B1 (ngay sau Lô O1): **`77.2 FPS`** (FBO) / **`80.5 FPS`** (Backbuf) *(trước O1 / sau Lô A3 là `65.0 / 61.2`–`67.3 FPS`)*.
+  - Sau Lô B1 (`render_lote_b1.exe` lúc máy rảnh): **`72.4 FPS`** (FBO, `2.763 s`, `13.817 ms/khung`) / **`74.4 FPS`** (Backbuf, `2.687 s`, `13.433 ms/khung`); trên harness `o1_capture_and_profile.exe`: **`74.7 FPS`** (FBO, `2.677 s`) / **`74.5 FPS`** (Backbuf, `2.685 s`). Cao hơn hẳn mốc `≥ 60 FPS` và mốc trước O1 (`~65 FPS`), nhưng giảm nhẹ `~2.5–6 FPS` so với đỉnh đệm ngay sau Lô O1 do bổ sung `3,162` mặt kiến trúc Đền Angkor.
+- **Bộ ảnh kiểm tra 3 chế độ (Ngày / Hoàng hôn / Đêm):**
+  - [`img/lote_b1_angkor_front_day.png`](img/lote_b1_angkor_front_day.png) — Cận 1: Mặt chính diện Nam Đền Angkor Wat (`25.76×25.76 m`, cao `15.00 m`) trên sân sao (Ngày).
+  - [`img/lote_b1_angkor_angle_sunset.png`](img/lote_b1_angkor_angle_sunset.png) — Cận 2: Góc nghiêng Đông-Nam lộ 5 bậc chữ thập, hành lang 20 cột, 4 cổng Gopura & 5 tháp Prang (Hoàng hôn).
+  - [`img/lote_b1_angkor_night.png`](img/lote_b1_angkor_night.png) — Cận 3: Góc Tây-Nam với 8 đèn đá chân cổng phát sáng dịu (Đêm).
+  - [`img/lote_b1_overview_day.png`](img/lote_b1_overview_day.png) — Toàn cảnh khu Tây-Bắc cùng Monorail (`7.27 m`), Ga Nepal & Highway Boat (Ngày).
+
 ---
 
 ## Phụ lục A. Đỉnh polygon OSM `way 667422708` (Da Nang Downtown, tham chiếu)

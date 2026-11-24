@@ -522,7 +522,17 @@ constexpr MathCG::Vec3 CENTRAL_ROTUNDA_RIDE_POS(-141.3f, 0.0f, -137.6f);    // #
 constexpr MathCG::Vec3 ROUND_SPIN_RIDE_3_POS(-143.4f, 0.0f, -179.6f);       // #14: Đu quay tròn 3 khu giữa (ĐK 15m, 14 ghế) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
 constexpr MathCG::Vec3 WEST_CANOPY_THEATER_POS(-256.0f, 0.0f, -128.7f);     // #15: Nhà mái xanh-trắng khu Tây (20x20m, mái cong vòm rộng) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
 constexpr MathCG::Vec3 ANGKOR_LAKESIDE_HALL_POS(-138.0f, 0.0f, -242.0f);    // #18: Nhà mái xanh khu Angkor ven hồ (20x14m, xoay -22°) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
-constexpr MathCG::Vec3 ANGKOR_STAR_PLAZA_POS(-185.0f, 0.0f, -254.0f);       // #19: Quảng trường Ngôi sao & 4 tháp chòi nhọn Angkor (24x24m) [Ước lượng từ ảnh vệ tinh; mô phỏng, chưa xác minh]
+constexpr MathCG::Vec3 ANGKOR_STAR_PLAZA_POS(-185.0f, 0.0f, -254.0f);       // #19: Quần thể Đền Angkor Wat trên sân sao 8 cánh [Chưa xác minh tên/chi tiết chính thức; hình dạng theo AI #06]
+constexpr float ANGKOR_STAR_PLAZA_HALF       = 13.90f; // Sân sao 27.8 x 27.8 m (vệ tinh ~28x28m)
+constexpr float ANGKOR_STAR_OUTER_RADIUS     = 12.70f; // Bán kính đỉnh sao 8 cánh (gọn sát chân cầu thang 12.88m không ló mũi)
+constexpr float ANGKOR_TEMPLE_HALF_FOOTPRINT = 12.90f; // Khung đền + 4 cầu thang chữ thập thu gọn trong 25.8 x 25.8 m (<= 26x26 m, hở Monorail 7.15 m)
+constexpr float ANGKOR_PLATFORM_TOP_Y        =  2.85f; // Cao độ sân nền đền sau 5 bậc đá giật cấp
+constexpr float ANGKOR_GALLERY_EAVE_Y        =  5.65f; // Cao độ xà đầu cột hành lang bao quanh
+constexpr float ANGKOR_GALLERY_ROOF_TOP_Y    =  6.45f; // Đỉnh mái hành lang đá Khmer
+constexpr float ANGKOR_CORNER_PRANG_BASE_Y   =  6.15f; // Bệ đặt 4 tháp góc trên đỉnh mái hành lang
+constexpr float ANGKOR_CORNER_PRANG_HEIGHT   =  5.55f; // Chiều cao 4 tháp góc -> đỉnh ~11.70 m
+constexpr float ANGKOR_CENTER_PRANG_BASE_Y   =  6.40f; // Bệ thượng tháp trung tâm
+constexpr float ANGKOR_CENTER_PRANG_HEIGHT   =  8.60f; // Chiều cao tháp trung tâm -> đỉnh 15.00 m
 
 // ============================================================================
 // 8. ĐỢT 6A & 6B: TIỂU CẢNH ĐÈN ĐƯỜNG, GHẾ NGHỈ, BỒN HOA, CỘT CỜ, BIỂN CHỈ DẪN
