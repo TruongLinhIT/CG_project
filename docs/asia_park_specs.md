@@ -642,6 +642,17 @@ Theo yêu cầu điều chỉnh số 1 & 2, cả 5 hạng mục dưới đây đ
   - [`img/lote_l1_overview_night.png`](img/lote_l1_overview_night.png), [`img/lote_l1_overview_day.png`](img/lote_l1_overview_day.png)
 - **Dọn kho lưu trữ (commit riêng kế tiếp):** gỡ theo dõi `AsiaPark3D.exe` khỏi git index (`git rm --cached AsiaPark3D.exe`), thêm `.gitignore` (`*.exe`), xóa git worktree tạm của `main`.
 
+### 13.10. Tích hợp `NightIllumination` (Đợt 9 từ `9b92030`) & chuẩn hóa nhánh `main`
+- **Phạm vi gộp:** Gộp phần chiếu sáng ban đêm/hoàng hôn từ `origin/main` (`9b92030`) lên nhánh `integrate-lighting` rồi dùng chiến lược `git merge -s ours` đưa toàn bộ cây mã nguồn `integrate-lighting` lên `main` và `origin/main` (giữ `shape-upgrade-from-wave7` / tag `shape-ab-ok` tại `7e31a6b` và `backup-main-before-lighting` tại `b3d5b94`, loại bỏ hoàn toàn công trình Đợt 8c `MasterPlan8c.h` và dành phím `[K]` cho Giai đoạn C).
+- **Các thay đổi chính:**
+  - [`src/core/Lighting.h`](../src/core/Lighting.h): tăng nhẹ độ sáng ánh trăng ban đêm (`globalAmbient = {0.20, 0.22, 0.34}`, `light0Diff = {0.34, 0.40, 0.62}`, `light0Spec = {0.26, 0.32, 0.50}`).
+  - [`src/rides/NightIllumination.h`](../src/rides/NightIllumination.h) (`leds = 1899`, `strips = 8`, `pools = 346`): sinh thủ tục trụ đèn đôi `6.0 m` (cache trong Display List `fixturesList_`), festoon, viền LED lối đi & công trình khớp hình học Lô A1–B1 & Lô L1; loại bỏ đường Đông Đợt 8c và `GL_LIGHT6`; dùng `appendBoxByYRange` thay cho `MeshBuilders.h`; sửa bảng chặn công trình (Tháp Đồng Hồ A1, Angkor Wat B1, Paradise Fall A2) và tránh đèn đường hiện hữu (`< 5.0 m`); sửa LED đường ray Queen Cobra bằng `AsiaParkCurvesSystem::transformQueenCobraPoint` và hạ cao độ LED Monorail/MiniCoaster bám sát dầm/ray (`-0.75 m` / `-0.25 m`).
+  - Hiệu năng & giới hạn đèn phần cứng: `applyNightLights` dùng tối đa `GL_LIGHT3..5` (tổng **`6/8`** `GL_LIGHT*` ở Đêm/Hoàng hôn với `[G]` bật, **`3/8`** khi `[G]` tắt, **`2/8`** ở Ngày), tắt `GL_SPECULAR` trên 3 đèn phụ và tính trước vector hướng lục giác + phân cấp quad xa trong `drawGlow()` (`cullDistance = 850 m`, `haloDistance = 120 m`).
+  - [`src/ui/HUD.h`](../src/ui/HUD.h) & [`src/main.cpp`](../src/main.cpp): bổ sung phím `[G]`, menu chuột phải `Bat/Tat Den LED & Chieu sang ban dem [G]`, dòng trạng thái trên HUD và đồng bộ đường chạy headless `#ifndef _WIN32`.
+- **Kiểm chứng (`1280 × 768`, Windows 11):**
+  - Biên dịch `-Wall -Wextra`: **0 cảnh báo** (`BUILD_EXIT=0`), `glGetError=0x0`, `verify_lote_a1`, `verify_lote_a2`, `verify_lote_a3`, `verify_lote_b1` đều **PASS**.
+  - FPS (`1280 × 768`, 200 khung Sunset, chế độ đầy đủ `NightIllumination` + headlight): đạt **`65.2 FPS`** Backbuffer (`15.334 ms/khung`) / **`58.9 FPS`** FBO (sau tối ưu `69.5 FPS` Backbuffer / `61.9 FPS` FBO ở lượt đo `dot9opt`, trước tối ưu là `59.1 FPS` Backbuffer / `56.5 FPS` FBO).
+
 ---
 
 ## Phụ lục A. Đỉnh polygon OSM `way 667422708` (Da Nang Downtown, tham chiếu)

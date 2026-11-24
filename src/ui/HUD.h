@@ -58,7 +58,8 @@ public:
         float coasterParamT,
         float coasterSpeedMps,
         float sunWheelSpeedDeg = 0.4f,
-        bool sunWheelFastDemo = false
+        bool sunWheelFastDemo = false,
+        bool nightLightsOn = true
     ) {
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
@@ -75,7 +76,7 @@ public:
         // 1. Nền bảng điều khiển kiểu kính tối bán trong suốt ở góc trên bên trái
         const float panelX      = 12.0f;
         const float panelTop    = windowHeight - 12.0f;
-        const float panelHeight = 258.0f;
+        const float panelHeight = 278.0f;
         const float panelWidth  = 660.0f;
         const float panelBottom = panelTop - panelHeight;
 
@@ -158,6 +159,11 @@ public:
         std::snprintf(buf, sizeof(buf), "[R] Phan xa ho: %s | [SPACE] %s | Chuot phai: Menu",
                       lakeReflection ? "BAT (y=0)" : "TAT",
                       isPaused ? "TAM DUNG" : "DANG CHAY");
+        drawBitmapText(panelX + 14.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
+
+        glColor3f(1.0f, 0.86f, 0.36f);
+        std::snprintf(buf, sizeof(buf), "[G] Den LED ban dem: %s (Chuong 6: GL_LIGHT3..5 + Billboard)",
+                      nightLightsOn ? "BAT" : "TAT");
         drawBitmapText(panelX + 14.0f, y, GLUT_BITMAP_9_BY_15, buf); y -= dy;
 
         glColor3f(0.65f, 0.85f, 1.0f);
